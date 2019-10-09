@@ -1,0 +1,125 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Oct  3 16:03:42 2019
+
+@author: alfaceor
+"""
+
+import IgorSqliteDB
+import numpy as np
+
+flnIgorDB = "chicagoMouse.db"
+batchname = "TRbeta"
+WD="uchicago/"
+flnIgorIndexedSeq = "pytest/aligns/Barb02_indexed_sequences.csv"
+
+IgorSpecie    = "mouse"
+IgorChain     = "tcr_beta"
+IgorModelPath = "../../IGoR/models/"+IgorSpecie+"/"+IgorChain+"/ref_genome/"
+
+flnVGeneTemplate = IgorModelPath+"genomicVs.fasta"
+flnDGeneTemplate = IgorModelPath+"genomicDs.fasta"
+flnJGeneTemplate = IgorModelPath+"genomicJs.fasta"
+
+flnVGeneCDR3Anchors = IgorModelPath+"V_gene_CDR3_anchors.csv"
+flnJGeneCDR3Anchors = IgorModelPath+"J_gene_CDR3_anchors.csv"
+
+flnVAlignments = "pytest/aligns/Barb02_V_alignments.csv"
+flnDAlignments = "pytest/aligns/Barb02_D_alignments.csv"
+flnJAlignments = "pytest/aligns/Barb02_J_alignments.csv"
+
+### load IGoR database
+db = IgorSqliteDB.IgorSqliteDB()
+db.createSqliteDB(flnIgorDB)
+db.load_VDJ_Database(flnIgorIndexedSeq, flnVGeneTemplate, flnDGeneTemplate, flnJGeneTemplate, flnVAlignments, flnDAlignments, flnJAlignments)
+
+seq_index=929
+
+v_aligns = db.fetch_IgorAlignments_By_seq_index("V", seq_index)
+d_aligns = db.fetch_IgorAlignments_By_seq_index("D", seq_index)
+j_aligns = db.fetch_IgorAlignments_By_seq_index("J", seq_index)
+
+print(v_aligns)
+print(d_aligns)
+print(j_aligns)
+
+v_offset   = v_aligns[0][3]
+d_offset   = d_aligns[0][3]
+j_offset   = j_aligns[0][3]
+
+seq_offset = 0
+min_offset = np.array([seq_offset, v_offset, d_offset, j_offset]).min()
+
+strSeq   = db.fetch_IgorIndexedSeq_By_seq_index(seq_index)[1]
+
+strSeq_V = db.fetch_IgorGeneTemplate_By_gene_id("V", v_aligns[0][1])[2]
+strSeq_D = db.fetch_IgorGeneTemplate_By_gene_id("D", d_aligns[0][1])[2]
+strSeq_J = db.fetch_IgorGeneTemplate_By_gene_id("J", d_aligns[0][1])[2]
+
+strName_V = db.fetch_IgorGeneTemplate_By_gene_id("V", v_aligns[0][1])[1]
+strName_D = db.fetch_IgorGeneTemplate_By_gene_id("D", d_aligns[0][1])[1]
+strName_J = db.fetch_IgorGeneTemplate_By_gene_id("J", d_aligns[0][1])[1]
+
+strAlnSeq   = (seq_offset-min_offset)*"-"+ strSeq
+strAlnSeq_V = (v_offset-min_offset)*"-"  + strSeq_V
+strAlnSeq_D = (d_offset-min_offset)*"-"  + strSeq_D
+strAlnSeq_J = (j_offset-min_offset)*"-"  + strSeq_J
+
+
+
+
+# TODO: make a print of the sequence like an aln file or fasta
+ofile = open("example.fasta","w")
+ofile.write("> "+str(seq_index)+"\n")
+ofile.write(strAlnSeq+"\n")
+ofile.write("> "+strName_V+"\n")
+ofile.write(strAlnSeq_V+"\n")
+ofile.write("> "+strName_D+"\n")
+ofile.write(strAlnSeq_D+"\n")
+ofile.write("> "+strName_J+"\n")
+ofile.write(strAlnSeq_J+"\n")
+ofile.close()
+
+
+
+#
+#
+#print(db.fetch_IgorGeneTemplate_By_gene_id("V", v_aligns[0][1])[2] )
+#print((d_offset-min_offset)*" "+db.fetch_IgorGeneTemplate_By_gene_id("D", d_aligns[0][1])[2] )
+#print((j_offset-min_offset)*" "+db.fetch_IgorGeneTemplate_By_gene_id("J", j_aligns[0][1])[2] )
+#
+#
+#
+#print("V", db.fetch_IgorGeneTemplate_By_gene_id("V", v_aligns[0][1])[2] )
+#print("D", db.fetch_IgorGeneTemplate_By_gene_id("D", d_aligns[0][1])[2] )
+#print("J", db.fetch_IgorGeneTemplate_By_gene_id("J", j_aligns[0][1])[2] )
+
+# Now we need a pandas to manipulate the alignment data.
+
+
+#query = "SELECT vgene_id, sequence FROM IgorVGeneTemplate WHERE seq_index==929 ORDER BY score DESC"
+
+#query = '''SELECT seq_index, IgorVGeneTemplate.sequence 
+#        FROM IgorVAlignments 
+#        INNER JOIN IgorVGeneTemplate ON 
+#        IgorVAlignments.vgene_id = IgorVGeneTemplate.vgene_id
+#        '''
+
+
+#query = '''SELECT seq_index, IgorVGeneTemplate.sequence 
+#        FROM IgorVAlignments 
+#        INNER JOIN IgorVGeneTemplate ON 
+#        IgorVAlignments.vgene_id = IgorVGeneTemplate.vgene_id
+#        '''
+
+#cur.execute(query)
+#results = cur.fetchall()
+#print(results)
+#import pandas as pd
+#colnames=["seq_index", "gene_id", "score", "offset", "insertions", "deletions", "mismatches", "length", "offset_5_p_align", "offset_3_p_align" ] 
+#print(len(colnames))
+#df = pd.DataFrame(results, columns=colnames)
+#df['offset'].loc[0]
+#df.loc[0]
+

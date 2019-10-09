@@ -9,6 +9,12 @@ Created on Thu Oct  3 11:02:28 2019
 import sqlite3
 import csv
 from Bio import SeqIO
+import IgorAlignment_data
+
+
+###################
+# TODO: Generalize to other kinds of database like postgres
+###################
 
 class IgorSqliteDB:
     """
@@ -35,6 +41,9 @@ class IgorSqliteDB:
     
     #@classmethod
     def createSqliteDB(self, flnIgorDB):
+        """
+        Create a SQLite database with the flnIgorDB sql script.
+        """
         self.conn = None
         try:
             self.conn = sqlite3.connect(flnIgorDB)
@@ -74,15 +83,18 @@ class IgorSqliteDB:
         self.flnIgorIndexedSeq = flnIgorIndexedSeq        
         
         cur = self.conn.cursor()
-        cur.execute('BEGIN TRANSACTION')
-        with open(flnIgorIndexedSeq) as fp:
-            csvline = fp.readline()
-            while csvline:
+        try:
+            cur.execute('BEGIN TRANSACTION')
+            with open(flnIgorIndexedSeq) as fp:
                 csvline = fp.readline()
-                #print(csvline)
-                self.insert_IgorIndexedSeq_FromCSVline(cur, csvline)
-        cur.execute('COMMIT')
-        #self.conn.commit()
+                while csvline:
+                    csvline = fp.readline()
+                    #print(csvline)
+                    self.insert_IgorIndexedSeq_FromCSVline(cur, csvline)
+            cur.execute('COMMIT')
+            #self.conn.commit()
+        except sqlite3.Error as e:
+            print(e)
 
     
     def insert_IgorIndexedSeq_FromCSVline(self, cur, csvline):
@@ -204,17 +216,19 @@ class IgorSqliteDB:
         strGene = strGene.upper()
         filename = {'V': self.flnVAlignments, 'D' : self.flnDAlignments, 'J': self.flnJAlignments}
         filename[strGene] = flnAlignments
-        
-        cur = self.conn.cursor()
-        cur.execute('BEGIN TRANSACTION')
-        with open(filename[strGene]) as fp:
-            csvline = fp.readline()
-            while csvline:
+        try:
+            cur = self.conn.cursor()
+            cur.execute('BEGIN TRANSACTION')
+            with open(filename[strGene]) as fp:
                 csvline = fp.readline()
-                #print(csvline)
-                self.insert_IgorAlignments_FromCSVline(cur, strGene, csvline)
-        
-        cur.execute('COMMIT')
+                while csvline:
+                    csvline = fp.readline()
+                    #print(csvline)
+                    self.insert_IgorAlignments_FromCSVline(cur, strGene, csvline)
+            
+            cur.execute('COMMIT')
+        except sqlite3.Error as e:
+            print(e)
     
         
     
@@ -271,8 +285,42 @@ class IgorSqliteDB:
         sqlSelect = "SELECT * FROM Igor"+strGene.upper()+"Alignments WHERE seq_index=="+str(seq_index)+" ORDER BY score DESC"
         cur = self.conn.cursor()
         cur.execute(sqlSelect)
-        record = cur.fetchone()
+        record = cur.fetchall()
         return (record) 
+    
+    
+    # TODO: Create an IgorAlignment_data instance with a better sql query (join the necessary tables.)
+    def appendList_IgorAlignments_data_By_seq_index(self, strGene_class, seq_index, alnDataList=None):
+        """
+        Append to a list of IgorAlignment_data objects given gene class ("V", "D", "J"), seq_index 
+        append a list to append the objects.
+        :param strGene_class: string to specify the type of gene V, D or J.
+        :param seq_index: IgorIndexedSequences index.
+        :param alnDataList: List of IgorAlignment_data objects.
+        """
+        if alnDataList == None:
+            alnDataList = list()
+        
+        try:
+            alignsSQLrecords = self.fetch_IgorAlignments_By_seq_index(strGene_class, seq_index)
+            for alignSQLrecord in alignsSQLrecords:
+                #print(alignSQLrecord)
+                gene_id = alignSQLrecord[1]
+                geneTemplateRecord = self.fetch_IgorGeneTemplate_By_gene_id(strGene_class, gene_id)
+                strGene_name = geneTemplateRecord[1]
+                strGene_seq  = geneTemplateRecord[2]
+                aln_data = IgorAlignment_data.IgorAlignment_data.load_FromSQLRecord(alignSQLrecord, strGene_name=strGene_name)
+                aln_data.strGene_class = strGene_class
+                aln_data.strGene_seq   = strGene_seq
+                alnDataList.append(aln_data)
+                #print(aln_data.strGene_name, aln_data.score, aln_data.offset, aln_data.insertions)
+            return alnDataList
+        except Exception as e:
+            print(e)
+    
+    def write_IgorAlignments2Fasta(self, alnDataList):
+        print(alnDataList)
+
         
     
 
