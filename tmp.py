@@ -1,4 +1,295 @@
 
+##### The event I think is the best one
+my_bs = IgorBestScenarios.IgorBestScenariosVDJ() #.load_FromSQLRecord(record_bs[ii])
+my_bs.setModel_Parms(flnModelParms)
+my_bs.mdl = mdl
+my_bs.seq_index = 59
+my_bs.strSeq_index  = db.fetch_IgorIndexedSeq_By_seq_index(seq_index)[1]
+
+# V gene
+pd_event  = mdl.parms.Event_dict['v_choice']
+gene_name = 'TRBV17*01'
+gene_id   = pd_event.loc[pd_event['name'] == gene_name ].index.values[0]
+my_bs.id_v_choice = gene_id
+
+# J gene
+pd_event  = mdl.parms.Event_dict['j_choice']
+gene_name = 'TRBJ2-3*01'
+gene_id   = pd_event.loc[pd_event['name'] == gene_name ].index.values[0]
+my_bs.id_j_choice = gene_id
+
+# D gene
+pd_event  = mdl.parms.Event_dict['d_gene']
+gene_name = 'TRBD1*01'
+gene_id   = pd_event.loc[pd_event['name'] == gene_name ].index.values[0]
+my_bs.id_d_gene = gene_id
+
+# v_3_del 
+pd_event    = mdl.parms.Event_dict['v_3_del']
+pd_event['value']
+realiz_name = 0
+realiz_id   = pd_event.loc[pd_event['value'] == realiz_name ].index.values[0]
+my_bs.id_v_3_del = realiz_id
+
+
+# d_5_del 
+pd_event    = mdl.parms.Event_dict['d_5_del']
+pd_event['value']
+realiz_name = 0
+realiz_id   = pd_event.loc[pd_event['value'] == realiz_name ].index.values[0]
+my_bs.id_d_5_del = realiz_id
+
+# d_3_del 
+pd_event    = mdl.parms.Event_dict['d_3_del']
+pd_event['value']
+realiz_name = 0
+realiz_id   = pd_event.loc[pd_event['value'] == realiz_name ].index.values[0]
+my_bs.id_d_3_del = realiz_id
+
+# j_5_del 
+pd_event    = mdl.parms.Event_dict['j_5_del']
+pd_event['value']
+realiz_name = 0
+realiz_id   = pd_event.loc[pd_event['value'] == realiz_name ].index.values[0]
+my_bs.id_j_5_del = realiz_id
+
+# vd_ins 
+pd_event    = mdl.parms.Event_dict['vd_ins']
+pd_event['value']
+realiz_name = 0
+realiz_id   = pd_event.loc[pd_event['value'] == realiz_name ].index.values[0]
+my_bs.id_vd_ins = realiz_id
+
+# dj_ins 
+pd_event    = mdl.parms.Event_dict['dj_ins']
+pd_event['value']
+realiz_name = 0
+realiz_id   = pd_event.loc[pd_event['value'] == realiz_name ].index.values[0]
+my_bs.id_dj_ins = realiz_id
+
+
+# FIXME: TMP set to zero ins and dels
+my_bs.mismatcheslen = 0
+
+my_bs.mdlParms.Event_dict['v_choice'].loc[my_bs.id_v_choice]['value']
+my_bs.getV_Region()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+###### v_choice
+strEvent = 'v_choice'
+da_event = mdl.xdata[strEvent]
+p_V = da_event[{strEvent: bs.id_v_choice}]
+p_V
+#p_V = da_event.where(da_event['lbl__'+strEvent] == bs.getV_gene_name() ,drop=True)
+
+###### j_choice
+strEvent = 'j_choice'
+da_event = mdl.xdata[strEvent]
+p_J = da_event[{strEvent: bs.id_j_choice}]
+p_J
+#p_J = da_event.where(da_event['lbl__'+strEvent] == bs.getJ_gene_name() ,drop=True)
+
+###### d_gene
+strEvent = 'd_gene'
+da_event = mdl.xdata[strEvent]
+p_DgJ = da_event[{'d_gene':bs.id_d_gene, 'j_choice':bs.id_j_choice}]
+p_DgJ
+
+
+###### v_3_del
+strEvent = 'v_3_del'
+da_event = mdl.xdata[strEvent]
+p_V_3_del = da_event[{'v_3_del':bs.id_v_3_del, 'v_choice':bs.id_v_choice}]
+p_V_3_del
+
+
+###### j_5_del
+strEvent = 'j_5_del'
+da_event = mdl.xdata[strEvent]
+p_J_5_del = da_event[{'j_5_del':bs.id_j_5_del, 'j_choice':bs.id_j_choice}]
+p_J_5_del
+
+###### d_5_del
+strEvent = 'd_5_del'
+da_event = mdl.xdata[strEvent]
+p_D_5_del = da_event[{'d_5_del':bs.id_d_5_del, 'd_gene':bs.id_d_gene}]
+p_D_5_del
+
+###### d_3_del
+strEvent = 'd_3_del'
+da_event = mdl.xdata[strEvent]
+p_D_3_del = da_event[{'d_3_del':bs.id_d_3_del, 'd_5_del':bs.id_d_5_del, 'd_gene':bs.id_d_gene}]
+p_D_3_del
+
+###### vd_ins
+strEvent = 'vd_ins'
+da_event = mdl.xdata[strEvent]
+p_VD_ins = da_event[{'vd_ins':bs.id_vd_ins}]
+p_VD_ins
+
+
+###### vd_dinucl
+strEvent = 'vd_dinucl'
+da_event = mdl.xdata[strEvent]
+# Get the last nucleotide of V region (after deletions)
+
+str_prev_nt = bs.getV_Region()[-1]
+pd_tmp = mdl.parms.Event_dict[strEvent]
+prev_nt = pd_tmp.loc[pd_tmp['value'] == str_prev_nt].index.values[0]
+
+# for each nucleotide on inserted list
+Num_nt = 4 # 4 nucleotides A, C, G, T 
+p_VD_dinucl = 1
+for curr_nt in bs.vd_dinucl:
+    id_dinucl   = prev_nt*Num_nt + curr_nt
+    prob_tmp    = da_event[{'vd_dinucl':id_dinucl}]
+    p_VD_dinucl = p_VD_dinucl * prob_tmp
+    print(prev_nt, curr_nt, id_dinucl, prob_tmp, p_VD_dinucl)
+    prev_nt = curr_nt
+
+p_VD_dinucl
+
+###### dj_ins
+strEvent = 'dj_ins'
+da_event = mdl.xdata[strEvent]
+p_DJ_ins = da_event[{'dj_ins':bs.id_dj_ins}]
+p_DJ_ins
+
+###### dj_dinucl
+strEvent = 'dj_dinucl'
+da_event = mdl.xdata[strEvent]
+# Get the last nucleotide of V region (after deletions)
+
+str_prev_nt = (bs.getV_Region() + bs.getVD_Region() + bs.getD_Region() )[-1]
+pd_tmp = mdl.parms.Event_dict[strEvent]
+prev_nt = pd_tmp.loc[pd_tmp['value'] == str_prev_nt].index.values[0]
+
+# for each nucleotide on inserted list
+Num_nt = 4 # 4 nucleotides A, C, G, T 
+p_DJ_dinucl = 1
+for curr_nt in bs.vd_dinucl:
+    id_dinucl   = prev_nt*Num_nt + curr_nt
+    prob_tmp    = da_event[{'dj_dinucl':id_dinucl}]
+    p_DJ_dinucl = p_DJ_dinucl * prob_tmp
+    print(prev_nt, curr_nt, id_dinucl, prob_tmp, p_DJ_dinucl)
+    prev_nt = curr_nt
+
+p_DJ_dinucl
+
+
+
+mdl.parms.G.edges()
+mdl.parms.G.nodes()
+
+perror = float(mdl.parms.ErrorRate['SingleErrorRate'])
+
+bs.scenario_proba_cond_seq
+bs.mismatcheslen
+
+p_vecE = p_V*p_J*p_DgJ*p_V_3_del*p_J_5_del*p_D_5_del*p_D_3_del*p_VD_ins*p_VD_dinucl*p_DJ_ins*p_DJ_dinucl*(perror*bs.mismatcheslen)
+p_vecE.values
+
+p_cond =   p_V*(1-p_V)*\
+            p_J*(1-p_J)*\
+            p_DgJ*(1-p_DgJ)*\
+            p_V_3_del*(1-p_V_3_del)*\
+            p_J_5_del*(1-p_J_5_del)*\
+            p_D_5_del*(1-p_D_5_del)*\
+            p_D_3_del*(1-p_D_3_del)*\
+            p_VD_ins*(1-p_VD_ins)*\
+            p_VD_dinucl*(1-p_VD_dinucl)*\
+            p_DJ_ins*(1-p_DJ_ins)*\
+            p_DJ_dinucl*(1-p_DJ_dinucl)
+            #*(perror*bs.mismatcheslen)
+
+p_cond.values
+
+
+
+p_cond02 =   (1-p_V)*\
+            (1-p_J)*\
+            (1-p_DgJ)*\
+            (1-p_V_3_del)*\
+            (1-p_J_5_del)*\
+            (1-p_D_5_del)*\
+            (1-p_D_3_del)*\
+            (1-p_VD_ins)*\
+            (1-p_VD_dinucl)*\
+            (1-p_DJ_ins)*\
+            (1-p_DJ_dinucl)
+
+p_cond02.values
+
+pgen = 5.07785e-16
+
+pgen/p_vecE.values
+bs.scenario_proba_cond_seq
+
+
+
+
+
+
+
+
+bs0 = IgorBestScenarios.IgorBestScenariosVDJ.load_FromSQLRecord(record_bs[0])
+bs1 = IgorBestScenarios.IgorBestScenariosVDJ.load_FromSQLRecord(record_bs[1])
+
+bs0.strSeq   = db.fetch_IgorIndexedSeq_By_seq_index(seq_index)[1]
+bs1.strSeq   = db.fetch_IgorIndexedSeq_By_seq_index(seq_index)[1]
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 aaa = IgorAlignment_data.IgorAlignment_data.load_FromSQLRecord(j_aligns[1])
 aaa.seq_index

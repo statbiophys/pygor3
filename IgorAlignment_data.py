@@ -23,24 +23,44 @@ class IgorAlignment_data:
         self.strGene_class = ""
         self.strGene_seq   = ""
 
-    def __str__(self):
-        strIgorAlignment_data = "[" + \
-            str(self.seq_index)  + ", " + \
-            str(self.gene_id)    + ", " + \
-            str(self.score)      + ", " + \
-            str(self.offset)     + ", " + \
-            str(self.insertions) + ", " + \
-            str(self.deletions)  + ", " + \
-            str(self.mismatches) + ", " + \
-            str(self.length)     + ", " + \
-            str(self.offset_5_p) + ", " + \
-            str(self.offset_3_p) + ", " + \
-            self.strGene_name    + ", " + \
-            self.strGene_class   + ", " + \
-            self.strGene_seq     + ", " + \
-            "]"
-            
-        return strIgorAlignment_data
+    def to_dict(self):
+        dictAlignment_data       =  {
+            "seq_index"     : self.seq_index  , \
+            "gene_id"       : self.gene_id    , \
+            "score"         : self.score      , \
+            "offset"        : self.offset     , \
+            "insertions"    : self.insertions , \
+            "deletions"     : self.deletions  , \
+            "mismatches"    : self.mismatches , \
+            "length"        : self.length     , \
+            "offset_5_p"    : self.offset_5_p , \
+            "offset_3_p"    : self.offset_3_p , \
+            "strGene_name"  : self.strGene_name    , \
+            "strGene_class" : self.strGene_class   , \
+            "strGene_seq"   : self.strGene_seq
+            }
+        
+        return dictAlignment_data
+    
+#    def __str__(self):
+#        strIgorAlignment_data = "[" + \
+#            str(self.seq_index)  + ", " + \
+#            str(self.gene_id)    + ", " + \
+#            str(self.score)      + ", " + \
+#            str(self.offset)     + ", " + \
+#            str(self.insertions) + ", " + \
+#            str(self.deletions)  + ", " + \
+#            str(self.mismatches) + ", " + \
+#            str(self.length)     + ", " + \
+#            str(self.offset_5_p) + ", " + \
+#            str(self.offset_3_p) + ", " + \
+#            self.strGene_name    + ", " + \
+#            self.strGene_class   + ", " + \
+#            self.strGene_seq     + ", " + \
+#            "]"
+#            
+#        #return strIgorAlignment_data
+#        return str( self.to_dict() )
     
     @classmethod
     def load_FromSQLRecord(cls, sqlRecordAlign, strGene_name=""):

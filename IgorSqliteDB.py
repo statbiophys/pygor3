@@ -44,6 +44,7 @@ class IgorSqliteDB:
         """
         Create a SQLite database with the flnIgorDB sql script.
         """
+        self.flnIgorDB = flnIgorDB
         self.conn = None
         try:
             self.conn = sqlite3.connect(flnIgorDB)
@@ -180,7 +181,6 @@ class IgorSqliteDB:
         :param flnIgorGeneTemplate: Fasta file
         """
 
-        #print(gene_name)
         sqlSelect = "SELECT * FROM Igor"+strGene.upper()+"GeneTemplate WHERE gene_name =\""+gene_name+"\";"
         #print(sqlSelect)
         cur = self.conn.cursor()

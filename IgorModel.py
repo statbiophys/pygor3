@@ -54,20 +54,24 @@ class Model:
             self.generate_xdata()
 
     def generate_xdata(self):
+        Event_Genechoice_List = ['v_choice', 'j_choice', 'd_gene']
+        Event_Dinucl_List     = ['vd_dinucl', 'dj_dinucl', 'vj_dinucl'] 
+        
         for key in self.marginals.marginals_dict:
-            self.xdata[key] = xr.DataArray(self.marginals.marginals_dict[key], dims=tuple(self.marginals.network_dict[key]))
+            self.xdata[key] = xr.DataArray(self.marginals.marginals_dict[key], \
+                          dims=tuple(self.marginals.network_dict[key]))
             #print "key: ", key, self.xdata[key].dims
             strCoord = "priority"
             self.xdata[key][strCoord] = self.parms.get_Event(key).priority
             for strDim in self.xdata[key].dims:
                 self.xdata[key][strDim] = range(len(self.xdata[key][strDim]))
-                if strDim in ['v_choice', 'j_choice', 'd_gene']:
+                if strDim in Event_Genechoice_List:
                     #print strDim
                     labels = self.parms.Event_dict[strDim]['name'].map(genLabel).values
                     #print type(labels)
                     strCoord = 'lbl__'+strDim
                     self.xdata[key][strCoord] = (strDim, labels) # range(len(self.xdata[key][coord]))
-                elif not (strDim in ['vd_dinucl', 'dj_dinucl', 'vj_dinucl'] ):
+                elif not (strDim in Event_Dinucl_List):
                     labels = self.parms.Event_dict[strDim]['value'].values
                     #print strDim
                     #print labels
@@ -78,6 +82,7 @@ class Model:
 class Model_Parms:
     """
     Class to get a list of Events directly from the *_parms.txt
+    :param model_parms_file: Igor parms file path.
     """
     def __init__(self, model_parms_file=None):
         self.Event_list = list() # list of Rec_event
@@ -319,28 +324,6 @@ class Model_Parms:
                     if not (jj == DimEvent-1):
                         ofile.write(",")
                 ofile.write("\n")
-                    
-            #print (parms.G[event.nickname])
-            #print (len(parms.G[event.nickname]))
-            
-            # TODO: 
-#            if len(DimList) == 0:
-#                ofile.write("#\n")
-#                # TODO: Escribe todas las prob.
-#            else:
-#                for dd in range(len(DimList)):
-#                    for 'v_choice' == 0 range(DimList[dd]):
-#                        for 'j_choice' in 1 to len('j_choice'):
-#                    print(dd)
-#                for evNick in row['Edges']: #parms.Edges_dict[event.nickname]:
-#                    # TODO: Now make the list for each subevent
-#                    for ii in range(len(self.Event_dict[evNick]))
-#                    ofile.write("#["+evNick+","+str()+"]\n")
-#                    Dim = len(self.Event_dict[evNick])
-#                    strDimLine = strDimLine +","+str(Dim)
-#                strDimLine = strDimLine +"]"
-#            ofile.write(strDimLine+"\n")
-#            
                                
         ofile.close()
 
@@ -498,6 +481,7 @@ class Event_realization:
 class Model_Marginals:
     """
     Class to get a list of Events directly from the *_parms.txt
+    :param model_marginals_file: Igor marginals file.
     """
     def __init__(self, model_marginals_file=None):
 #        self.Event_list = list() # list of Rec_event

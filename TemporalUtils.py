@@ -11,7 +11,9 @@ import re
 
 def create_alnDataList_pandas(seq_index, strSeq, alnDataList):
     seq_offset = 0
-    alnDataList_pd = pd.DataFrame(columns=['description', 'seq_no_align', 'offset'])
+    alnDataList_pd = pd.DataFrame(columns=['description', 'seq_no_align', \
+                                           'offset', 'insertions', 'deletions', \
+                                           'mismatches', 'score'])
     alnDataList_pd = alnDataList_pd.append(\
                    {'description' : str(seq_index), \
                     'seq_no_align': strSeq.lower(), \
@@ -23,7 +25,11 @@ def create_alnDataList_pandas(seq_index, strSeq, alnDataList):
                     }, ignore_index=True)
 
     # insert alignments in a pandas dataframe.
+    print(len(alnDataList))
     for alnData in alnDataList:
+        print(5*'--')
+        print(type(alnData))
+        print(alnData)
         alnDataList_pd = alnDataList_pd.append(\
                        {'description'  : alnData.strGene_name, \
                         'seq_no_align' : alnData.strGene_seq.lower(), \

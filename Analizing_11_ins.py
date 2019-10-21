@@ -6,12 +6,15 @@ Created on Thu Oct  3 16:03:42 2019
 @author: alfaceor
 """
 
+import IgorModel
 import IgorSqliteDB
+import IgorSqliteDBBestScenarios
 import IgorAlignment_data
 import numpy as np
 from TemporalUtils import *
 #import subpro
 
+# IGoR run parameters
 batchname = "TRbeta"
 flnIgorDB = "chicagoMouse.db"
 strWD="uchicago/"
@@ -29,31 +32,49 @@ flnJGeneTemplate = IgorRefGenomePath+"genomicJs.fasta"
 flnVGeneCDR3Anchors = IgorRefGenomePath+"V_gene_CDR3_anchors.csv"
 flnJGeneCDR3Anchors = IgorRefGenomePath+"J_gene_CDR3_anchors.csv"
 
+### IGoR Alignments files
 flnVAlignments = strWD+"aligns/"+batchname+"_V_alignments.csv"
 flnDAlignments = strWD+"aligns/"+batchname+"_D_alignments.csv"
 flnJAlignments = strWD+"aligns/"+batchname+"_J_alignments.csv"
 
-### load IGoR database
+### IGoR ouptut files
+flnModelParms = IgorModelPath + "models/model_parms.txt"
+flnModelMargs = IgorModelPath + "models/model_marginals.txt"
+flnIgorBestScenarios = strWD+batchname+"_output/best_scenarios_counts.csv"
+
+### load IGoR sequences database
 db = IgorSqliteDB.IgorSqliteDB()
 db.createSqliteDB(flnIgorDB)
-db.load_VDJ_Database(flnIgorIndexedSeq, flnVGeneTemplate, flnDGeneTemplate, flnJGeneTemplate, flnVAlignments, flnDAlignments, flnJAlignments)
+db.load_VDJ_Database(flnIgorIndexedSeq, \
+                     flnVGeneTemplate, flnDGeneTemplate, flnJGeneTemplate, \
+                     flnVAlignments, flnDAlignments, flnJAlignments)
 
+### load IGoR model parms and marginals.
+mdl = IgorModel.Model(model_parms_file=flnModelParms, model_marginals_file=flnModelMargs)
+mdlParms = IgorModel.Model_Parms(flnModelParms) # mdl.parms
+mdlMargs = IgorModel.Model_Marginals(flnModelMargs) # mdl.marginals
 
-#sqlSelect = "SELECT * FROM Igor"+strGene.upper()+"Alignments WHERE seq_index=="+str(seq_index)+" ORDER BY score DESC"
-sqlSelect = "SELECT * FROM IgorVAlignments WHERE (NOT insertions='[]') AND (NOT deletions='[]') " #ORDER BY score DESC"
-sqlSelect = "SELECT * FROM IgorVAlignments " #ORDER BY score DESC"
+# load IGoR best scenarios file.
+db_bs = IgorSqliteDBBestScenarios.IgorSqliteDBBestScenariosVDJ()
+db_bs.createSqliteDB("chicagoMouse_bs.db")
+db_bs.load_IgorBestScenariosVDJ_FromCSV(flnIgorBestScenarios)
 
-cur = db.conn.cursor()
+#***************** Get best scenarios with insertions 11 *****************#
+sqlSelect = "SELECT * FROM IgorDBBestScenariosVDJ WHERE id_dj_ins = "+str(11)+";"
+cur = db_bs.conn.cursor()
 cur.execute(sqlSelect)
-record = cur.fetchall()
-#2
-print(record)
-print(record[10])
-#db.conn.commit()
+record_ins_11 = cur.fetchall()
 
-# sequences with insertions and deletions 160, 474
-seq_index=1788 #59
+#### FROM ALL THE RECORDS WITH 11 insertions get one.
+seq_index = record_ins_11[0][0]
 strSeq   = db.fetch_IgorIndexedSeq_By_seq_index(seq_index)[1]
+print("SELECTED SEQUENCE TO ANALYZE")
+print(" seq_index   : ", seq_index)
+print(" sequence    : ", strSeq)
+print(" seq. lenght : ", len(strSeq) )
+
+
+
 
 ### begin VDJ ###
 alnDataListVDJ = db.appendList_IgorAlignments_data_By_seq_index("V", seq_index)
@@ -99,14 +120,6 @@ alnDataListVDJ_pd.loc[2]['seq_no_align']
 
 ################ NOW I WANT THE BEST CASE SCENARIOS FOR THE SEQ_INDEX
 
-import IgorModel
-
-flnModelParms = IgorModelPath + "models/model_parms.txt"
-flnModelMargs = IgorModelPath + "models/model_marginals.txt"
-flnIgorBestScenarios = strWD+batchname+"_output/best_scenarios_counts.csv"
-
-mdlParms = IgorModel.Model_Parms(flnModelParms)
-mdlMargs = IgorModel.Model_Marginals(flnModelMargs)
 
 
 #mdl.xdata['v_choice']['lbl__v_choice'=='TRBV2*01']
@@ -141,17 +154,6 @@ alnDataListVDJ[3].to_dict()
 print(alnDataListVDJ[0])
 
 
-import IgorSqliteDBBestScenarios
-# load IGoR best scenarios file.
-db_bs = IgorSqliteDBBestScenarios.IgorSqliteDBBestScenariosVDJ()
-db_bs.createSqliteDB("chicagoMouse_bs.db")
-db_bs.load_IgorBestScenariosVDJ_FromCSV(flnIgorBestScenarios)
-
-# Get best scenarios with insertions 11
-sqlSelect = "SELECT * FROM IgorDBBestScenariosVDJ WHERE id_dj_ins = "+str(11)+";"
-cur = db_bs.conn.cursor()
-cur.execute(sqlSelect)
-record = cur.fetchall()
 
 
 import IgorBestScenarios
