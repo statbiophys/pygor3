@@ -85,7 +85,7 @@ for key in prio_dict:
     for ii, ev in enumerate(prio_dict[key]):
       xpos = xx[ii] #float(xwidth)*float(ii)/float(lenKey)
       pos[ev.nickname] = np.array([xpos, float(key)*yfactor])
-  
+
 
 print "*"*20
 print pos

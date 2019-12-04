@@ -14,17 +14,14 @@ import numpy as np
 from TemporalUtils import *
 #import subpro
 
-
-
-
 # IGoR run parameters
-batchname = "TRbeta"
-flnIgorDB = "chicagoMouse.db"
-strWD="uchicago/"
+batchname = "foo"
+flnIgorDB = "foo.db"
+strWD="Thierry/"
 flnIgorIndexedSeq = strWD+"aligns/"+batchname+"_indexed_sequences.csv"
 
-IgorSpecie    = "mouse"
-IgorChain     = "tcr_beta"
+IgorSpecie    = "human"
+IgorChain     = "bcr_heavy"
 IgorModelPath = "../../IGoR/models/"+IgorSpecie+"/"+IgorChain+"/"
 IgorRefGenomePath = IgorModelPath+"ref_genome/"
 
@@ -57,44 +54,27 @@ mdl = IgorModel.Model(model_parms_file=flnModelParms, model_marginals_file=flnMo
 mdlParms = IgorModel.Model_Parms(flnModelParms) # mdl.parms
 mdlMargs = IgorModel.Model_Marginals(flnModelMargs) # mdl.marginals
 
-# load IGoR best scenarios file.
-db_bs = IgorSqliteDBBestScenarios.IgorSqliteDBBestScenariosVDJ()
-db_bs.createSqliteDB("chicagoMouse_bs.db")
-db_bs.load_IgorBestScenariosVDJ_FromCSV(flnIgorBestScenarios)
 
-#***************** BEGIN Get best scenarios with insertions 11 *****************#
-sqlSelect = "SELECT * FROM IgorDBBestScenariosVDJ WHERE id_dj_ins = "+str(11)+";"
-cur = db_bs.conn.cursor()
-cur.execute(sqlSelect)
-record_ins_11 = cur.fetchall()
-
-joder = [a[0] for a in record_ins_11 ]
-
-#### FROM ALL THE RECORDS WITH 11 insertions get one.
-seq_index = record_ins_11[0][0]
+seq_index = 0
 strSeq   = db.fetch_IgorIndexedSeq_By_seq_index(seq_index)[1]
-print("SELECTED SEQUENCE TO ANALYZE")
-print(" seq_index   : ", seq_index )
-print(" sequence    : ", strSeq )
-print(" seq. lenght : ", len(strSeq) )
 
-seqs_selected = [ rec[0] for rec in record_ins_11]
-seq_index_selected_tuple =  tuple( sorted( set( seqs_selected ) ) ) 
-str(seq_index_selected_tuple)
+alnDataListV = db.appendList_IgorAlignments_data_By_seq_index("V", seq_index)
+alnDataListD = db.appendList_IgorAlignments_data_By_seq_index("D", seq_index)
+alnDataListJ = db.appendList_IgorAlignments_data_By_seq_index("J", seq_index)
 
 
-
-rocas = db.fetch_IgorIndexedSeq_By_seq_indexList(seq_index_selected_tuple)
-tmp_csvfile = open("uchicago/selected_sequences/newbatcho_indexed_sequences.csv", "w")
-tmp_csvfile.write("seq_index;sequence\n")
-for rcrd in rocas:
-    tmp_csvfile.write(str(rcrd[0])+";"+str(rcrd[1])+"\n" )
-tmp_csvfile.close()
-
-# TODO: CREATE NEW BATCHNAME with selected index
+def writeFastaPlease(seq_index, strSeq, alnDataList, flnAlignsFasta):
+    alnDataList_pd = create_alnDataList_pandas(seq_index, strSeq, alnDataList)  
+    alnDataList_pd = addInsertionGaps2alnDataFrame(alnDataList_pd)
+    writeAlignmentsFastaOnlyInsertions(alnDataList_pd, flnAlignsFasta)
 
 
-#***************** END Get best scenarios with insertions 11 *****************#
+alnDataListV[0].strGene_name
+writeFastaPlease(seq_index, strSeq, alnDataListV, "id_"+str(seq_index)+"__V_onlyIns.fasta")
+writeFastaPlease(seq_index, strSeq, alnDataListJ, "id_"+str(seq_index)+"__J_onlyIns.fasta")
+writeFastaPlease(seq_index, strSeq, alnDataListD, "id_"+str(seq_index)+"__D_onlyIns.fasta")
+
+
 
 
 
@@ -112,6 +92,10 @@ writeAlignmentsFastaOnlyInsertions(alnDataListVDJ_pd, "VDJonlyIns.fasta")
 #seq_index│scenario_rank│scenario_proba_cond_seq│GeneChoice_V_gene_Undefined_side_prio7_size35│GeneChoice_J_gene_Undefined_side_prio7_size14│GeneC
 #51│1│0.687667│(3)│(5)│(1)│(9)│(4)│(8)│(15)│(1)│(1)│(4)│(0,0,0,0)│(125,126,128,131,132,133,134,135,136,140,142,150,157,158,159,163,164)
 
+
+
+
+"""
 ### specific genes
 alnDataList = db.appendList_IgorAlignments_data_By_seq_index("J", seq_index)
 alnDataList_pd = create_alnDataList_pandas(seq_index, strSeq, alnDataList)  
@@ -140,6 +124,8 @@ seq_index = record_ins_11[0][0]
 alnDataListV = db.appendList_IgorAlignments_data_By_seq_index("V", seq_index)
 alnDataListD = db.appendList_IgorAlignments_data_By_seq_index("D", seq_index)
 alnDataListJ = db.appendList_IgorAlignments_data_By_seq_index("J", seq_index)
+
+
 
 print(alnDataListV[0].to_dict())
 
@@ -383,6 +369,49 @@ nuc44pd["nt"]= ["A","C","G","T","R","Y","K","M","S","W","B","D","H","V","N"]
 
 nuc44pd.loc[1]
 
+
+
+
+
+
+
+
+
+# load IGoR best scenarios file.
+db_bs = IgorSqliteDBBestScenarios.IgorSqliteDBBestScenariosVDJ()
+db_bs.createSqliteDB("chicagoMouse_bs.db")
+db_bs.load_IgorBestScenariosVDJ_FromCSV(flnIgorBestScenarios)
+
+
+
+
+#***************** BEGIN Get best scenarios with insertions 11 *****************#
+sqlSelect = "SELECT * FROM IgorDBBestScenariosVDJ WHERE id_dj_ins = "+str(11)+";"
+cur = db_bs.conn.cursor()
+cur.execute(sqlSelect)
+record_ins_11 = cur.fetchall()
+
+#### FROM ALL THE RECORDS WITH 11 insertions get one.
+seq_index = record_ins_11[0][0]
+strSeq   = db.fetch_IgorIndexedSeq_By_seq_index(seq_index)[1]
+print("SELECTED SEQUENCE TO ANALYZE")
+print(" seq_index   : ", seq_index )
+print(" sequence    : ", strSeq )
+print(" seq. lenght : ", len(strSeq) )
+
+
+# TODO: CREATE NEW BATCHNAME with selected index
+
+
+#***************** END Get best scenarios with insertions 11 *****************#
+
+
+
+"""
+
+
+
+
 # So the things I want to solve is how to show the alignments.
 # Because the simple answer will be how to check the alignments pair to pair first.
 #from Bio import SeqIO
@@ -391,6 +420,3 @@ nuc44pd.loc[1]
 
 
 #csvline = "2197;1;0.357694;(1);(9);(0);(7);(10);(7);(11);(0);();(9);(0,2,0,1,2,3,2,0,3);()\n"
-
-
-

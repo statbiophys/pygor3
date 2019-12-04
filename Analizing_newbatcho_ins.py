@@ -14,13 +14,10 @@ import numpy as np
 from TemporalUtils import *
 #import subpro
 
-
-
-
 # IGoR run parameters
-batchname = "TRbeta"
-flnIgorDB = "chicagoMouse.db"
-strWD="uchicago/"
+batchname = "newbatcho"
+flnIgorDB = "newbatcho.db"
+strWD="uchicago/selected_sequences/"
 flnIgorIndexedSeq = strWD+"aligns/"+batchname+"_indexed_sequences.csv"
 
 IgorSpecie    = "mouse"
@@ -59,7 +56,7 @@ mdlMargs = IgorModel.Model_Marginals(flnModelMargs) # mdl.marginals
 
 # load IGoR best scenarios file.
 db_bs = IgorSqliteDBBestScenarios.IgorSqliteDBBestScenariosVDJ()
-db_bs.createSqliteDB("chicagoMouse_bs.db")
+db_bs.createSqliteDB("newbatcho_bs.db")
 db_bs.load_IgorBestScenariosVDJ_FromCSV(flnIgorBestScenarios)
 
 #***************** BEGIN Get best scenarios with insertions 11 *****************#
@@ -68,103 +65,31 @@ cur = db_bs.conn.cursor()
 cur.execute(sqlSelect)
 record_ins_11 = cur.fetchall()
 
-joder = [a[0] for a in record_ins_11 ]
-
 #### FROM ALL THE RECORDS WITH 11 insertions get one.
 seq_index = record_ins_11[0][0]
+alnDataListV = db.appendList_IgorAlignments_data_By_seq_index("V", seq_index)
+alnDataListD = db.appendList_IgorAlignments_data_By_seq_index("D", seq_index)
+alnDataListJ = db.appendList_IgorAlignments_data_By_seq_index("J", seq_index)
+
+print( alnDataListV[0].to_dict() ) #.deletions
+print( alnDataListD[0].to_dict() )
+print( alnDataListJ[0].to_dict() )
+seq_index = record_ins_11[1][0]
 strSeq   = db.fetch_IgorIndexedSeq_By_seq_index(seq_index)[1]
 print("SELECTED SEQUENCE TO ANALYZE")
 print(" seq_index   : ", seq_index )
 print(" sequence    : ", strSeq )
 print(" seq. lenght : ", len(strSeq) )
 
-seqs_selected = [ rec[0] for rec in record_ins_11]
-seq_index_selected_tuple =  tuple( sorted( set( seqs_selected ) ) ) 
-str(seq_index_selected_tuple)
-
-
-
-rocas = db.fetch_IgorIndexedSeq_By_seq_indexList(seq_index_selected_tuple)
-tmp_csvfile = open("uchicago/selected_sequences/newbatcho_indexed_sequences.csv", "w")
-tmp_csvfile.write("seq_index;sequence\n")
-for rcrd in rocas:
-    tmp_csvfile.write(str(rcrd[0])+";"+str(rcrd[1])+"\n" )
-tmp_csvfile.close()
-
-# TODO: CREATE NEW BATCHNAME with selected index
-
-
-#***************** END Get best scenarios with insertions 11 *****************#
-
-
-
-### begin VDJ ###
-alnDataListVDJ = db.appendList_IgorAlignments_data_By_seq_index("V", seq_index)
-db.appendList_IgorAlignments_data_By_seq_index("D", seq_index, alnDataList=alnDataListVDJ)
-db.appendList_IgorAlignments_data_By_seq_index("J", seq_index, alnDataList=alnDataListVDJ)
-alnDataListVDJ_pd = create_alnDataList_pandas(seq_index, strSeq, alnDataListVDJ)  
-alnDataListVDJ_pd = addInsertionGaps2alnDataFrame(alnDataListVDJ_pd)
-#alnDataListVDJ_pd = create_alnDataList_pandas(seq_index, strSeq, alnDataListVDJ)  
-#alnDataListVDJ_pd = addInsertionGaps2alnDataFrame(alnDataListVDJ_pd)
-writeAlignmentsFastaOnlyInsertions(alnDataListVDJ_pd, "VDJonlyIns.fasta")
-### end VDJ ###
-
-#seq_index│scenario_rank│scenario_proba_cond_seq│GeneChoice_V_gene_Undefined_side_prio7_size35│GeneChoice_J_gene_Undefined_side_prio7_size14│GeneC
-#51│1│0.687667│(3)│(5)│(1)│(9)│(4)│(8)│(15)│(1)│(1)│(4)│(0,0,0,0)│(125,126,128,131,132,133,134,135,136,140,142,150,157,158,159,163,164)
-
-### specific genes
-alnDataList = db.appendList_IgorAlignments_data_By_seq_index("J", seq_index)
-alnDataList_pd = create_alnDataList_pandas(seq_index, strSeq, alnDataList)  
-alnDataList_pd = addInsertionGaps2alnDataFrame(alnDataList_pd)
-
-ajam = alnDataList_pd['score'] > 20
-ajam.loc[0] = True
-select_alnDataList_pd = alnDataList_pd.loc[ajam ]
-#select_alnDataList_pd.append(alnDataList_pd.loc[0])
-#writeAlignmentsFasta(select_alnDataList_pd, "alignNoDels.fasta")
-writeAlignmentsFastaOnlyInsertions(select_alnDataList_pd, "alignNoDels.fasta")
-
-# one complete alignment
-print(alnDataList_pd )
-id_pd = 2
-strSeqWithDels = addTemporalDelsInSeq(alnDataList_pd, id_pd)
-alnDataList_pd['seq_with_ins_offset'].loc[0] = strSeqWithDels
-writeAlignmentsFastaOnlyInsertions(alnDataList_pd.loc[[0,id_pd]], "example.fasta")
-
-
-
-################# CHECKING ALIGNMENTS SCORE.
-
 ################ NOW I WANT THE BEST CASE SCENARIOS FOR THE SEQ_INDEX
-seq_index = record_ins_11[0][0]
+
 alnDataListV = db.appendList_IgorAlignments_data_By_seq_index("V", seq_index)
 alnDataListD = db.appendList_IgorAlignments_data_By_seq_index("D", seq_index)
 alnDataListJ = db.appendList_IgorAlignments_data_By_seq_index("J", seq_index)
 
 print(alnDataListV[0].to_dict())
-
-from TemporalUtils import *
-
-def writeFastaPlease(seq_index, strSeq, alnDataList, flnAlignsFasta):
-    alnDataList_pd = create_alnDataList_pandas(seq_index, strSeq, alnDataList)  
-    alnDataList_pd = addInsertionGaps2alnDataFrame(alnDataList_pd)
-    writeAlignmentsFastaOnlyInsertions(alnDataList_pd, flnAlignsFasta)
-
-
-alnDataListV[0].strGene_name
-writeFastaPlease(seq_index, strSeq, alnDataListJ, "id_"+str(seq_index)+"__J_onlyIns.fasta")
-
-for alnData in alnDataListV:
-    print(type(alnData))
-
-print(len(alnDataListV))
-print(len(alnDataListD))
-print(len(alnDataListJ))
-
-
-alnDataListV[0].to_dict()
-
-print(alnDataListVDJ[0])
+print(alnDataListD[1].to_dict())
+print(alnDataListJ[0].to_dict())
 
 
 import IgorBestScenarios
@@ -332,20 +257,9 @@ alnDataListV = db.appendList_IgorAlignments_data_By_seq_index("V", seq_index)
 alnDataListD = db.appendList_IgorAlignments_data_By_seq_index("D", seq_index)
 alnDataListJ = db.appendList_IgorAlignments_data_By_seq_index("J", seq_index)
 
-for alnV in alnDataListV:
-    print (alnV.to_dict())
-    print([alnV.offset_5_p
-len(alnV.strGene_seq[0:102])
 
-alnV = alnDataListV[0]
-alnD = alnDataListD[1]
-alnJ = alnDataListJ[0]
-alnV.to_dict()
-alnD.to_dict()
-alnJ.to_dict()
-print("V :", alnV.offset_5_p, alnV.offset_3_p)
-print("D :", alnD.offset_5_p, alnD.offset_3_p)
-print("J :", alnJ.offset_5_p, alnJ.offset_3_p)
+
+
 ######### CHECKING PROBABILITIES
 
 
@@ -383,14 +297,47 @@ nuc44pd["nt"]= ["A","C","G","T","R","Y","K","M","S","W","B","D","H","V","N"]
 
 nuc44pd.loc[1]
 
-# So the things I want to solve is how to show the alignments.
-# Because the simple answer will be how to check the alignments pair to pair first.
-#from Bio import SeqIO
+
+
+
+
+
+
+
 #
-#Bio.SeqIO
-
-
-#csvline = "2197;1;0.357694;(1);(9);(0);(7);(10);(7);(11);(0);();(9);(0,2,0,1,2,3,2,0,3);()\n"
-
-
-
+#### begin VDJ ###
+#alnDataListVDJ = db.appendList_IgorAlignments_data_By_seq_index("V", seq_index)
+#db.appendList_IgorAlignments_data_By_seq_index("D", seq_index, alnDataList=alnDataListVDJ)
+#db.appendList_IgorAlignments_data_By_seq_index("J", seq_index, alnDataList=alnDataListVDJ)
+#alnDataListVDJ_pd = create_alnDataList_pandas(seq_index, strSeq, alnDataListVDJ)  
+#alnDataListVDJ_pd = addInsertionGaps2alnDataFrame(alnDataListVDJ_pd)
+##alnDataListVDJ_pd = create_alnDataList_pandas(seq_index, strSeq, alnDataListVDJ)  
+##alnDataListVDJ_pd = addInsertionGaps2alnDataFrame(alnDataListVDJ_pd)
+#writeAlignmentsFastaOnlyInsertions(alnDataListVDJ_pd, "VDJonlyIns.fasta")
+#### end VDJ ###
+#
+##seq_index│scenario_rank│scenario_proba_cond_seq│GeneChoice_V_gene_Undefined_side_prio7_size35│GeneChoice_J_gene_Undefined_side_prio7_size14│GeneC
+##51│1│0.687667│(3)│(5)│(1)│(9)│(4)│(8)│(15)│(1)│(1)│(4)│(0,0,0,0)│(125,126,128,131,132,133,134,135,136,140,142,150,157,158,159,163,164)
+#
+#### specific genes
+#alnDataList = db.appendList_IgorAlignments_data_By_seq_index("J", seq_index)
+#alnDataList_pd = create_alnDataList_pandas(seq_index, strSeq, alnDataList)  
+#alnDataList_pd = addInsertionGaps2alnDataFrame(alnDataList_pd)
+#
+#ajam = alnDataList_pd['score'] > 20
+#ajam.loc[0] = True
+#select_alnDataList_pd = alnDataList_pd.loc[ajam ]
+##select_alnDataList_pd.append(alnDataList_pd.loc[0])
+##writeAlignmentsFasta(select_alnDataList_pd, "alignNoDels.fasta")
+#writeAlignmentsFastaOnlyInsertions(select_alnDataList_pd, "alignNoDels.fasta")
+#
+## one complete alignment
+#print(alnDataList_pd )
+#id_pd = 2
+#strSeqWithDels = addTemporalDelsInSeq(alnDataList_pd, id_pd)
+#alnDataList_pd['seq_with_ins_offset'].loc[0] = strSeqWithDels
+#writeAlignmentsFastaOnlyInsertions(alnDataList_pd.loc[[0,id_pd]], "example.fasta")
+#
+#
+#
+################## CHECKING ALIGNMENTS SCORE.

@@ -116,6 +116,44 @@ class Model_Parms:
 #
 #    def __hash__(self):
 #        return 3;
+        
+    @classmethod
+    def fromGeneTemplates(cls):
+        cls = Model_Parms()
+        
+        return cls
+    
+    # FIXME: FINISH THIS METHOD
+    def write_model_parms(self, filename="tmp_mdl_parms.txt"):
+        """Writes a model graph structure from a model params object.
+        Note that for now this method does not read the error rate information.
+        """
+        
+        # Sort events in list with the your specific preference.
+        nicknameList = ["v_choice", "j_choice", "d_gene", "v_3_del"]
+        #self.get_Event(nicknameList)
+        #self.Event_list
+        strSepChar=";"
+        with open(filename, "w") as ofile:
+            #1. Write events
+            ofile.write("@Event_list\n")
+            #for event in self.Event_list:
+            for nickname in nicknameList:
+                event = self.get_Event(nickname)
+                strLine = "#" + \
+                str(event.event_type) + strSepChar + \
+                str(event.seq_type) + strSepChar + \
+                str(event.seq_side) + strSepChar + \
+                str(event.priority) + strSepChar + \
+                str(event.nickname) + "\n"
+                ofile.write(strLine)
+            
+            #2. Write Edges
+            ofile.write("@Edges\n")
+            
+            #3. Write ErrorRate
+            ofile.write("@ErrorRate\n")
+    
     def read_model_parms(self, filename):
         """Reads a model graph structure from a model params file.
         Note that for now this method does not read the error rate information.
@@ -608,6 +646,115 @@ class Model_Marginals:
     def write_model_marginals_from_parms(self, filename, model_parms_file=None, model_marginals_file=None):
         self.marginals_dict = {}
         self.network_dict = {}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+"""
+
+
+
+model = pygor.models.genmodel.GenModel(model_parms_file=flnModelParms, marginals_file=flnModelMargs)
+#model = pygor.models.genmodel.GenModel(model_parms_file="model_parms.txt", marginals_file= "model_marginals.txt")
+#model.marginals
+
+model.edges['Deletion_D_gene_Five_prime_prio5_size21'].parents
+
+#model.get_event('v_choice', by_nickname=True)
+for recEv in model.events:
+  print recEv.nickname, recEv.priority
+#recomEvent.priority
+
+probData = model.marginals[0]
+probData['v_choice']
+# 2. Create a Graph
+# Get the graph properties.
+graphData = model.marginals[1]
+# 2.1. Get the nodes
+nodes = graphData.keys() # Give me how is the netwok.
+# 2.2. Get the edges
+graphData
+G = nx.DiGraph()
+
+
+G.nodes
+G.nodes.data()
+for node in nodes:
+  G.add_node(node)
+#print G.number_of_nodes()
+
+for node in nodes:
+  for node2link in graphData[node]:
+    G.add_edge(node2link, node)
+    #print node, node2link
+
+
+# 3. Plot Graph
+pos = nx.spring_layout(G)
+
+
+# lo que quiero es algo asi:
+# prio_dict = {prio1: [event1, event2], prio2: [event3, event4, event5], prio3:[evento6]}
+prio_dict = dict()
+for event in model.events:
+  if not (event.priority in prio_dict):
+    prio_dict[event.priority] = list()
+  prio_dict[event.priority].append(event)
+  
+print prio_dict
+# ahora definir la posicion del coso este
+xwidth = 240
+yfactor= 40
+for key in prio_dict:
+  lenKey = len(prio_dict[key])
+  if lenKey == 1:
+    pos[prio_dict[key][0].nickname] = np.array([float(xwidth)/2.0, float(key)*yfactor])
+  else:
+    xx = np.linspace(0,xwidth,lenKey)
+    for ii, ev in enumerate(prio_dict[key]):
+      xpos = xx[ii] #float(xwidth)*float(ii)/float(lenKey)
+      pos[ev.nickname] = np.array([xpos, float(key)*yfactor])
+  
+
+print "*"*20
+print pos
+
+fig, ax = plt.subplots()
+ax.set_aspect('equal')
+#nx.draw(G, pos, with_labels=True, font_weight='bold', nodesize=2000) # FIXME: make a better plot: cutting edges.
+nx.draw(G, pos, ax=ax, with_labels=True, arrowsize=20,
+        node_size=800, font_size=10, font_weight='bold') # FIXME: make a better plot: cutting edges.
+
+plt.show()
+
+"""
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #class Event:

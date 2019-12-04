@@ -136,6 +136,25 @@ class IgorSqliteDB:
         record = cur.fetchone()
         return (record)
     
+    def fetch_IgorIndexedSeq_By_seq_indexList(self, seq_indexList):
+        """
+        Fetch seq_index and sequence in Igor database.
+        :param seq_index: string to specify the type of gene V, D or J
+        :return: 
+        """
+
+        #print(gene_name)
+        strSeq_indexList = str( tuple( sorted( set( seq_indexList ) ) )  )
+
+        sqlSelect = "SELECT * FROM IgorIndexedSeq WHERE seq_index IN "+strSeq_indexList+";"
+        #print(sqlSelect)
+        cur = self.conn.cursor()
+        cur.execute(sqlSelect)
+        #if strGene == 'D':
+        #    print(sqlSelect)
+        record = cur.fetchall()
+        return (record)
+    
     
     
     ###############################################
