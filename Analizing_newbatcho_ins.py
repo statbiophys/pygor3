@@ -117,7 +117,7 @@ for ii in ranks_Scena:
     probs_Scena.append( bs.scenario_proba_cond_seq )
     num_VD_Ins.append( bs.getVD_ins())
     num_DJ_Ins.append( bs.getDJ_ins())
-    
+
 print(bs)
 
 
@@ -146,7 +146,7 @@ gene_name = 'TRBD1*01'
 gene_id   = pd_event.loc[pd_event['name'] == gene_name ].index.values[0]
 my_bs.id_d_gene = gene_id
 
-# v_3_del 
+# v_3_del
 pd_event    = mdl.parms.Event_dict['v_3_del']
 pd_event['value']
 realiz_name = 2
@@ -154,7 +154,7 @@ realiz_id   = pd_event.loc[pd_event['value'] == realiz_name ].index.values[0]
 my_bs.id_v_3_del = realiz_id
 
 
-# d_5_del 
+# d_5_del
 pd_event    = mdl.parms.Event_dict['d_5_del']
 pd_event['value']
 realiz_name = 6
@@ -162,14 +162,14 @@ realiz_id   = pd_event.loc[pd_event['value'] == realiz_name ].index.values[0]
 my_bs.id_d_5_del = realiz_id
 
 
-# d_3_del 
+# d_3_del
 pd_event    = mdl.parms.Event_dict['d_3_del']
 pd_event['value']
 realiz_name = 1
 realiz_id   = pd_event.loc[pd_event['value'] == realiz_name ].index.values[0]
 my_bs.id_d_3_del = realiz_id
 
-# j_5_del 
+# j_5_del
 pd_event    = mdl.parms.Event_dict['j_5_del']
 pd_event['value']
 realiz_name = 0
@@ -177,7 +177,7 @@ realiz_id   = pd_event.loc[pd_event['value'] == realiz_name ].index.values[0]
 my_bs.id_j_5_del = realiz_id
 
 
-# vd_ins 
+# vd_ins
 pd_event    = mdl.parms.Event_dict['vd_ins']
 pd_event['value']
 realiz_name = 1
@@ -186,7 +186,7 @@ my_bs.id_vd_ins = realiz_id
 
 
 
-# dj_ins 
+# dj_ins
 pd_event    = mdl.parms.Event_dict['dj_ins']
 pd_event['value']
 realiz_name = 3
@@ -196,7 +196,7 @@ my_bs.id_dj_ins = realiz_id
 my_bs.vd_dinucl = [1]
 my_bs.dj_dinucl = [3, 1, 3]
 
-        # v_3_del = 2 
+        # v_3_del = 2
         # d_5_del = 6
         # d_3_del = 1
         # vd_ins  = 1 and should be a "C"
@@ -211,7 +211,7 @@ print(my_bs)
 
 my_bs.save_scenario_fasta("My_scen__seqIndex_"+str(seq_index)+"_rank_"+str(ii)+".fasta")
 # so the correction to this scenario must be
-# v_3_del = 2 
+# v_3_del = 2
 # d_5_del = 6
 # d_3_del = 1
 # vd_ins  = 1 and should be a "C"
@@ -224,7 +224,7 @@ my_bs.get_EventProb() #1.16859699e-10
 import matplotlib.pyplot as plt
 font = {'family' : 'normal',
         'weight' : 'bold',
-        'size'   : 18} 
+        'size'   : 18}
 plt.rc('font', **font)
 plt.rc('text', usetex=True)
 fig, ax = plt.subplots(2,1, figsize=(10,8))
@@ -273,7 +273,7 @@ My_bs = IgorBestScenarios.IgorBestScenariosVDJ()
 
 #['v_choice', 'd_gene', 'j_choice', 'v_3_del', 'd_3_del', 'd_5_del', 'j_5_del', 'vd_ins', 'dj_ins', 'vd_dinucl', 'dj_dinucl'])
 
-
+# TODO: read matrix from file
 nuc44 = [5,-14,-14,-14,-14,2,-14,2,2,-14,-14,1,1,1,0,\
 	        -14,5,-14,-14,-14,2,2,-14,-14,2,1,-14,1,1,0,\
 	        -14,-14,5,-14,2,-14,2,-14,2,-14,1,1,-14,1,0,\
@@ -309,9 +309,9 @@ nuc44pd.loc[1]
 #alnDataListVDJ = db.appendList_IgorAlignments_data_By_seq_index("V", seq_index)
 #db.appendList_IgorAlignments_data_By_seq_index("D", seq_index, alnDataList=alnDataListVDJ)
 #db.appendList_IgorAlignments_data_By_seq_index("J", seq_index, alnDataList=alnDataListVDJ)
-#alnDataListVDJ_pd = create_alnDataList_pandas(seq_index, strSeq, alnDataListVDJ)  
+#alnDataListVDJ_pd = create_alnDataList_pandas(seq_index, strSeq, alnDataListVDJ)
 #alnDataListVDJ_pd = addInsertionGaps2alnDataFrame(alnDataListVDJ_pd)
-##alnDataListVDJ_pd = create_alnDataList_pandas(seq_index, strSeq, alnDataListVDJ)  
+##alnDataListVDJ_pd = create_alnDataList_pandas(seq_index, strSeq, alnDataListVDJ)
 ##alnDataListVDJ_pd = addInsertionGaps2alnDataFrame(alnDataListVDJ_pd)
 #writeAlignmentsFastaOnlyInsertions(alnDataListVDJ_pd, "VDJonlyIns.fasta")
 #### end VDJ ###
@@ -321,7 +321,7 @@ nuc44pd.loc[1]
 #
 #### specific genes
 #alnDataList = db.appendList_IgorAlignments_data_By_seq_index("J", seq_index)
-#alnDataList_pd = create_alnDataList_pandas(seq_index, strSeq, alnDataList)  
+#alnDataList_pd = create_alnDataList_pandas(seq_index, strSeq, alnDataList)
 #alnDataList_pd = addInsertionGaps2alnDataFrame(alnDataList_pd)
 #
 #ajam = alnDataList_pd['score'] > 20
