@@ -1,0 +1,3 @@
+[ ] Rearrange schema to create scripts
+[ ] Integration of databases
+[ ] Parse scripts to get tsv files from IGoR outputs
