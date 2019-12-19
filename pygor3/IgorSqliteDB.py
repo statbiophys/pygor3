@@ -9,7 +9,7 @@ Created on Thu Oct  3 11:02:28 2019
 import sqlite3
 import csv
 from Bio import SeqIO
-import IgorAlignment_data
+#import IgorAlignment_data
 
 
 ###################

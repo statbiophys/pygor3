@@ -6,7 +6,7 @@ Created on Mon Oct  7 10:18:45 2019
 @author: alfaceor
 """
 
-import IgorModel
+#import IgorModel
 
 class IgorBestScenariosVDJ:
     def __init__(self):

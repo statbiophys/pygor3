@@ -5,7 +5,7 @@ Created on Wed Oct  9 16:52:51 2019
 
 @author: alfaceor
 """
-import IgorModel
+#import IgorModel
 import pandas as pd
 import numpy as np
 import sqlite3

@@ -1,0 +1,62 @@
+# Ignore Eclipse config files
+.cproject
+.project
+.settings/*
+
+# Ignore Netbeans config files
+nbproject
+
+# Ignore the compiled object files
+*.o
+*.gcno
+*.d
+*.lo
+# Ignore compiled static library
+*.a
+*.gcda
+*.la
+# Ignore temporary files
+*.cpp~
+*.sh~
+#Ignore generated Makefiles
+Makefile
+
+#Ignore python generated files
+*.pyc
+*.py~
+
+#Ignore python generated files
+*.db
+
+# Ignore autoconf stuff
+**/.deps
+**/.libs
+**/aclocal.m4
+**/config.h.in
+**/config.log
+**/config.stamp
+**/config.status
+**/ltmain.sh
+**/Makefile.in
+autom4te.cache
+compile
+config.guess
+config.sub
+configure
+depcomp
+install-sh
+libtool
+m4
+missing
+config.h
+
+
+#Ignore documentation generated files
+README.html
+docs/html/
+docs/latex/
+docs/IGoR_CPP_manual.pdf
+igor.1
+libs/gsl_sub/config.h.in~
+stamp-h1
+

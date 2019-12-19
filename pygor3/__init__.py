@@ -19,10 +19,27 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from . import IgorAligns
-from . import aligns
-from . import counters
-from . import models
-from . import utils
+###   from . import IgorAligns
+###   from . import aligns
+###   from . import counters
+###   from . import models
+###   from . import utils
+###   
+###   __all__ = ["aligns","counters","models","utils"]
 
-__all__ = ["aligns","counters","models","utils"]
+
+###   from . import IgorAlignment_data
+###   from . import IgorModel
+###   from . import IgorBestScenarios
+###   from . import IgorIndexedSequencesDB
+###   from . import IgorSqliteDBBestScenarios
+###   from . import IgorSqliteDB
+
+
+###   import IgorAlignment_data
+###   import IgorBestScenarios
+###   import IgorIndexedSequencesDB
+###   import IgorModel
+###   import IgorSqliteDBBestScenarios
+###   import IgorSqliteDB
+###   __all__ = ["IgorAlignment_data","IgorBestScenarios","IgorIndexedSequencesDB","IgorModel", "IgorSqliteDBBestScenarios", "IgorSqliteDB"]
