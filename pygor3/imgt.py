@@ -34,7 +34,6 @@ def get_species_list():
     species_list = [specie.replace(" ", "+") for specie in tmp_species_list]
     return species_list
 
-
 def get_genedb_query72(specie: str, gene: str, imgt_genedb=imgt_params['url.genedb']):
     """
     Returns imgt link to download genomic template according to imgt database.
@@ -76,12 +75,10 @@ def get_records_list(url):
     # FIXME: Is better to preserve the generator but ... you know maybe later XD
     return list(SeqIO.parse(StringIO(rawfasta), "fasta"))
 
-
 def save_records2fasta(records, filename:str):
     # flnGenomicJs = DIR_REF_GENOME + "genomicJs.fasta"
     with open(filename, "w") as ofile:
         SeqIO.write(records, ofile, "fasta")
-
 
 def makeDirectories(gene: str, specie: str, modelspath=None):
     if modelspath is None:
@@ -93,9 +90,6 @@ def makeDirectories(gene: str, specie: str, modelspath=None):
     os.system("mkdir -p " + modelspath + "/" + specie + "/" + gene + "/ref_genome")
     os.system("mkdir -p " + modelspath + "/" + specie + "/" + gene + "/ref_genome")
     os.system("mkdir -p " + modelspath + "/" + specie + "/" + gene + "/models")
-
-
-
 
 def get_gene_template(specie: str, gene: str, modelspath=None, filename=None, imgt_genedb=imgt_params['url.genedb']):
     """
@@ -130,7 +124,6 @@ def download_gene_template(specie: str, gene: str, modelspath=None, filename=Non
 
 def write_D_TemplateFiles(gene, specie):
     records = get_records_list(urlDgene)
-
 
 def write_V_TemplateFiles(gene, specie, ):
     DIR_REF_GENOME = specie + "/" + gene + "/ref_genome/"
@@ -176,7 +169,6 @@ def write_V_TemplateFiles(gene, specie, ):
             print("No anchor is found for : " + rec.description)
 
     ofileAnch.close()
-
 
 def download_gene_anchors(specie: str, gene: str, imgt_genedb=imgt_params['url.genedb'], modelpath=".", filename=None):
     url_query = get_genedb_query81_imgtlabel(specie, gene, imgt_genedb=imgt_genedb)

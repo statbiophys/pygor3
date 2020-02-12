@@ -23,7 +23,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 import networkx as nx
-
+from .IgorDefaults import *
 from pygor3 import rcParams
 
 ### GENERIC FUNCTIONS
@@ -250,11 +250,21 @@ class IgorModel:
         cls.specie = IgorSpecie
         cls.chain = IgorChain
         return cls
-        
-    
+
+    @classmethod
+    def load_from_networkx(cls, IgorSpecie, IgorChain):
+        """
+        :return IgorModel loaded with the default location for specie and chain
+        """
+        cls = IgorModel(model_parms_file=flnModelParms, model_marginals_file=flnModelMargs)
+        return cls
+
+
     def generate_xdata(self):
         Event_Genechoice_List = ['v_choice', 'j_choice', 'd_gene']
-        Event_Dinucl_List     = ['vd_dinucl', 'dj_dinucl', 'vj_dinucl']
+        Event_Dinucl_List = ['vd_dinucl', 'dj_dinucl', 'vj_dinucl']
+        Event_Insertion_List = ['vd_ins', 'dj_ins', 'vj_ins']
+        Event_Deletion_List = ['v_3_del', 'j_5_del', 'd_3_del', 'd_5_del']
         
         for key in self.marginals.marginals_dict:
             self.xdata[key] = xr.DataArray(self.marginals.marginals_dict[key], \
@@ -358,25 +368,23 @@ class IgorModel:
             events_set.add(event.nickname)
         return list(events_set)
 
-
-
-
-
-
 class IgorModel_Parms:
     """
     Class to get a list of Events directly from the *_parms.txt
     :param model_parms_file: Igor parms file path.
     """
     def __init__(self, model_parms_file=None):
+        ## Parms file representation
         self.Event_list = list() # list of Rec_event
         self.Edges      = list()
         self.ErrorRate  = list()
+
+        ## pygor definitions
         self.Event_dict = dict()
         self.Edges_dict = dict()
-        self.dictNameNickname=dict()
-        self.dictNicknameName=dict()
-        self.G          = nx.DiGraph()
+        self.dictNameNickname = dict()
+        self.dictNicknameName = dict()
+        self.G = nx.DiGraph()
         self.preMarginalDF = pd.DataFrame()
 
         if model_parms_file is not None:
@@ -400,12 +408,87 @@ class IgorModel_Parms:
 #
 #    def __hash__(self):
 #        return 3;
-        
+
     @classmethod
     def fromGeneTemplates(cls):
         cls = IgorModel_Parms()
         return cls
-    
+
+    @classmethod
+    def from_network_dict(cls, network_dict:dict):
+        # outfile << event_type<< ";" <<
+        # SingleErrorRate
+        cls = IgorModel_Parms()
+        # 1. Create Event_list
+        cls.Event_list = list()
+        for nickname in network_dict.keys():
+            # FIXME: Use default values
+            # Create a default event by nickname
+            dict_IgorRec_Event = IgorRec_Event_default_dict[nickname]
+            event = IgorRec_Event.from_dict(dict_IgorRec_Event)
+            try:
+                cls.Event_list.append(event)
+                print("New event has been added: ", dict_IgorRec_Event)
+            except Exception as e:
+                raise e
+        # 2. Fill Events with realizations
+        # 2.1. if event.event_type == 'GeneChoice':
+        #       load file
+        #mdl0.parms.Event_list[0].realizations[0])
+
+        # load events from default dictionary.
+        #
+        return cls
+
+    # TODO: Check how the imgt functions return data
+    def load_GeneChoice_realizations_by_nickname(self, event_nickname:str, flnGenomic):
+        event = self.get_Event(event_nickname)
+        from Bio import SeqIO
+
+        if event.event_type == 'GeneChoice':
+            for index, record in enumerate(SeqIO.parse(flnGenomic, "fasta")):
+                event_realization = IgorEvent_realization()
+                event_realization.index = index
+                event_realization.value = record.seq
+                event_realization.name = record.description
+                event.add_realization(IgorEvent_realization)
+            print(event_nickname, " from file : ", flnGenomic)
+
+    def load_Deletion_realizations_by_nickname(self, event_nickname: str, limits=(-4, 20)):
+        event = self.get_Event(event_nickname)
+        if event.event_type == 'Deletion':
+            start, end = limits
+            for index, ndels in enumerate(range(start, end)):
+                event_realization = IgorEvent_realization()
+                event_realization.index = index
+                event_realization.value = ndels
+            print(event_nickname, " limits : ", limits)
+
+    def load_Insertion_realizations_by_nickname(self, event_nickname: str, limits=(0, 24)):
+        event = self.get_Event(event_nickname)
+        if event.event_type == 'Insertion':
+            start, end = limits
+            # FIXME: VALIDATE FOR POSITIVE VALUES
+            for index, nins in enumerate(range(start, end)):
+                event_realization = IgorEvent_realization()
+                event_realization.index = index
+                event_realization.value = nins
+            print(event_nickname, " limits : ", limits)
+
+    def load_DinucMarkov_realizations_by_nickname(self, event_nickname: str, limits=(0,16)):
+        event = self.get_Event(event_nickname)
+        if event.event_type == 'DinucMarkov':
+            start, end = limits
+            # FIXME: VALIDATE FOR POSITIVE VALUES
+            for index, nins in enumerate(range(start, end)):
+                event_realization = IgorEvent_realization()
+                event_realization.index = index
+                event_realization.value = nins
+            print(event_nickname, " limits : ", limits)
+
+
+
+
     # FIXME: FINISH THIS METHOD
     def write_model_parms(self, filename="tmp_mdl_parms.txt"):
         """Writes a model graph structure from a model params object.
@@ -413,7 +496,8 @@ class IgorModel_Parms:
         """
         
         # Sort events in list with the your specific preference.
-        nicknameList = ["v_choice", "j_choice", "d_gene", "v_3_del"]
+        # FIXME: FIND ANOTHER WAY TO WRITE IN A CORRECT ORDER
+        #igor_nickname_list = ["v_choice", "j_choice", "d_gene", "v_3_del"]
         #self.get_Event(nicknameList)
         #self.Event_list
         strSepChar=";"
@@ -421,16 +505,28 @@ class IgorModel_Parms:
             #1. Write events
             ofile.write("@Event_list\n")
             #for event in self.Event_list:
-            for nickname in nicknameList:
-                event = self.get_Event(nickname)
-                strLine = "#" + \
-                str(event.event_type) + strSepChar + \
-                str(event.seq_type) + strSepChar + \
-                str(event.seq_side) + strSepChar + \
-                str(event.priority) + strSepChar + \
-                str(event.nickname) + "\n"
-                ofile.write(strLine)
-            
+            for nickname in igor_nickname_list: # Igor_nicknameList is in IgorDefaults.py
+                try:
+                    event = self.get_Event(nickname)
+                    strLine = "#" + \
+                    str(event.event_type) + strSepChar + \
+                    str(event.seq_type) + strSepChar + \
+                    str(event.seq_side) + strSepChar + \
+                    str(event.priority) + strSepChar + \
+                    str(event.nickname) + "\n"
+                    ofile.write(strLine)
+                    # WRITE THE LIST OF REALIZATIONS adding character '%'
+                    df = event.get_realization_DataFrame()
+                    str_df = df.to_csv(sep=strSepChar, header=False)
+                    str_realization_list=""
+                    for strLine in str_df.split("\n"):
+                        str_realization_list = str_realization_list + "%"+strLine + "\n"
+                    ofile.write(str_realization_list)
+
+                # FIXME: NOT GOOD TO MAKE A BLIND PASS BUT A TEMPORAL SOLUTION UNTIL I FIND A WAY TO ESTABLISH PRIORITIES ON THE EVENTS
+                except Exception as e:
+                    pass
+
             #2. Write Edges
             ofile.write("@Edges\n")
             
@@ -508,7 +604,6 @@ class IgorModel_Parms:
             self.Event_list.append(event)
         ofile.seek(lastPos)
 
-
     def read_Edges(self, ofile):
         #print "read_Edges"
         lastPos  = ofile.tell()
@@ -524,7 +619,6 @@ class IgorModel_Parms:
             strip_line = line.rstrip('\n')  # Remove end of line character
             strip_line = strip_line.rstrip('\r')  # Remove carriage return character (if needed)
         ofile.seek(lastPos)
-
 
     def read_ErrorRate(self, ofile):
         lastPos  = ofile.tell()
@@ -604,7 +698,6 @@ class IgorModel_Parms:
         self.preMarginalDF = pd.DataFrame(data) #.set_index('event')
         self.preMarginalDF['nEdges'] = self.preMarginalDF['Edges'].map(len)
         self.preMarginalDF.sort_values(['priority', 'nEdges'], ascending=[False,True])
-
 
     def genMarginalFile(self, model_marginals_file=None):
         self.genPreMarginalDF()
@@ -686,7 +779,6 @@ class IgorModel_Parms:
 
         plt.show()
 
-
 class IgorRec_Event:
     """Recombination event class containing event's name, type, realizations,
     etc... Similar to IGoR's C++ RecEvent class.
@@ -717,6 +809,31 @@ class IgorRec_Event:
 
         return dictIgorRec_Event
 
+
+    @classmethod
+    def from_dict(cls, dict_IgorRec_Event:dict):
+        """Returns a IgorRec_Event based on dictionary
+        """
+        cls = IgorRec_Event(dict_IgorRec_Event["event_type"], dict_IgorRec_Event["seq_type"],
+                            dict_IgorRec_Event["seq_side"], dict_IgorRec_Event["priority"], dict_IgorRec_Event["nickname"])
+        # 'event_type', 'seq_type', 'seq_side', 'priority', and 'nickname'
+        # FIXME: Is better to make this class as an extension of a dictionary container?
+        # Given the nickname complete the events with
+        #cls.nickname = dict_IgorRec_Event["nickname"]
+        #cls.event_type = dict_IgorRec_Event["event_type"]
+        #cls.seq_type = dict_IgorRec_Event["seq_type"]
+        #cls.seq_side = dict_IgorRec_Event["seq_side"]
+        #cls.priority = dict_IgorRec_Event["priority"]
+        cls.realizations = dict_IgorRec_Event["realizations"] # TODO: CREATE FUNCTION TO GENERATE realizations vector
+        #cls.name = dict_IgorRec_Event["name"]
+
+        return cls
+
+    @classmethod
+    def from_default_nickname(cls, nickname:str):
+        cls = IgorRec_Event.to_dict(IgorRec_Event_default_dict[nickname])
+        return cls
+
     def __str__(self):
         return str(self.to_dict())
 
@@ -726,37 +843,6 @@ class IgorRec_Event:
 #            return True
 #        elif ( self.priority == other.priority  ):
 #            # FIXME: less dependencies should be on top
-            
-
-
-
-#    def __eq__(self, other):
-#        if isinstance(self, other.__class__):
-#            return (    (self.event_type   == other.event_type) \
-#                    and (self.seq_type     == other.seq_type) \
-#                    and (self.seq_side     == other.seq_side) \
-#                    and (self.priority     == other.priority) \
-#                    and (self.realizations == other.realizations) \
-#                    and (self.name         == other.name) \
-#                    and (self.nickname     == other.nickname) \
-#                    )
-#        else:
-#            return NotImplemented
-#        
-#    def __hash__(self):
-#        return hash((self.event_type, \
-#                     self.seq_type, \
-#                     self.seq_side, \
-#                     self.priority, \
-#                     self.realizations, \
-#                     self.name, \
-#                     self.nickname))
-
-#    def __str__(self):
-#        return self.event_type+";"+self.seq_type+";"+self.seq_side+";"+self.priority+";"+self.nickname
-#
-#    def __repr__(self):
-#        return "Rec_event(" + self.nickname + ")"
 
     def add_realization(self, realization):
         """Add a realization to the RecEvent realizations list."""
@@ -779,10 +865,24 @@ class IgorRec_Event:
                         str(self.priority) + "_size" + \
                         str(len(self.realizations))
 
+    # TODO: Create a realization vector from a fasta file
+    def set_realization_vector(self):
+        if self.event_type == 'GeneChoice':
+            print('GeneChoice')
+
+    def set_realization_vector_GeneChoice(self, flnGenomic:str):
+        """
+        Sets a realization vector from a filename
+        :param flnGenomic: fasta file with the genomic template IMGT or other template.
+        """
+        #FIXME: FINISH IT
+        # TODO: Add realizations from fasta file.
+        from Bio import SeqIO
+        #for record in list(SeqIO.parse(flnGenomic, "fasta")):
+
     def get_realization_vector(self):
         """This methods returns the event realizations sorted by the
         realization index as a list.
-
         """
         if self.event_type == 'GeneChoice':
             tmp = [""] * len(self.realizations)  # empty(, dtype = str)
@@ -803,13 +903,12 @@ class IgorRec_Event:
 
         return tmp
 
+
     def get_realization_DataFrame(self):
         """ return an Event realizations as a pandas DataFrame to manipulate it.
 
         """
         return pd.DataFrame.from_records([realiz.to_dict() for realiz in self.realizations], index='index').sort_index()
-
-
 
 class IgorEvent_realization:
     """A small class storing for each RecEvent realization its name, value and
@@ -843,6 +942,40 @@ class IgorEvent_realization:
             'name'  : self.name
             }
 
+    @classmethod
+    def from_dict(self, event_dict:dict):
+        cls = IgorEvent_realization()
+        cls.index = event_dict['index']
+        cls.value = event_dict['value']
+        cls.name = event_dict['name']
+        return cls
+#    def __eq__(self, other):
+#        if isinstance(self, other.__class__):
+#            return (    (self.event_type   == other.event_type) \
+#                    and (self.seq_type     == other.seq_type) \
+#                    and (self.seq_side     == other.seq_side) \
+#                    and (self.priority     == other.priority) \
+#                    and (self.realizations == other.realizations) \
+#                    and (self.name         == other.name) \
+#                    and (self.nickname     == other.nickname) \
+#                    )
+#        else:
+#            return NotImplemented
+#
+#    def __hash__(self):
+#        return hash((self.event_type, \
+#                     self.seq_type, \
+#                     self.seq_side, \
+#                     self.priority, \
+#                     self.realizations, \
+#                     self.name, \
+#                     self.nickname))
+
+#    def __str__(self):
+#        return self.event_type+";"+self.seq_type+";"+self.seq_side+";"+self.priority+";"+self.nickname
+#
+#    def __repr__(self):
+#        return "Rec_event(" + self.nickname + ")"
 
 
 
@@ -851,7 +984,6 @@ class IgorEvent_realization:
 # $Dim
 # #Indices of the realizations of the parent events
 # %1d probability array.
-
 
 class IgorModel_Marginals:
     """

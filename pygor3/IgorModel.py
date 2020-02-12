@@ -24,6 +24,7 @@ import pandas as pd
 import xarray as xr
 import networkx as nx
 
+from pygor3 import rcParams
 #import networkx as nx
 
 # Generation of label for a simple identification of genomic template sequence.
@@ -53,6 +54,32 @@ class Model:
         if flag_xdata:
             self.generate_xdata()
 
+    
+    # TODO: finish this method to load model with default installed igor.
+    @classmethod
+    def load_default(cls, IgorSpecie, IgorChain, modelpath=rcParams['paths.igor_models']):
+        """
+        :return IgorModel loaded with the default location for specie and chain
+        """        
+        # IGoR run parameters
+        #IgorSpecie    = specie #"mouse"
+        #IgorChain     = chain #"tcr_beta"
+        IgorModelPath = modelpath+"/"+IgorSpecie+"/"+IgorChain+"/"
+        # FIXME: FIND A WAY TO GENERALIZE THIS WITH SOMEKIND OF STANDARD NAME
+        flnModelParms = IgorModelPath + "models/model_parms.txt"
+        flnModelMargs = IgorModelPath + "models/model_marginals.txt"
+
+#        IgorRefGenomePath = IgorModelPath+"ref_genome/"
+#        flnVGeneTemplate = IgorRefGenomePath+"genomicVs.fasta"
+#        flnDGeneTemplate = IgorRefGenomePath+"genomicDs.fasta"
+#        flnJGeneTemplate = IgorRefGenomePath+"genomicJs.fasta"
+#        
+#        flnVGeneCDR3Anchors = IgorRefGenomePath+"V_gene_CDR3_anchors.csv"
+#        flnJGeneCDR3Anchors = IgorRefGenomePath+"J_gene_CDR3_anchors.csv"
+        cls = Model(model_parms_file=flnModelParms, model_marginals_file=flnModelMargs)
+        return cls
+        
+    
     def generate_xdata(self):
         Event_Genechoice_List = ['v_choice', 'j_choice', 'd_gene']
         Event_Dinucl_List     = ['vd_dinucl', 'dj_dinucl', 'vj_dinucl'] 
