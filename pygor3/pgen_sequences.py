@@ -9,6 +9,7 @@ def main():
     parser.add_option("-c", "--chain", dest="chain", help='Igor chain')
     parser.add_option("-b", "--batch", dest="batch", help='Batchname to identify run. If not set random name is generated')
     parser.add_option("-o", "--output", dest="output", help='filename of csv file to export data')
+    parser.add_option("-i", "--input", dest="input", help='Input sequences filename to calculate pgen')
 
     (options, args) = parser.parse_args()
 
@@ -24,22 +25,31 @@ def main():
     else:
         task.igor_chain = str(options.chain)
 
+    if options.input == None:
+        print("input is mandatory")
+        exit()
+    else:
+        input = options.input
+        task.igor_read_seqs = input
+
     if options.output == None:
         print("output is mandatory")
-        exit()
+        import os
+        basename, extension = os.path.splitext(task.igor_read_seqs)
+        output = basename+"_pgen.csv"
+        # task.igor_read_seqs
+        #exit()
     else:
         output = options.output
 
     if options.batch == None:
         print("Batchname not set. Random batchname will be assing.")
 
-    if len(args) > 0 and len(args) <2:
-      filename = str(args[0])
-      task.igor_read_seqs = filename
-    else:
+    if not len(args) == 0:
       print("Supply a correct filename")
       exit()
 
+    task.update_batch_filenames()
     task.run_evaluate()
 
     # task = p3.IgorTask.load_from_batchname("testing")

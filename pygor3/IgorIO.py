@@ -281,6 +281,7 @@ class IgorTask:
         cmd = cmd + " -set_wd " + self.igor_wd
         cmd = cmd + " -batch " + self.igor_batchname
         cmd = cmd + " -read_seqs " + self.igor_read_seqs
+        # TODO: if self.igor_read_seqs extension fastq then convert to csv and copy and create the file in aligns. Overwrite if necesserasy
         print(cmd)
         run_command(cmd)
         self.b_read_seqs = True # FIXME: If run_command success then True
