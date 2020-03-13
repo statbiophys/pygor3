@@ -9,7 +9,7 @@ Created on Wed Oct  9 16:52:51 2019
 import pandas as pd
 import numpy as np
 import sqlite3
-
+from .IgorIO import *
 
 """
 seq_index
@@ -36,9 +36,10 @@ class IgorSqliteDBBestScenariosVDJ:
     """
     Class to create and load table or database with sequences
     """
-    def __init__(self):
+    def __init__(self, flnIgorSQLBestScenarios):
         #IgorInferenceDB_VDJ.sql
-        self.flnIgorSQLBestScenarios = "IgorDBBestScenariosVDJ.sql"
+        # FIXME: LOAD DATA FROM PACKAGE ROOT
+        self.flnIgorSQLBestScenarios = flnIgorSQLBestScenarios #"IgorDBBestScenariosVDJ.sql"
         self.flnIgorDB  = "" #flnIgorDB
         
         self.conn               = None
@@ -180,7 +181,7 @@ class IgorSqliteDBBestScenariosVDJ:
 #        self.mdl = IgorModel.Model(model_parms_file=model_parms_file, model_marginals_file=model_marginals_file)
 #        
     def setModelFromFiles(self, model_parms_file=None, model_marginals_file=None):
-        self.mdl = IgorModel.Model(model_parms_file=model_parms_file, model_marginals_file=model_marginals_file)
+        self.mdl = IgorModel(model_parms_file=model_parms_file, model_marginals_file=model_marginals_file)
         
     def setModel(self, mdl):
             self.mdl = mdl
@@ -191,9 +192,10 @@ class IgorSqliteDBBestScenariosVDJ:
     def setAlignsFile(self, flnAligns):
         self.flnAligns = flnAligns
     
+    # TODO: clomplete this if worth it...
     def get_BestScenariosDataFrame(self, flnBestScenarios, flnParms, flnMarginals):
         bestScen = pd.read_csv(flnBestScenarios, sep=';')
-        mdl = IgorModel.Model(model_parms_file=flnParms, model_marginals_file=flnMarginals)
+        mdl = IgorModel(model_parms_file=flnParms, model_marginals_file=flnMarginals)
         pdBestScen = bestScen.rename(mdl.parms.dictNameNickname, axis=1).set_index('seq_index')
         tmpEvents = ['vd_dinucl', 'dj_dinucl', 'Mismatches']
         tmpEvents02 = ['scenario_rank', 'scenario_proba_cond_seq']

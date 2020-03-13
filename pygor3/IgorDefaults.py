@@ -18,12 +18,10 @@
 
 Igor_event_type_list = ['GeneChoice', 'Deletion', 'Insertion', 'DinucMarkov']
 
-igor_nickname_list = ["v_choice", "j_choice", "d_gene", "v_3_del",
+Igor_nickname_list = ["v_choice", "j_choice", "d_gene", "v_3_del",
                      "d_3_del", "d_5_del", "j_5_del",
                      "vd_ins", "vd_dinucl", "dj_ins", "dj_dinucl",
                      "vj_ins", "vj_dinucl"]
-
-
 
 IgorRec_Event_default_dict = {
     # GeneChoice;V_gene;Undefined_side;7;v_choice

@@ -66,16 +66,27 @@ defaultParams = {
     # default system paths
     'paths.igor_prefix' : "/home/alfaceor/.local",
     'paths.igor_exec' : "/home/alfaceor/.local/bin/igor",
+    'paths.igor_data' : "",
     'paths.igor_models': "/home/alfaceor/.local/share/igor/models",
     'paths.igor_src' : ""
 }
 
 rcParams = RcParams(defaultParams)
 
+import pkg_resources
+
+# __name__ in case you're within the package
+# - otherwise it would be 'lidtk' in this example as it is the package name
+sql_path = 'IgorDB.sql'  #
+sql_filepath = pkg_resources.resource_filename(__name__, sql_path)
 
 #from .IgorModel import *
 from .IgorIO import *
+from .IgorSqliteDB import *
+from .IgorSqliteDBBestScenarios import *
+from .IgorBestScenarios import *
 from . import imgt
+
 #__all__ = ["IgorModel"]
 
 

@@ -10,6 +10,7 @@ import sqlite3
 import csv
 from Bio import SeqIO
 #import IgorAlignment_data
+from .IgorSQL import *
 
 
 ###################
@@ -20,8 +21,13 @@ class IgorSqliteDB:
     """
     Class to create and load table or database with sequences
     """
-    def __init__(self):
-        self.flnIgorSQL = "IgorDB.sql"
+    def __init__(self): #=None):
+        # if flnIgorSQL is None:
+        #     self.flnIgorSQL = "IgorDB.sql" # FIXME : VERY BAD WRAPP WITH INIT
+        # else:
+        #     self.flnIgorSQL = flnIgorSQL
+        self.flnIgorSQL = "" # FIXME: this shouldn't be need it!
+
         self.flnIgorDB  = "" #flnIgorDB
         
         self.flnIgorIndexedSeq = ""
@@ -56,7 +62,32 @@ class IgorSqliteDB:
             #self.conn.close()
         except sqlite3.Error as e:
             print(e)
-        
+
+    # TODO: load database by receiving a list of identifiers defined in IgorDictionaries
+    def load_db(self, **kwargs):
+        """
+        Return a parameter
+        """
+
+        for key in kwargs.keys():
+            # Create a database.
+            print( sqlcmd_ct[key] )
+            #print(key)
+            self.insert_IgorIndexedSeq_FromCSVline()
+
+            # cur = self.conn.cursor()
+            # try:
+            #     cur.execute('BEGIN TRANSACTION')
+            #     with open(flnIgorIndexedSeq) as fp:
+            #         csvline = fp.readline()
+            #         while csvline:
+            #             csvline = fp.readline()
+            #             # print(csvline)
+            #             self.insert_IgorIndexedSeq_FromCSVline(cur, csvline)
+            #     cur.execute('COMMIT')
+            #     # self.conn.commit()
+            # except sqlite3.Error as e:
+            #     print(e)
 
     def load_VDJ_Database(self, flnIgorIndexedSeq, flnVGeneTemplate, flnDGeneTemplate, flnJGeneTemplate, flnVAlignments, flnDAlignments, flnJAlignments):
         
@@ -81,8 +112,8 @@ class IgorSqliteDB:
         :param csvline:
         :return:
         """
-        self.flnIgorIndexedSeq = flnIgorIndexedSeq        
-        
+        self.flnIgorIndexedSeq = flnIgorIndexedSeq
+
         cur = self.conn.cursor()
         try:
             cur.execute('BEGIN TRANSACTION')
@@ -90,14 +121,13 @@ class IgorSqliteDB:
                 csvline = fp.readline()
                 while csvline:
                     csvline = fp.readline()
-                    #print(csvline)
+                    # print(csvline)
                     self.insert_IgorIndexedSeq_FromCSVline(cur, csvline)
             cur.execute('COMMIT')
-            #self.conn.commit()
+            # self.conn.commit()
         except sqlite3.Error as e:
             print(e)
 
-    
     def insert_IgorIndexedSeq_FromCSVline(self, cur, csvline):
         """
         Insert IGoR indexed_sequences on Database flnIgorDB
@@ -117,7 +147,6 @@ class IgorSqliteDB:
                 print(data)
                 print(e)
                 pass
-        
 
     def fetch_IgorIndexedSeq_By_seq_index(self, seq_index):
         """
@@ -340,24 +369,6 @@ class IgorSqliteDB:
     def write_IgorAlignments2Fasta(self, alnDataList):
         print(alnDataList)
 
-        
-    
 
-    
-    
-    
-        
-
-
-#        data = tuple(csvline.split(";"))
-#        print(data)
-#        try:
-#            cur = self.conn.cursor()
-#            cur.execute(sql, data)
-#            self.conn.commit()
-#        except sqlite3.Error as e:
-#            print(e)
-#            pass
-        
 
 

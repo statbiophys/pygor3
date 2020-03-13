@@ -1,11 +1,24 @@
 #!/home/alfaceor/anaconda3/envs/pygor3/bin/python
-import importlib
 import pygor3
-#importlib.reload(p3)
-importlib.reload(pygor3)
+import panel as pn
+pn.extension()
 
-igor_specie="human"
-igor_chain="tcr_beta"
+Titulo = "<h1> Run IGoR<\h1>"
+#igor_specie="human"
+#igor_chain="tcr_beta"
+igor_species_list = ["human", "mouse"]
+    
+igor_option_path_dict={
+    "alpha": "tcr_alpha", 
+    "beta" : "tcr_beta", 
+    "light": "light", 
+    "heavy_naive" : "bcr_heavy", 
+    "heavy_memory": "bcr_heavy"
+}
+
+wd_igor_specie = pn.widgets.Select(options=igor_species_list, name=str_ev)
+wd_igor_chain = pn.widgets.Select(options=igor_option_path_dict, name=str_ev)
+
 
 """Create a function that receives as input a IgorModel
 and plot the dependecies of the events.
@@ -14,9 +27,6 @@ and plot the dependecies of the events.
 #mdl0 = p3.IgorModel.load_default(igor_specie, igor_chain)
 mdl0 = pygor3.IgorModel.load_default(igor_specie, igor_chain)
 
-
-import panel as pn
-pn.extension()
 
 button_event = pn.widgets.RadioButtonGroup(
     name='Event nicknames',
@@ -44,7 +54,9 @@ def pn_depency_events(strEvent):
     
     #return event_widget_list
     pn_Events = pn.Column(*event_widget_list)
-    print("pn_Events: ", pn_Events)
+    print("pn_Events: ") #, pn_Events)
+    for event_widget in event_widget_list:
+        print(event_widget.value)
     return pn_Events
 
     

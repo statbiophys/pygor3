@@ -23,8 +23,17 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 import networkx as nx
+
+from .IgorDictionaries import *
 from .IgorDefaults import *
+from .IgorSqliteDB import *
+from .IgorSqliteDBBestScenarios import *
+### load IGoR sequences database
 from pygor3 import rcParams
+import subprocess
+
+from .IgorSQL import *
+
 
 ### GENERIC FUNCTIONS
 # Generation of label for a simple identification of genomic template sequence.
@@ -35,8 +44,368 @@ def genLabel(strName):
     else:
         return strName
 
+def command_from_dict_options(dicto:dict):
+    """ Return igor options from dictionary"""
+    cmd = ''
+    print()
+    for key in dicto.keys():
+        if dicto[key]['active']:
+            cmd = cmd + " " + key + " " + dicto[key]['value']
+            if dicto[key]['dict_options'] is not None:
+                #print(key, dicto[key]['dict_options'])
+                cmd = cmd + " " + command_from_dict_options(dicto[key]['dict_options'])
+    return cmd
 
-### IGOR INPUT SEQUENCES  ####
+def run_command(cmd):
+    """from http://blog.kagesenshi.org/2008/02/teeing-python-subprocesspopen-output.html
+    """
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    stdout = []
+    while True:
+        line = p.stdout.readline()
+        line = line.decode("utf-8")
+        stdout.append(line)
+        print (line, end='')
+        if line == '' and p.poll() != None:
+            break
+    return ''.join(stdout)
+
+def run_command_no_output(cmd):
+    """from http://blog.kagesenshi.org/2008/02/teeing-python-subprocesspopen-output.html
+    """
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    return p
+
+# FIXME: IT IS BETTER TO USE DECORATORS FOR VARIABLES LIKE igor_batchname and update the dependencies on that automatically?
+class IgorTask:
+    """
+    This class should encapsulate all
+    the input parameters and output files when IGoR run.
+    """
+    def __init__(self):
+        self.igor_exec_path = ""
+        self.igor_datadir = ""
+        self.igor_modelspath = ""
+
+        self.igor_modeldirpath = ""
+
+        self.igor_wd = ""
+        self.igor_batchname = ""
+        self.igor_specie = ""
+        self.igor_chain = ""
+        self.igor_model_parms_file = ""
+        self.igor_model_marginals_file = ""
+        self.igor_read_seqs = ""
+        self.igor_threads = ""
+
+        # read
+        self.igor_fln_indexed_sequences = ""
+        self.igor_fln_indexed_CDR3 = ""
+        # inference
+        self.igor_fln_infer_final_marginals = ""
+        self.igor_fln_infer_final_parms = ""
+        # evaluate
+        self.igor_fln_evaluate_final_marginals = ""
+        self.igor_fln_evaluate_infer_final_parms = ""
+        # output
+        self.igor_fln_output_pgen = ""
+        self.igor_fln_output_scenarios = ""
+        self.igor_fln_output_coverage = ""
+
+        self.igor_fln_db = ""
+
+        # TODO: experimental dictionary to check status of igor batch associated files
+        # almost each of these files correspond to a sql table
+        self.batch_data = igor_batch_dict
+
+
+        self.igor_db = None #IgorSqliteDB()
+        self.igor_db_bs = None
+
+        self.b_read_seqs = False
+        self.b_align = False
+        self.b_infer = False
+        self.b_evaluate = False
+        self.b_generate = False
+
+        self.mdl = IgorModel()
+
+        # FIXME: THIS OPTIONS SHOULD BE AT RC PARMS
+        tmp_dict_options = {
+                         '---thresh': {'active': False, 'value': '15', 'dict_options': {}},
+                         '---matrix': {'active': False, 'value': 'path/to/file', 'dict_options': {}},
+                         '---gap_penalty': {'active': False, 'value': 'X', 'dict_options': {}},
+                         '---best_align_only': {'active': False, 'value': '', 'dict_options': {}}
+                     }
+        self.igor_align_dict_options = igor_align_dict_options
+
+        self.igor_output_dict_options = igor_output_dict_options
+
+        try:
+            p = subprocess.Popen("head /dev/urandom | tr -dc A-Za-z0-9 | head -c10", shell=True, stdout=subprocess.PIPE)
+            line = p.stdout.readline()
+            self.igor_batchname = "dataIGoR"+line.decode("utf-8").replace('\n', '')
+        except Exception as e:
+            print(e)
+            raise e
+
+        try:
+            p = subprocess.Popen("pwd", shell=True, stdout=subprocess.PIPE)
+            line = p.stdout.readline()
+            self.igor_wd = line.decode("utf-8").replace('\n', '')
+        except Exception as e:
+            print(e)
+            raise e
+
+        try:
+            p = subprocess.Popen("which igor", shell=True, stdout=subprocess.PIPE)
+            line = p.stdout.readline()
+            self.igor_exec_path = line.decode("utf-8").replace('\n', '')
+        except Exception as e:
+            print(e)
+            raise e
+
+        try:
+            self.run_datadir()
+        except Exception as e:
+            print(e)
+            raise e
+
+    def load_IgorModel(self):
+        if (self.igor_specie == "" or self.igor_chain == ""):
+            self.mdl = IgorModel(model_parms_file = self.igor_model_parms_file, model_marginals_file=self.igor_model_marginals_file)
+        else :
+            self.mdl = IgorModel.load_default(self.igor_specie, igor_option_path_dict[self.igor_chain])
+
+    @classmethod
+    def default_model(cls, specie, chain, model_parms_file=None, model_marginals_file=None):
+        """Return an IgorTask object"""
+        cls.igor_specie = specie
+        cls.igor_chain = chain
+        cls.igor_modeldirpath =  model_parms_file
+        cls.run_datadir()
+
+        if model_parms_file is None:
+            cls.igor_model_parms_file = cls.igor_modelspath +"/" + cls.igor_specie + "/" + igor_option_path_dict[cls.igor_chain]
+
+    def update_batch_filenames(self):
+        self.igor_fln_indexed_sequences = self.igor_wd + "/aligns/" + self.igor_batchname + "_indexed_sequences.csv"
+        self.igor_fln_indexed_CDR3 = self.igor_wd + "/aligns/" + self.igor_batchname + "_indexed_CDR3.csv"
+
+        # inference
+        tmpstr = self.igor_wd + "/" + self.igor_batchname + "_inference/"
+        self.igor_fln_infer_final_parms = tmpstr + "final_parms.txt"
+        self.igor_fln_infer_final_marginals = tmpstr + "final_marginals.txt"
+
+        # evaluate
+        tmpstr = self.igor_wd + "/" + self.igor_batchname + "_evaluate/"
+        self.igor_fln_evaluate_final_parms = tmpstr + "final_parms.txt"
+        self.igor_fln_evaluate_final_marginals = tmpstr + "final_marginals.txt"
+
+        # output
+        tmpstr = self.igor_wd + "/" + self.igor_batchname + "_output/"
+        self.igor_fln_output_pgen = tmpstr + "Pgen_counts.csv"
+        self.igor_fln_output_scenarios = tmpstr + "best_scenarios_counts.csv"
+        self.igor_fln_output_coverage = tmpstr + "coverage.csv"
+
+        # Set all files as not existing by default
+        import os.path
+        for file_id in  igor_file_id_list:
+            self.batch_data[file_id]['status'] = os.path.isfile(self.batch_data[file_id]['filename'])
+        # database
+        self.igor_fln_db = self.igor_wd + "/" + self.igor_batchname+".db"
+
+        tmp_prefix_aligns = self.igor_wd + "/aligns/" + self.igor_batchname
+        self.batch_data['indexed_sequences']['filename'] = tmp_prefix_aligns  + "_indexed_sequences.csv"
+        self.batch_data['indexed_CDR3']['filename'] = tmp_prefix_aligns + "_indexed_CDR3.csv"
+        self.batch_data['aligns_V_alignments']['filename'] = tmp_prefix_aligns + "_V_alignments.csv"
+        self.batch_data['aligns_D_alignments']['filename'] = tmp_prefix_aligns + "_D_alignments.csv"
+        self.batch_data['aligns_J_alignments']['filename'] = tmp_prefix_aligns + "_J_alignments.csv"
+
+        tmp_prefix = self.igor_wd + "/" + self.igor_batchname
+        self.batch_data['infer_final_parms']['filename'] = tmp_prefix + "_inference/" + "final_parms.txt"
+        self.batch_data['infer_final_marginals']['filename'] = tmp_prefix + "_inference/" + "final_marginals.txt"
+        self.batch_data['evaluate_final_parms']['filename'] = tmp_prefix + "_evaluate/" + "final_parms.txt"
+        self.batch_data['evaluate_final_marginals']['filename'] = tmp_prefix + "_evaluate/" + "final_marginals.txt"
+        self.batch_data['output_pgen']['filename'] = tmp_prefix + "_output/" + "Pgen_counts.csv"
+        self.batch_data['output_scenarios']['filename'] = tmp_prefix + "_output/" + "best_scenarios_counts.csv"
+        self.batch_data['output_coverage']['filename'] = tmp_prefix + "_output/" + "coverage.csv"
+
+    # def update_igor_filenames_by_modeldirpath(self, modeldirpath=None):
+    #     if modeldirpath is None:
+    #         modeldirpath = self.igor_modelspath + "/" + self.igor_specie + "/" + igor_option_path_dict[self.igor_chain]
+    #
+    #     self.batch_data['genomicVs']['filename'] = tmp_prefix
+    #     self.batch_data['genomicDs']['filename'] = tmp_prefix
+    #     self.batch_data['genomicJs']['filename'] = tmp_prefix
+    #
+    #     self.batch_data['V_gene_CDR3_anchors']['filename'] = tmp_prefix
+    #     self.batch_data['J_gene_CDR3_anchors']['filename'] = tmp_prefix
+    #
+    #     self.batch_data['model_parms']['filename'] = tmp_prefix
+    #     self.batch_data['model_marginals']['filename'] = tmp_prefix
+
+    def update_batchname(self, batchname):
+        self.igor_batchname = batchname
+        self.update_batch_filenames()
+
+    @classmethod
+    def load_from_batchname(cls, batchname, wd=None):
+        cls = IgorTask()
+        if wd is None:
+            cls.igor_wd = "."
+        else:
+            cls.igor_wd = wd
+        cls.update_batchname(batchname)
+
+        try:
+            cls.run_datadir()
+        except Exception as e:
+            print(e)
+            raise e
+
+        return cls
+
+    def run_demo(self):
+        cmd = self.igor_exec_path+ " -run_demo"
+        run_command(cmd)
+
+    def run_datadir(self):
+        cmd = self.igor_exec_path+ " -datadir"
+        self.igor_datadir = run_command(cmd).replace('\n','')
+        self.igor_modelspath = self.igor_datadir + "/models/"
+
+    def run_read_seqs(self):
+        "igor -set_wd $WDPATH -batch foo -read_seqs ../demo/murugan_naive1_noncoding_demo_seqs.txt"
+        cmd = self.igor_exec_path
+        cmd = cmd + " -set_wd " + self.igor_wd
+        cmd = cmd + " -batch " + self.igor_batchname
+        cmd = cmd + " -read_seqs " + self.igor_read_seqs
+        print(cmd)
+        run_command(cmd)
+        self.b_read_seqs = True # FIXME: If run_command success then True
+
+    def run_align(self):
+        #"igor -set_wd ${tmp_dir} -batch ${randomBatch} -species
+        # ${species} -chain ${chain} -align --all"
+        if self.b_read_seqs is False:
+            self.run_read_seqs()
+        cmd = self.igor_exec_path
+        cmd = cmd + " -set_wd " + self.igor_wd
+        cmd = cmd + " -batch " + self.igor_batchname
+        # TODO: USE COSTUM MODEL OR USE SPECIFIED SPECIES?
+        # I think that the safests is to use the
+        cmd = cmd + " -species " + self.igor_specie
+        cmd = cmd + " -chain " + self.igor_chain
+        cmd = cmd + " -align " + command_from_dict_options(self.igor_align_dict_options)
+        #return cmd
+        print(cmd)
+        run_command(cmd)
+        #run_command_no_output(cmd)
+        self.b_align = True # FIXME: If run_command success then True
+
+    def run_evaluate(self):
+        #"igor -set_wd $WDPATH -batch foo -species human -chain beta
+        # -evaluate -output --scenarios 10"
+        if self.b_align is False:
+            self.run_align()
+
+        cmd = self.igor_exec_path
+        cmd = cmd + " -set_wd " + self.igor_wd
+        cmd = cmd + " -batch " + self.igor_batchname
+        # TODO: USE COSTUM MODEL OR USE SPECIFIED SPECIES?
+        # I think that the safests is to use the
+        cmd = cmd + " -species " + self.igor_specie
+        cmd = cmd + " -chain " + self.igor_chain
+        # here the evaluation
+        cmd = cmd + " -evaluate -output " + command_from_dict_options(self.igor_output_dict_options)
+        #return cmd
+        print(cmd)
+        # FIXME: REALLY BIG FLAW USE DICTIONARY FOR THE SPECIE AND CHAIN
+        self.mdl = IgorModel.load_default(self.igor_specie, igor_option_path_dict[self.igor_chain], modelpath=self.igor_modelspath)
+        run_command(cmd)
+        #run_command_no_output(cmd)
+        #self.b_evaluate = True # FIXME: If run_command success then True
+
+    def run_clean_batch(self):
+        cmd = "rm -r " + self.igor_wd + "/" + self.igor_batchname + "_evaluate"
+        run_command_no_output(cmd)
+        cmd = "rm -r " + self.igor_wd + "/" + self.igor_batchname + "_output"
+        run_command_no_output(cmd)
+        cmd = "rm " + self.igor_wd + "/aligns/" + self.igor_batchname + "*.csv"
+        run_command_no_output(cmd)
+
+    def load_VDJ_database(self, flnIgorSQL):
+        self.flnIgorSQL = flnIgorSQL
+        self.igor_db = IgorSqliteDB(flnIgorSQL)
+        # FIXME :EVERYTHING
+        flnIgorIndexedSeq = self.igor_wd+"/aligns/"+self.igor_batchname+"_indexed_sequences.csv"
+        # FIXME PATH AND OPTIONS NEED TO BE CONSISTENT
+        IgorModelPath = self.igor_modelspath + self.igor_specie + "/" \
+                        + igor_option_path_dict[self.igor_chain] + "/"
+        IgorRefGenomePath = IgorModelPath + "ref_genome/"
+
+        flnVGeneTemplate = IgorRefGenomePath + "genomicVs.fasta"
+        flnDGeneTemplate = IgorRefGenomePath + "genomicDs.fasta"
+        flnJGeneTemplate = IgorRefGenomePath + "genomicJs.fasta"
+
+        flnVGeneCDR3Anchors = IgorRefGenomePath + "V_gene_CDR3_anchors.csv"
+        flnJGeneCDR3Anchors = IgorRefGenomePath + "J_gene_CDR3_anchors.csv"
+
+        ### IGoR Alignments files
+        flnVAlignments = self.igor_wd + "/aligns/" + self.igor_batchname + "_V_alignments.csv"
+        flnDAlignments = self.igor_wd + "/aligns/" + self.igor_batchname + "_D_alignments.csv"
+        flnJAlignments = self.igor_wd + "/aligns/" + self.igor_batchname + "_J_alignments.csv"
+
+        ### IGoR ouptut files
+        flnModelParms = IgorModelPath + "models/model_parms.txt"
+        flnModelMargs = IgorModelPath + "models/model_marginals.txt"
+        flnIgorBestScenarios = self.igor_wd + self.igor_batchname + "_output/best_scenarios_counts.csv"
+
+        flnIgorDB = self.igor_batchname+".db"
+        self.igor_db.createSqliteDB(flnIgorDB)
+        self.igor_db.load_VDJ_Database(flnIgorIndexedSeq, \
+                             flnVGeneTemplate, flnDGeneTemplate, flnJGeneTemplate, \
+                             flnVAlignments, flnDAlignments, flnJAlignments)
+
+        # ### load IGoR model parms and marginals.
+        # # FIXME: THIS IS REDUNDANT IN SOME PLACE check it out.
+        # self.mdl = IgorModel(model_parms_file=flnModelParms, model_marginals_file=flnModelMargs)
+        # mdlParms = IgorModel.Model_Parms(flnModelParms)  # mdl.parms
+        # mdlMargs = IgorModel.Model_Marginals(flnModelMargs)  # mdl.marginals
+        #
+        # # load IGoR best scenarios file.
+        # db_bs = IgorSqliteDBBestScenarios.IgorSqliteDBBestScenariosVDJ()
+        # db_bs.createSqliteDB("chicagoMouse_bs.db")
+        # db_bs.load_IgorBestScenariosVDJ_FromCSV(flnIgorBestScenarios)
+
+    def load_VDJ_BS_database(self, flnIgorBSSQL):
+        flnIgorBestScenarios = self.igor_wd+"/"+self.igor_batchname+"_output/best_scenarios_counts.csv"
+        self.igor_db_bs = IgorSqliteDBBestScenariosVDJ(flnIgorBSSQL) #IgorDBBestScenariosVDJ.sql
+        self.igor_db_bs.createSqliteDB(self.igor_batchname+"_bs.db")
+        self.igor_db_bs.load_IgorBestScenariosVDJ_FromCSV(flnIgorBestScenarios)
+
+    def get_pgen_pd(self):
+        #load pgen file
+        import pandas as pd
+        df = pd.read_csv(self.igor_fln_output_pgen, sep=';')
+        df = df.set_index('seq_index')
+        df = df.sort_index()
+        df_seq = pd.read_csv(self.igor_fln_indexed_sequences, sep=';')
+        df_seq = df_seq.set_index('seq_index').sort_index()
+        df_cdr3 = pd.read_csv(self.igor_fln_indexed_CDR3, sep=';')
+        df_cdr3 = df_cdr3.set_index('seq_index').sort_index()
+        df = df.merge(df_seq, left_index=True, right_index=True)
+        df = df.merge(df_cdr3, left_index=True, right_index=True)
+        return df
+
+
+
+
+
+    ### IGOR INPUT SEQUENCES  ####
+
+
 class IgorIndexedSequence:
     """
     Return a IgorIndexedSequence instance
@@ -105,7 +474,6 @@ class IgorIndexedSequence:
             print(e)
             raise e
         return cls
-
 
 ### IGOR ALIGNMENTS  ####
 class IgorAlignment_data:
@@ -194,7 +562,6 @@ class IgorAlignment_data:
         except Exception as e:
             print(e)
             raise e
-        
 
 ### IGOR MODEL ####
 class IgorModel:
@@ -206,10 +573,11 @@ class IgorModel:
         self.specie = ""
         self.chain = ""
 
+
         # check input files
-        flag_parms     = (model_parms_file is not None)
+        flag_parms = (model_parms_file is not None)
         flag_marginals = (model_marginals_file is not None)
-        flag_xdata     = (flag_parms and flag_marginals)
+        flag_xdata = (flag_parms and flag_marginals)
 
         if flag_parms:
             self.parms.read_model_parms(model_parms_file)
@@ -217,7 +585,6 @@ class IgorModel:
             self.marginals.read_model_marginals(model_marginals_file)
         if flag_xdata:
             self.generate_xdata()
-
 
     def __str__(self):
         return ".xdata" + str(self.get_events_nicknames_list())
@@ -238,6 +605,7 @@ class IgorModel:
         flnModelMargs = IgorModelPath + "models/model_marginals.txt"
         print("Parms filename: ", flnModelParms)
         print("Margs filename: ", flnModelMargs)
+        print("-"*50)
 
 #        IgorRefGenomePath = IgorModelPath+"ref_genome/"
 #        flnVGeneTemplate = IgorRefGenomePath+"genomicVs.fasta"
@@ -249,6 +617,7 @@ class IgorModel:
         cls = IgorModel(model_parms_file=flnModelParms, model_marginals_file=flnModelMargs)
         cls.specie = IgorSpecie
         cls.chain = IgorChain
+
         return cls
 
     @classmethod
@@ -258,7 +627,6 @@ class IgorModel:
         """
         cls = IgorModel(model_parms_file=flnModelParms, model_marginals_file=flnModelMargs)
         return cls
-
 
     def generate_xdata(self):
         Event_Genechoice_List = ['v_choice', 'j_choice', 'd_gene']
@@ -368,6 +736,48 @@ class IgorModel:
             events_set.add(event.nickname)
         return list(events_set)
 
+    # def infer(self, batchname=None, iterations=5):
+    #     import subprocess
+    #     igor_exec = rcParams['paths.igor_exec']
+    #     wd = "."
+    #     cmd = igor_exec +" -set_wd " + wd + " -set_custom_model " + self.parms.model_parms_file + " -infer --N_iter "+str(iterations)
+    #     print(cmd)
+
+    def export_event_to_csv(self, strEvent, *args, **kargs):
+        # if path_or_buf is None:
+        #    path_or_buf = 'event__'+strEvent+".csv"
+        # strEvent = 'd_3_del'
+        df = self.xdata[strEvent].to_dataframe(name="Prob").drop('priority', 1)
+        df.to_csv(*args, **kargs)
+
+    def plot_dumm_report(self, strEvent):
+        # strEvent = 'd_gene'
+        import matplotlib.pyplot as plt
+        fig, ax =  plt.subplots()
+        dependencias = list(self.xdata[strEvent].dims)
+        dependencias.remove(strEvent)
+        dependencias_dim = [self.xdata[strEvent][dep].shape[0] for dep in dependencias]
+        # eventos = eventos.remove(strEvent)
+        lista = list()
+        import numpy as np
+        # np.ndindex()
+        for index in np.ndindex(*dependencias_dim):
+            dictionary = dict(zip(dependencias, index))
+            # TODO: PLOT EACH DAMM FIGURE
+            self.xdata[strEvent][dictionary].plot()
+            aaa = [str(key) + "__" + str(dictionary[key]) for key in dictionary.keys()]
+            lbl_file = "___".join(aaa)
+            df = self.xdata[strEvent][dictionary].to_dataframe("P").drop('priority', 1)
+            df.plot.bar(x="lbl__"+strEvent, y='P', ax=ax)
+            print("*"*10)
+            print(lbl_file)
+            print(df)
+            #df.to_csv(lbl_file+".csv")
+            #fig.savefig(lbl_file+".png")
+            #ax.clear()
+        return fig
+
+
 class IgorModel_Parms:
     """
     Class to get a list of Events directly from the *_parms.txt
@@ -386,6 +796,7 @@ class IgorModel_Parms:
         self.dictNicknameName = dict()
         self.G = nx.DiGraph()
         self.preMarginalDF = pd.DataFrame()
+        self.model_parms_file = ""
 
         if model_parms_file is not None:
             print(model_parms_file)
@@ -409,10 +820,6 @@ class IgorModel_Parms:
 #    def __hash__(self):
 #        return 3;
 
-    @classmethod
-    def fromGeneTemplates(cls):
-        cls = IgorModel_Parms()
-        return cls
 
     @classmethod
     def from_network_dict(cls, network_dict:dict):
@@ -475,18 +882,13 @@ class IgorModel_Parms:
                 event_realization.value = nins
             print(event_nickname, " limits : ", limits)
 
-    def load_DinucMarkov_realizations_by_nickname(self, event_nickname: str, limits=(0,16)):
+    def load_DinucMarkov_realizations_by_nickname(self, event_nickname: str):
         event = self.get_Event(event_nickname)
         if event.event_type == 'DinucMarkov':
-            start, end = limits
-            # FIXME: VALIDATE FOR POSITIVE VALUES
-            for index, nins in enumerate(range(start, end)):
+            for index, nt_char in enumerate(['A', 'C', 'G', 'T']):
                 event_realization = IgorEvent_realization()
                 event_realization.index = index
-                event_realization.value = nins
-            print(event_nickname, " limits : ", limits)
-
-
+                event_realization.value = nt_char
 
 
     # FIXME: FINISH THIS METHOD
@@ -505,7 +907,7 @@ class IgorModel_Parms:
             #1. Write events
             ofile.write("@Event_list\n")
             #for event in self.Event_list:
-            for nickname in igor_nickname_list: # Igor_nicknameList is in IgorDefaults.py
+            for nickname in Igor_nickname_list: # Igor_nicknameList is in IgorDefaults.py
                 try:
                     event = self.get_Event(nickname)
                     strLine = "#" + \
@@ -558,6 +960,7 @@ class IgorModel_Parms:
             strip_line = strip_line.rstrip('\r')  # Remove carriage return character (if needed)
             if strip_line == "@ErrorRate" :
                 self.read_ErrorRate(ofile)
+        self.model_parms_file = filename
         self.get_EventDict_DataFrame()
 
     # save in Event_list
@@ -747,9 +1150,8 @@ class IgorModel_Parms:
         ofile.close()
 
     def plot_Graph(self): # FIXME: ALLOW the possibility to pass an ax like ax=None):
+        """Return a plot of the bayesian network """
         #if ax is None:
-        import matplotlib.pyplot as plt
-        fig, ax = plt.subplots()
 
         pos = nx.spring_layout(self.G)
         # priorities up
@@ -758,7 +1160,7 @@ class IgorModel_Parms:
             if not (event.priority in prio_dict):
                 prio_dict[event.priority] = list()
             prio_dict[event.priority].append(event)
-        print(str(prio_dict))
+        #print(str(prio_dict))
         xwidth = 240
         yfactor = 40
         for key in prio_dict:
@@ -771,13 +1173,19 @@ class IgorModel_Parms:
                     xpos = xx[ii]  # float(xwidth)*float(ii)/float(lenKey)
                     pos[ev.nickname] = np.array([xpos, float(key) * yfactor])
 
+        #### import matplotlib.pyplot as plt
+        #### fig, ax = plt.subplots()
+        #### ax.set_aspect('equal')
+        #### nx.draw(self.G, pos=pos, ax=ax, with_labels=True, arrows=True, arrowsize=20,
+        ####         node_size=800, font_size=10, font_weight='bold')  # FIXME: make a better plot: cutting edges.
 
-        ax.set_aspect('equal')
-        # nx.draw(G, pos, with_labels=True, font_weight='bold', nodesize=2000) # FIXME: make a better plot: cutting edges.
-        nx.draw(self.G, pos=pos, ax=ax, with_labels=True, arrows=True, arrowsize=20,
-                node_size=800, font_size=10, font_weight='bold')  # FIXME: make a better plot: cutting edges.
+        #### plt.show()
 
-        plt.show()
+        import hvplot.networkx as hvnx
+        graph = hvnx.draw(self.G, with_labels=True, FontSize=10, pos=pos, alpha=0.5,
+                        arrowstyle='fancy', arrowsize=2000, node_size=1000, width=400, height=400)
+                        ##, arrows=True, arrowsize=20, node_size=800, font_size=10, font_weight='bold')
+        return graph
 
 class IgorRec_Event:
     """Recombination event class containing event's name, type, realizations,
@@ -997,6 +1405,7 @@ class IgorModel_Marginals:
         self.marginals_dict = {}
         self.network_dict = {}
         #self.G          = nx.DiGraph()
+        self.model_marginals_file = ""
         if model_marginals_file is not None:
             self.read_model_marginals(model_marginals_file)
 
@@ -1108,6 +1517,8 @@ class IgorModel_Marginals:
                     element_marginal_array[tuple(indices_array)] = marginals_values
             self.marginals_dict[element_name] = element_marginal_array
 
+        self.model_marginals_file = filename
+
         #return marginals_dict, network_dict
 
 
@@ -1116,7 +1527,7 @@ class IgorModel_Marginals:
         self.marginals_dict = {}
         self.network_dict = {}
 
-### IgorBestScenariosVDJ ###
+### IGOR BEST SCENARIOS VDJ ###
 class IgorBestScenariosVDJ:
     def __init__(self):
         self.seq_index = -1

@@ -6,7 +6,7 @@ Created on Mon Oct  7 10:18:45 2019
 @author: alfaceor
 """
 
-#import IgorModel
+from .IgorIO import *
 
 class IgorBestScenariosVDJ:
     def __init__(self):
@@ -42,7 +42,7 @@ class IgorBestScenariosVDJ:
     
     def setModel_Parms(self, flnModelParms):
         self.flnModelParms = flnModelParms
-        self.mdlParms   = IgorModel.Model_Parms(model_parms_file = self.flnModelParms)
+        self.mdlParms   = IgorModel_Parms(model_parms_file = self.flnModelParms)
 
     def to_dict(self):
         dictBestScenario       =  {
@@ -110,6 +110,8 @@ class IgorBestScenariosVDJ:
         
         return dictBestScenario
     
+
+
     @classmethod
     def load_FromLineBestScenario(cls, line, delimiter=";"):
         #seq_index;scenario_rank;scenario_proba_cond_seq;GeneChoice_V_gene_Undefined_side_prio7_size35;GeneChoice_J_gene_Undefined_side_prio7_size14;GeneChoice_D_gene_Undefined_side_prio6_size2;Deletion_V_gene_Three_prime_prio5_size21;Deletion_D_gene_Five_prime_prio5_size21;Deletion_D_gene_Three_prime_prio5_size21;Deletion_J_gene_Five_prime_prio5_size23;Insertion_VD_genes_Undefined_side_prio4_size31;DinucMarkov_VD_genes_Undefined_side_prio3_size16;Insertion_DJ_gene_Undefined_side_prio2_size31;DinucMarkov_DJ_gene_Undefined_side_prio1_size16;Mismatches
@@ -128,7 +130,7 @@ class IgorBestScenariosVDJ:
             cls.seq_index      = int(linesplit[ 0])
             cls.scenario_rank  = int(linesplit[ 1])
             cls.scenario_proba_cond_seq = float(linesplit[2])
-            print(linesplit[ 3], type(linesplit[ 3]), len(linesplit[ 3]))
+            #print(linesplit[ 3], type(linesplit[ 3]), len(linesplit[ 3]))
             cls.id_v_choice    = int(linesplit[ 3])
             cls.id_j_choice    = int(linesplit[ 4])
             cls.id_d_gene      = int(linesplit[ 5])
@@ -137,10 +139,10 @@ class IgorBestScenariosVDJ:
             cls.id_d_3_del     = int(linesplit[ 8])
             cls.id_j_5_del     = int(linesplit[ 9])
             cls.id_vd_ins      = int(linesplit[10])
-            cls.vd_dinucl      = eval(linesplit[11])
+            cls.vd_dinucl      = eval(linesplit[11].replace("(","[").replace(")","]"))
             cls.id_dj_ins      = int(linesplit[12])
-            cls.dj_dinucl      = eval(linesplit[13])
-            cls.mismatches     = eval(linesplit[14])
+            cls.dj_dinucl      = eval(linesplit[13].replace("(","[").replace(")","]"))
+            cls.mismatches     = eval(linesplit[14].replace("(","[").replace(")","]"))
             cls.mismatcheslen  = int(len(cls.mismatches))
             
             return cls
@@ -332,7 +334,8 @@ class IgorBestScenariosVDJ:
         strScenarioFasta = strScenarioFasta + self.strSeq_index  + "\n" 
         strScenarioFasta = strScenarioFasta + self.getV_fasta()  + "\n" 
         strScenarioFasta = strScenarioFasta + self.getVD_fasta() + "\n" 
-        strScenarioFasta = strScenarioFasta + self.getD_fasta()  + "\n" 
+        strScenarioFasta = strScenarioFasta + self.getD_fasta()  + "\n"
+        # FIXME: I THINK getDJ_fasta() is wrong (inverse order maybe)
         strScenarioFasta = strScenarioFasta + self.getDJ_fasta() + "\n" 
         strScenarioFasta = strScenarioFasta + self.getJ_fasta()  + "\n" 
         

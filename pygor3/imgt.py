@@ -121,6 +121,7 @@ def download_gene_template(specie: str, gene: str, modelspath=None, filename=Non
             #filename = modelspath + "genomic__" + specie + "_" + gene + ".fasta"
     #flnGenomicJs = DIR_REF_GENOME + "genomicJs.fasta"
     save_records2fasta(records, filename)
+    return filename
 
 def write_D_TemplateFiles(gene, specie):
     records = get_records_list(urlDgene)
