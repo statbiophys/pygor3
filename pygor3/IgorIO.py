@@ -321,12 +321,36 @@ class IgorTask:
         # here the evaluation
         cmd = cmd + " -evaluate -output " + command_from_dict_options(self.igor_output_dict_options)
         #return cmd
+        print(cmd)run_inferun_inferrun_inferrrun_inferrun_inferrun_infer
+        # FIXME: REALLY BIG FLAW USE DICTIONARY FOR THE SPECIE AND CHAIN
+        self.mdl = IgorModel.load_default(self.igor_specie, igor_option_path_dict[self.igor_chain], modelpath=self.igor_modelspath)
+        run_command(cmd)
+        #run_command_no_output(cmd)
+        #self.b_evaluate = True # FIXME: If run_command success then Truerun_infer
+
+    def run_infer(self):
+        #"igor -set_wd $WDPATH -batch foo -species human -chain beta
+        # -evaluate -output --scenarios 10"
+        if self.b_align is False:
+            self.run_align()
+
+        cmd = self.igor_exec_path
+        cmd = cmd + " -set_wd " + self.igor_wd
+        cmd = cmd + " -batch " + self.igor_batchname
+        # TODO: USE COSTUM MODEL OR USE SPECIFIED SPECIES?
+        # I think that the safests is to use the
+        cmd = cmd + " -species " + self.igor_specie
+        cmd = cmd + " -chain " + self.igor_chain
+        # here the evaluation
+        cmd = cmd + " -infer " + command_from_dict_options(self.igor_output_dict_options)
+        #return cmd
         print(cmd)
         # FIXME: REALLY BIG FLAW USE DICTIONARY FOR THE SPECIE AND CHAIN
         self.mdl = IgorModel.load_default(self.igor_specie, igor_option_path_dict[self.igor_chain], modelpath=self.igor_modelspath)
         run_command(cmd)
         #run_command_no_output(cmd)
-        #self.b_evaluate = True # FIXME: If run_command success then True
+        self.b_infer = True # FIXME: If run_command success then True
+        
 
     def run_clean_batch(self):
         cmd = "rm -r " + self.igor_wd + "/" + self.igor_batchname + "_evaluate"
