@@ -1,25 +1,65 @@
-import importlib
-import pygor3 as p3
-importlib.reload(p3)
+#!/usr/bin/env python3
 
 # get data from IMGT and generate a model
+# options.type   = "VDJ"
+# options.gene   = "TRB"
+# options.species = "Mus+musculus"
+import pygor3 as p3
 
-# print( p3.imgt.imgt_params )
-species = p3.imgt.get_species_list()
-print(species)
-flnGenome = p3.imgt.download_gene_template('Homo+sapiens', 'TRBV')
+def main():
+    from optparse import OptionParser
+    parser = OptionParser(usage="usage: %prog [options] ")
+    parser.add_option("-t", "--type",   dest="type",   help="VJ or VDJ")
+    parser.add_option("-c", "--chain",   dest="gene",   help="Type of chain like TRB")
+    parser.add_option("-s", "--species", dest="species", help="Type of species")
 
-igor_specie="human"
-igor_chain="tcr_beta"
-mdl = p3.IgorModel.load_default(igor_specie, igor_chain)
+    (options, args) = parser.parse_args()
 
-mdl.parms.plot_Graph()
-mdl.get_events_nicknames_list()
-mdl.plot_Event_Marginal('v_3_del')
-mdl.plot_Event_Marginal('v_choice')
+    species_list = p3.imgt.get_species_list()
+    species_list.remove('')
 
-mdl.xdata['v_choice']
+    if options.species is None:
+        print("species is a mandatory option. Please select one species from list:")
+        print(species_list)
+    else:
+        if not (options.species in species_list):
+            print("Species not recognized. Please select one species from list:")
+            print(species_list)
+            exit()
 
+    if options.type == "VDJ":
+        flnVGenome = p3.imgt.download_gene_template(options.species, options.chain + 'V')
+        flnDGenome = p3.imgt.download_gene_template(options.species, options.chain + 'D')
+        flnJGenome = p3.imgt.download_gene_template(options.species, options.chain + 'J')
+        # write anchors
+        p3.imgt.download_genes_anchors(options.species, options.chain, flnVGenome, flnJGenome)
+    elif options.type == "VJ":
+        flnVGenome = p3.imgt.download_gene_template(options.species, options.chain + 'V')
+        flnJGenome = p3.imgt.download_gene_template(options.species, options.chain + 'J')
+        # write anchors
+        p3.imgt.download_genes_anchors(options.species, options.chain, flnVGenome, flnJGenome)
+        # Now construct the models from a dictionary.
+
+    else:
+        print("type not recognized. Please choose VDJ or VJ.")
+
+
+
+
+    # igor_species="human"
+    # igor_chain="tcr_beta"
+    # mdl = p3.IgorModel.load_default(igor_species, igor_chain)
+    #
+    # mdl.parms.plot_Graph()
+    # mdl.get_events_nicknames_list()
+    # mdl.plot_Event_Marginal('v_3_del')
+    # mdl.plot_Event_Marginal('v_choice')
+    #
+    # mdl.xdata['v_choice']
+
+
+if __name__ == "__main__":
+    main()
 
 #mdl.plot_Event_Marginal('v_choice')
 # From the loaded model I want a list of event_types

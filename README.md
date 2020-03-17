@@ -1,9 +1,9 @@
 # pygor3
-pygor3 is a library to manipulate IGoR inputs/outputs and easyly make plots and scripts tasks.
+pygor3 is a python3 library to manipulate IGoR inputs/outputs and easyly make plots and scripts tasks.
 pygor3 repository
 synopsis
 
-# INSTALLATION
+# Installation
 0. (Optional) Install conda https://docs.conda.io/en/latest/ (or anaconda https://www.anaconda.com/) and/or create a virtual environment
 1. Install requirements:
 

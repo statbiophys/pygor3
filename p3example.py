@@ -40,5 +40,5 @@ def main():
     mdl0.parms.plot_Graph()
 
 
-if __name__ = '__main__':
+if __name__ == '__main__':
     main()

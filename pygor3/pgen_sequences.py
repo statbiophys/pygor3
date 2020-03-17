@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 import pygor3 as p3
-from  optparse import OptionParser
+from optparse import OptionParser
 
 def main():
     task = p3.IgorTask()
-    parser = OptionParser()
+    parser = OptionParser(usage="usage: %prog [options] ")
     parser.add_option("-s", "--species", dest="species", help='Igor species')
     parser.add_option("-c", "--chain", dest="chain", help='Igor chain')
     parser.add_option("-b", "--batch", dest="batch", help='Batchname to identify run. If not set random name is generated')

@@ -321,7 +321,7 @@ class IgorTask:
         # here the evaluation
         cmd = cmd + " -evaluate -output " + command_from_dict_options(self.igor_output_dict_options)
         #return cmd
-        print(cmd)run_inferun_inferrun_inferrrun_inferrun_inferrun_infer
+        print(cmd)
         # FIXME: REALLY BIG FLAW USE DICTIONARY FOR THE SPECIE AND CHAIN
         self.mdl = IgorModel.load_default(self.igor_specie, igor_option_path_dict[self.igor_chain], modelpath=self.igor_modelspath)
         run_command(cmd)
@@ -802,7 +802,6 @@ class IgorModel:
             #ax.clear()
         return fig
 
-
 class IgorModel_Parms:
     """
     Class to get a list of Events directly from the *_parms.txt
@@ -834,8 +833,7 @@ class IgorModel_Parms:
                 +", 'len ErrorRate': "+str(len(self.ErrorRate))+" }"
         return tmpstr
         #return "{ Event_list, Egdes, ErrorRate}"
-        
-    
+
 #    def __eq__(self, other):
 #        if isinstance(self, other.__class__):
 #            return (self.Event_list == other.Event_list) and (self.Edges == other.Edges) and (self.ErrorRate == other.ErrorRate)
@@ -871,6 +869,9 @@ class IgorModel_Parms:
         # load events from default dictionary.
         #
         return cls
+
+    def load_events_from_dict(self, dicto):
+        print(dicto)
 
     # TODO: Check how the imgt functions return data
     def load_GeneChoice_realizations_by_nickname(self, event_nickname:str, flnGenomic):

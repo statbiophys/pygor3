@@ -18,6 +18,10 @@
 
 Igor_event_type_list = ['GeneChoice', 'Deletion', 'Insertion', 'DinucMarkov']
 
+Igor_seq_type_list = ["V_gene", "VD_genes", "D_gene", "DJ_gene", "VJ_gene", "J_gene", "VDJ_genes", "Undefined_gene"]
+
+Igor_seq_side_list = ["Five_prime", "Three_prime", "Undefined_side"]
+
 Igor_nickname_list = ["v_choice", "j_choice", "d_gene", "v_3_del",
                      "d_3_del", "d_5_del", "j_5_del",
                      "vd_ins", "vd_dinucl", "dj_ins", "dj_dinucl",
@@ -157,7 +161,7 @@ IgorRec_Event_default_dict = {
 }
 #SingleErrorRate
 
-vdj_dict_default = {
+Igor_vdj_dict_default = {
     'v_choice' : {},
     'j_choice' : {'v_choice'},
     'd_gene' : {'v_choice', 'j_choice'},
@@ -171,7 +175,7 @@ vdj_dict_default = {
     'dj_dinucl' : {}
 }
 
-vj_dict_default = {
+Igor_vj_dict_default = {
     'v_choice' : {},
     'j_choice' : {'v_choice'},
     'd_gene' : {'v_choice', 'j_choice'},
