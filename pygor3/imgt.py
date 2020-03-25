@@ -79,6 +79,10 @@ def save_records2fasta(records, filename:str):
     with open(filename, "w") as ofile:
         SeqIO.write(records, ofile, "fasta")
 
+def load_records_from_fasta(filename:str):
+    # flnGenomicJs = DIR_REF_GENOME + "genomicJs.fasta"
+    return list(SeqIO.parse(filename, "fasta"))
+
 def makeDirectories(gene: str, specie: str, modelspath=None):
     if modelspath is None:
         modelspath = "models"
@@ -148,6 +152,15 @@ def getStartPos(seqDescription):
     startPosLIGMDB = int ( fields[5].split("..")[0] )
     return startPosLIGMDB
 
+def getFunction(seqDescription):
+    """
+    Return Functionality
+    """
+    fields = seqDescription.split("|")
+    #startPosLIGMDB = map(int, fields[5].split(".."))[0]
+    strFunction = int ( fields[4].split("..")[0] )
+    return strFunction
+
 def genAnchDict(url):
     recordsAnch = get_records_list(url)
     seqsDictAnch = {}
@@ -174,8 +187,8 @@ def get_gene_anchors(specie: str, gene: str, imgtlabel: str, modelspath=None, fi
         raise e
 
 def download_genes_anchors(specie: str, chain: str, flnVGenome, flnJGenome, modelspath=None, imgt_genedb=imgt_params['url.genedb']):
-    download_Vgene_anchors(specie, chain, flnVGenome, modelspath = modelspath, imgt_genedb = imgt_genedb)
-    download_Jgene_anchors(specie, chain, flnJGenome, modelspath = modelspath, imgt_genedb = imgt_genedb)
+    download_Vgene_anchors(specie, chain, flnVGenome, modelspath=modelspath, imgt_genedb=imgt_genedb)
+    download_Jgene_anchors(specie, chain, flnJGenome, modelspath=modelspath, imgt_genedb=imgt_genedb)
 
 def download_Vgene_anchors(specie: str, chain: str, flnVGenome, modelspath=None, imgt_genedb=imgt_params['url.genedb']):
     #records = get_gene_template(specie, gene, imgt_genedb=imgt_genedb)
@@ -191,7 +204,7 @@ def download_Vgene_anchors(specie: str, chain: str, flnVGenome, modelspath=None,
 
     flnAnchors = ref_genes_path +  "V_gene_CDR3_anchors.csv"
     ofileAnch = open(flnAnchors, "w")
-    ofileAnch.write("gene;anchor_index" + "\n")
+    ofileAnch.write("gene;anchor_index;function" + "\n")
     CSVDELIM = ";"
 
     Vrecords = SeqIO.parse(flnVGenome, "fasta")
@@ -202,11 +215,13 @@ def download_Vgene_anchors(specie: str, chain: str, flnVGenome, modelspath=None,
         if key in dictV_2CYS.keys():
             posV_2CYS = dictV_2CYS[key] - getStartPos(rec.description)
             posAnch = posV_2CYS
-            ofileAnch.write(rec.description + CSVDELIM + str(posAnch) + "\n")
+            seqFunc = getFunction(rec.description)
+            ofileAnch.write(rec.description + CSVDELIM + str(posAnch) +  CSVDELIM+str(seqFunc)+"\n")
         else:
             print("No anchor is found for : " + rec.description)
 
     ofileAnch.close()
+
 
 def download_Jgene_anchors(specie: str, chain: str, flnJGenome, modelspath=None, imgt_genedb=imgt_params['url.genedb']):
     # records = get_gene_template(specie, gene, imgt_genedb=imgt_genedb)

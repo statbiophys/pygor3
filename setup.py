@@ -21,6 +21,7 @@ setuptools.setup(
             'igor-bs_export=pygor3.bs_export:main',
             'igor-pgen_sequences=pygor3.pgen_sequences:main',
             'igor-infer_sequences=pygor3.infer_sequences:main',
+            'igor-model_plot=pygor3.model_plot:main',
             'igor-model_export=pygor3.model_export:main',
             'igor-model_create=pygor3.model_create:main',
             'igor-get_imgt_data=pygor3.get_imgt_data:main',

@@ -10,7 +10,7 @@ def main():
     from optparse import OptionParser
     parser = OptionParser(usage="usage: %prog [options] ")
     parser.add_option("-t", "--type",   dest="type",   help="VJ or VDJ")
-    parser.add_option("-c", "--chain",   dest="gene",   help="Type of chain like TRB")
+    parser.add_option("-c", "--chain",   dest="chain",   help="Type of chain like TRB")
     parser.add_option("-s", "--species", dest="species", help="Type of species")
 
     (options, args) = parser.parse_args()
@@ -28,11 +28,50 @@ def main():
             exit()
 
     if options.type == "VDJ":
+
         flnVGenome = p3.imgt.download_gene_template(options.species, options.chain + 'V')
         flnDGenome = p3.imgt.download_gene_template(options.species, options.chain + 'D')
         flnJGenome = p3.imgt.download_gene_template(options.species, options.chain + 'J')
+
         # write anchors
         p3.imgt.download_genes_anchors(options.species, options.chain, flnVGenome, flnJGenome)
+
+        # TODO: filter sequences for OLGA compatibility
+        urlV_2CYS = p3.imgt.get_genedb_query81_imgtlabel(options.species, options.chain + "V", imgtlabel="2nd-CYS")
+        dict2CYS = p3.imgt.genAnchDict(urlV_2CYS)
+        list2CYS = list(dict2CYS.keys())
+
+        v_genomes_list = p3.imgt.load_records_from_fasta(flnVGenome)
+        v_genomes_trim_list = list()
+        for v_genome in v_genomes_list:
+            if v_genome in list2CYS:
+                v_genomes_trim_list.append(v_genome)
+            else:
+                print(v_genome)
+        p3.imgt.save_records2fasta(v_genomes_trim_list, flnVGenome + "_trim")
+
+        # J-PHE
+        urlJ_PHE = p3.imgt.get_genedb_query81_imgtlabel(options.species, options.species + "J", imgtlabel="J-PHE")
+        dictJ_PHE = p3.imgt.genAnchDict(urlJ_PHE)
+        listJ_PHE = list(dictJ_PHE.keys())
+
+        # J-TRP
+        urlJ_TRP = p3.imgt.get_genedb_query81_imgtlabel(options.species, options.species + "J", imgtlabel="J-TRP")
+        dictJ_TRP = p3.imgt.genAnchDict(urlJ_TRP)
+        listJ_TRP = list(dictJ_TRP.keys())
+
+        j_genomes_list = p3.imgt.load_records_from_fasta(flnJGenome)
+        j_genomes_trim_list = list()
+        for j_genome in j_genomes_list:
+            if j_genome in listJ_PHE:
+                j_genomes_trim_list.append(j_genome)
+            elif j_genome in listJ_TRP:
+                j_genomes_trim_list.append(j_genome)
+            else:
+                print(j_genome)
+
+        p3.imgt.save_records2fasta(j_genomes_trim_list, flnJGenome+"_trim")
+
     elif options.type == "VJ":
         flnVGenome = p3.imgt.download_gene_template(options.species, options.chain + 'V')
         flnJGenome = p3.imgt.download_gene_template(options.species, options.chain + 'J')
@@ -40,6 +79,46 @@ def main():
         p3.imgt.download_genes_anchors(options.species, options.chain, flnVGenome, flnJGenome)
         # Now construct the models from a dictionary.
 
+        urlV_2CYS = p3.imgt.get_genedb_query81_imgtlabel(options.species, options.chain + "V", imgtlabel="2nd-CYS")
+        dict2CYS = p3.imgt.genAnchDict(urlV_2CYS)
+        list2CYS = list(dict2CYS.keys())
+
+        v_genomes_list = p3.imgt.load_records_from_fasta(flnVGenome)
+        print('*'*50)
+        print("v_genomes_list : ", len(v_genomes_list))
+        v_genomes_trim_list = list()
+        for v_genome in v_genomes_list:
+            if p3.imgt.genKey(v_genome.description) in list2CYS:
+                v_genomes_trim_list.append(v_genome)
+            else:
+                print(v_genome.description)
+        print("v_genomes_trim_list : ", len(v_genomes_trim_list))
+        p3.imgt.save_records2fasta(v_genomes_trim_list, flnVGenome + "_trimmed")
+
+        # J-PHE
+        urlJ_PHE = p3.imgt.get_genedb_query81_imgtlabel(options.species, options.chain + "J", imgtlabel="J-PHE")
+        dictJ_PHE = p3.imgt.genAnchDict(urlJ_PHE)
+        listJ_PHE = list(dictJ_PHE.keys())
+
+        # J-TRP
+        urlJ_TRP = p3.imgt.get_genedb_query81_imgtlabel(options.species, options.chain + "J", imgtlabel="J-TRP")
+        dictJ_TRP = p3.imgt.genAnchDict(urlJ_TRP)
+        listJ_TRP = list(dictJ_TRP.keys())
+
+        j_genomes_list = p3.imgt.load_records_from_fasta(flnJGenome)
+        print('*' * 50)
+        print("j_genomes_list : ", len(j_genomes_list))
+        j_genomes_trim_list = list()
+        for j_genome in j_genomes_list:
+            if p3.imgt.genKey(j_genome.description) in listJ_PHE:
+                j_genomes_trim_list.append(j_genome)
+            elif p3.imgt.genKey(j_genome.description) in listJ_TRP:
+                j_genomes_trim_list.append(j_genome)
+            else:
+                print(j_genome.description)
+        print("j_genomes_trim_list : ", len(j_genomes_trim_list))
+
+        p3.imgt.save_records2fasta(j_genomes_trim_list, flnJGenome + "_trimmed")
     else:
         print("type not recognized. Please choose VDJ or VJ.")
 

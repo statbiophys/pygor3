@@ -593,6 +593,7 @@ class IgorModel:
     def __init__(self, model_parms_file=None, model_marginals_file=None):
         self.parms = IgorModel_Parms()
         self.marginals = IgorModel_Marginals()
+        self.anchors = None
         self.xdata = dict()
         self.metadata = dict()
         self.specie = ""
@@ -660,25 +661,42 @@ class IgorModel:
         Event_Deletion_List = ['v_3_del', 'j_5_del', 'd_3_del', 'd_5_del']
         
         for key in self.marginals.marginals_dict:
-            self.xdata[key] = xr.DataArray(self.marginals.marginals_dict[key], \
-                          dims=tuple(self.marginals.network_dict[key]))
-            #print "key: ", key, self.xdata[key].dims
-            strCoord = "priority"
-            self.xdata[key][strCoord] = self.parms.get_Event(key).priority
-            for strDim in self.xdata[key].dims:
+
+            if key in Event_Dinucl_List:
+                self.xdata[key] = xr.DataArray(self.marginals.marginals_dict[key].reshape(4,4), \
+                          dims=('x', 'y'))
+                labels = self.parms.Event_dict[key]['value'].values
+
+                strDim = 'x'
                 self.xdata[key][strDim] = range(len(self.xdata[key][strDim]))
-                if strDim in Event_Genechoice_List:
-                    #print strDim
-                    labels = self.parms.Event_dict[strDim]['name'].map(genLabel).values
-                    #print type(labels)
-                    strCoord = 'lbl__'+strDim
-                    self.xdata[key][strCoord] = (strDim, labels) # range(len(self.xdata[key][coord]))
-                elif not (strDim in Event_Dinucl_List):
-                    labels = self.parms.Event_dict[strDim]['value'].values
-                    #print strDim
-                    #print labels
-                    strCoord = 'lbl__'+strDim
-                    self.xdata[key][strCoord] = (strDim, labels) # range(len(self.xdata[key][coord]))
+                strCoord = 'lbl__' + strDim
+                self.xdata[key][strCoord] = (strDim, labels)
+                strDim = 'y'
+                self.xdata[key][strDim] = range(len(self.xdata[key][strDim]))
+                strCoord = 'lbl__' + strDim
+                self.xdata[key][strCoord] = (strDim, labels)
+
+            else:
+                self.xdata[key] = xr.DataArray(self.marginals.marginals_dict[key], \
+                                                   dims=tuple(self.marginals.network_dict[key]))
+                #print "key: ", key, self.xdata[key].dims
+                strCoord = "priority"
+                self.xdata[key][strCoord] = self.parms.get_Event(key).priority
+                for strDim in self.xdata[key].dims:
+                    self.xdata[key][strDim] = range(len(self.xdata[key][strDim]))
+                    if strDim in Event_Genechoice_List:
+                        #print strDim
+                        labels = self.parms.Event_dict[strDim]['name'].map(genLabel).values
+                        #print type(labels)
+                        strCoord = 'lbl__'+strDim
+                        self.xdata[key][strCoord] = (strDim, labels) # range(len(self.xdata[key][coord]))
+                    elif not (strDim in Event_Dinucl_List):
+                        labels = self.parms.Event_dict[strDim]['value'].values
+                        #print strDim
+                        #print labels
+                        strCoord = 'lbl__'+strDim
+                        self.xdata[key][strCoord] = (strDim, labels) # range(len(self.xdata[key][coord]))
+
 
     def get_Event_Marginal(self, event_nickname: str):
         """Returns an xarray with the marginal probability of the event given the nickname"""
@@ -693,6 +711,12 @@ class IgorModel:
         else:
             print("Event nickname : " + event_nickname + " is not an event in this IGoR model.")
             return list()
+
+    def plot_GeneChoice(self, event_nickname:str):
+        """ Return """
+        # TODO: assuming Genechoice
+        self.xdata[event_nickname]
+
 
     def plot_Event_Marginal(self, event_nickname:str):
         event = self.parms.get_Event(event_nickname, by_nickname=True)
@@ -833,16 +857,6 @@ class IgorModel_Parms:
                 +", 'len ErrorRate': "+str(len(self.ErrorRate))+" }"
         return tmpstr
         #return "{ Event_list, Egdes, ErrorRate}"
-
-#    def __eq__(self, other):
-#        if isinstance(self, other.__class__):
-#            return (self.Event_list == other.Event_list) and (self.Edges == other.Edges) and (self.ErrorRate == other.ErrorRate)
-#        else:
-#            return NotImplemented
-#
-#    def __hash__(self):
-#        return 3;
-
 
     @classmethod
     def from_network_dict(cls, network_dict:dict):
@@ -1213,6 +1227,12 @@ class IgorModel_Parms:
                         ##, arrows=True, arrowsize=20, node_size=800, font_size=10, font_weight='bold')
         return graph
 
+    def get_Event_dependencies(self, strEvent):
+        print(strEvent)
+        return list(self.G.predecessors(strEvent))
+
+
+
 class IgorRec_Event:
     """Recombination event class containing event's name, type, realizations,
     etc... Similar to IGoR's C++ RecEvent class.
@@ -1262,6 +1282,16 @@ class IgorRec_Event:
         #cls.name = dict_IgorRec_Event["name"]
 
         return cls
+
+    # FIXME:
+    @classmethod
+    def update_realizations_from_dataframe(cls, dataframe):
+        cls.realizations = list()
+        for index, row in dataframe.iterrows():
+            dict_realiz = row.to_dict()
+            dict_realiz['index'] = index
+            realiz = IgorEvent_realization.from_dict(dict_realiz)
+            cls.realizations.append(realiz)
 
     @classmethod
     def from_default_nickname(cls, nickname:str):
@@ -1337,12 +1367,13 @@ class IgorRec_Event:
 
         return tmp
 
-
     def get_realization_DataFrame(self):
         """ return an Event realizations as a pandas DataFrame to manipulate it.
 
         """
         return pd.DataFrame.from_records([realiz.to_dict() for realiz in self.realizations], index='index').sort_index()
+
+
 
 class IgorEvent_realization:
     """A small class storing for each RecEvent realization its name, value and
@@ -1371,9 +1402,9 @@ class IgorEvent_realization:
 
     def to_dict(self):
         return {
-            'index' : self.index,
-            'value' : self.value,
-            'name'  : self.name
+            'index': self.index,
+            'value': self.value,
+            'name': self.name
             }
 
     @classmethod
@@ -1547,11 +1578,19 @@ class IgorModel_Marginals:
 
         #return marginals_dict, network_dict
 
-
-
     def write_model_marginals_from_parms(self, filename, model_parms_file=None, model_marginals_file=None):
         self.marginals_dict = {}
         self.network_dict = {}
+
+
+class IgorAnchors:
+    def __init__(self, flnVanchors, flnJanchors):
+        self.flnVanchors = flnVanchors
+        self.flnJanchors = flnJanchors
+        self.df_Vanchors = pd.read_csv(flnVanchors, sep=';')
+        self.df_Janchors = pd.read_csv(flnJanchors, sep=';')
+        # rename indices.
+
 
 ### IGOR BEST SCENARIOS VDJ ###
 class IgorBestScenariosVDJ:
