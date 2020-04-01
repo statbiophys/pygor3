@@ -26,6 +26,7 @@ setuptools.setup(
             'igor-model_create=pygor3.model_create:main',
             'igor-get_imgt_data=pygor3.get_imgt_data:main',
             'igor-download_imgt_gene_templates=pygor3.download_imgt_gene_templates:main',
+            'igor-short_names_imgt_templates.py=pygor3.short_names_imgt_templates:main',
             #'igor-model_import=pygor3.model_import:main',
             #'igor-get_imgt_data=pygor3.get_imgt_data:main'
         ],

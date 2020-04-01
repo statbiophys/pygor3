@@ -12,6 +12,16 @@ def main():
     # fln_model_marginals = args[1]
     # mdl = p3.IgorModel(model_parms_file=fln_model_parms, model_marginals_file=fln_model_marginals)
     mdl = p3.IgorModel.load_default('human', 'tcr_beta')
+
+    strEvent='v_choice'
+    print(mdl.xdata[strEvent])
+    aaa = mdl.xdata[strEvent].plot()
+    print(type(aaa))
+    import matplotlib.pyplot as plt
+    plt.show()
+
+
+    """
     # for strEvent in mdl.xdata.keys():
     #     mdl.xdata[strEvent]
     strEvent = 'v_choice'
@@ -36,15 +46,8 @@ def main():
     df.plot.bar(x='lbl__' + strEvent, y='P', rot=90, ax=ax)
     fig.tight_layout()
     fig.savefig(strEvent + ".pdf")
-
-    fig, ax = plt.subplots()
-    strEvent='d_gene'
-    da = mdl.xdata[strEvent] * mdl.xdata['j_choice']
-    da = da.sum(dim='j_choice')
-    da.plot(ax=ax, marker='o', label=str(i))
-
-#mdl_anchs = p3.IgorAnchors(flnVanchors, flnJanchors)
-
+    
+    """
 
 if __name__ == "__main__":
     main()

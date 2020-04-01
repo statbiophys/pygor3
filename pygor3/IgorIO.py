@@ -697,7 +697,6 @@ class IgorModel:
                         strCoord = 'lbl__'+strDim
                         self.xdata[key][strCoord] = (strDim, labels) # range(len(self.xdata[key][coord]))
 
-
     def get_Event_Marginal(self, event_nickname: str):
         """Returns an xarray with the marginal probability of the event given the nickname"""
         # FIXME: add new way to make the recursion.
@@ -716,7 +715,6 @@ class IgorModel:
         """ Return """
         # TODO: assuming Genechoice
         self.xdata[event_nickname]
-
 
     def plot_Event_Marginal(self, event_nickname:str):
         event = self.parms.get_Event(event_nickname, by_nickname=True)
@@ -1213,19 +1211,26 @@ class IgorModel_Parms:
                     xpos = xx[ii]  # float(xwidth)*float(ii)/float(lenKey)
                     pos[ev.nickname] = np.array([xpos, float(key) * yfactor])
 
-        #### import matplotlib.pyplot as plt
-        #### fig, ax = plt.subplots()
-        #### ax.set_aspect('equal')
-        #### nx.draw(self.G, pos=pos, ax=ax, with_labels=True, arrows=True, arrowsize=20,
-        ####         node_size=800, font_size=10, font_weight='bold')  # FIXME: make a better plot: cutting edges.
+        try:
+            import hvplot.networkx as hvnx
+            print("hvplot")
+            graph = hvnx.draw(self.G, with_labels=True, FontSize=10, pos=pos, alpha=0.5,
+                            arrowstyle='fancy', arrowsize=2000, node_size=1000, width=400, height=400)
+                            ##, arrows=True, arrowsize=20, node_size=800, font_size=10, font_weight='bold')
+            return graph
+        except ImportError as e:
+            try:
+                print("matplotlib")
+                import matplotlib.pyplot as plt
+                fig, ax = plt.subplots()
+                ax.set_aspect('equal')
+                nx.draw(self.G, pos=pos, ax=ax, with_labels=True, arrows=True, arrowsize=20,
+                        node_size=800, font_size=10, font_weight='bold')  # FIXME: make a better plot: cutting edges.
 
-        #### plt.show()
-
-        import hvplot.networkx as hvnx
-        graph = hvnx.draw(self.G, with_labels=True, FontSize=10, pos=pos, alpha=0.5,
-                        arrowstyle='fancy', arrowsize=2000, node_size=1000, width=400, height=400)
-                        ##, arrows=True, arrowsize=20, node_size=800, font_size=10, font_weight='bold')
-        return graph
+                return ax
+            except Exception as e:
+                print(e)
+                raise
 
     def get_Event_dependencies(self, strEvent):
         print(strEvent)
