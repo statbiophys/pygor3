@@ -20,11 +20,13 @@ def main():
     for record in records:
         record.description = p3.genLabel(record.description)
         new_records.append(record)
-    p3.save_records2fasta(new_records, flnGenome+"_short")
+    p3.imgt.save_records2fasta(new_records, flnGenome+"_short")
 
     df = pd.read_csv(flnAnchors, sep=';')
-    df['gene'] = df['gene'].applymap(p3.genLabel)
-    df.to_csv(flnAnchors+"_short", sep=';')
+    print(df['gene'])
+    df['gene'] = df['gene'].map(p3.genLabel)
+    print(df['gene'])
+    df.to_csv(flnAnchors+"_short", sep=';', index=False)
 
 
 if __name__ == "__main__":

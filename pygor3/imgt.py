@@ -119,15 +119,17 @@ def download_gene_template(specie: str, gene: str, modelspath=None, filename=Non
     """
     # 3. Write it in a fasta file.
     records = get_gene_template(specie, gene, imgt_genedb=imgt_genedb)
-    if modelspath is None:
-        modelspath = "models"
 
     if gene[-1] in ['V', 'D', 'J']:
-        if filename is None :
+        ref_genes_path = ""
+        if modelspath is None:
+            modelspath = "models"
             gene_dir = gene[:-1]
             makeDirectories(gene_dir, specie, modelspath=modelspath)
-            ref_genes_path = modelspath + "/"+specie+"/"+gene_dir+"/ref_genome/"
-            filename = ref_genes_path + "genomic" + gene[-1] + "s.fasta"
+            ref_genes_path = modelspath + "/" + specie + "/" + gene_dir + "/ref_genome/"
+
+        if filename is None :
+            filename = ref_genes_path + "genomic" + gene[-1] + "s__imgt.fasta"
             #filename = modelspath + "genomic__" + specie + "_" + gene + ".fasta"
     #flnGenomicJs = DIR_REF_GENOME + "genomicJs.fasta"
     save_records2fasta(records, filename)
@@ -157,8 +159,7 @@ def getFunction(seqDescription):
     Return Functionality
     """
     fields = seqDescription.split("|")
-    #startPosLIGMDB = map(int, fields[5].split(".."))[0]
-    strFunction = int ( fields[4].split("..")[0] )
+    strFunction = fields[3]
     return strFunction
 
 def genAnchDict(url):
@@ -202,7 +203,7 @@ def download_Vgene_anchors(specie: str, chain: str, flnVGenome, modelspath=None,
     urlV_2CYS = get_genedb_query81_imgtlabel(specie, chain + "V", imgtlabel="2nd-CYS", imgt_genedb=imgt_genedb)
     dictV_2CYS = genAnchDict(urlV_2CYS)
 
-    flnAnchors = ref_genes_path +  "V_gene_CDR3_anchors.csv"
+    flnAnchors = ref_genes_path +  "V_gene_CDR3_anchors__imgt.csv"
     ofileAnch = open(flnAnchors, "w")
     ofileAnch.write("gene;anchor_index;function" + "\n")
     CSVDELIM = ";"

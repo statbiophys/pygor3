@@ -33,11 +33,17 @@ def main():
         flnDGenome = p3.imgt.download_gene_template(options.species, options.chain + 'D')
         flnJGenome = p3.imgt.download_gene_template(options.species, options.chain + 'J')
 
+        # FIXME: ONCE THE GENE TEMPLATES ARE DOWNLOADED CHANGE THE NAME TO
+        print(flnVGenome)
+
+
+
         # write anchors
         p3.imgt.download_genes_anchors(options.species, options.chain, flnVGenome, flnJGenome)
 
         # TODO: filter sequences for OLGA compatibility
-        urlV_2CYS = p3.imgt.get_genedb_query81_imgtlabel(options.species, options.chain + "V", imgtlabel="2nd-CYS")
+        strGene = options.chain +"V"
+        urlV_2CYS = p3.imgt.get_genedb_query81_imgtlabel(options.species, strGene, imgtlabel="2nd-CYS")
         dict2CYS = p3.imgt.genAnchDict(urlV_2CYS)
         list2CYS = list(dict2CYS.keys())
 
@@ -78,6 +84,8 @@ def main():
         # write anchors
         p3.imgt.download_genes_anchors(options.species, options.chain, flnVGenome, flnJGenome)
         # Now construct the models from a dictionary.
+
+        # TODO EDIT LONG NAMES
 
         urlV_2CYS = p3.imgt.get_genedb_query81_imgtlabel(options.species, options.chain + "V", imgtlabel="2nd-CYS")
         dict2CYS = p3.imgt.genAnchDict(urlV_2CYS)

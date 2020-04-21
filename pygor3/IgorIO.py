@@ -1236,8 +1236,6 @@ class IgorModel_Parms:
         print(strEvent)
         return list(self.G.predecessors(strEvent))
 
-
-
 class IgorRec_Event:
     """Recombination event class containing event's name, type, realizations,
     etc... Similar to IGoR's C++ RecEvent class.
@@ -1377,8 +1375,6 @@ class IgorRec_Event:
 
         """
         return pd.DataFrame.from_records([realiz.to_dict() for realiz in self.realizations], index='index').sort_index()
-
-
 
 class IgorEvent_realization:
     """A small class storing for each RecEvent realization its name, value and
@@ -1587,7 +1583,6 @@ class IgorModel_Marginals:
         self.marginals_dict = {}
         self.network_dict = {}
 
-
 class IgorAnchors:
     def __init__(self, flnVanchors, flnJanchors):
         self.flnVanchors = flnVanchors
@@ -1595,7 +1590,6 @@ class IgorAnchors:
         self.df_Vanchors = pd.read_csv(flnVanchors, sep=';')
         self.df_Janchors = pd.read_csv(flnJanchors, sep=';')
         # rename indices.
-
 
 ### IGOR BEST SCENARIOS VDJ ###
 class IgorBestScenariosVDJ:
