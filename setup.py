@@ -19,14 +19,14 @@ setuptools.setup(
         'console_scripts' : [
             'igor-scriptTest=scripts.scriptTest:main',
             'igor-bs_export=scripts.bs_export:main',
-            'igor-pgen_sequences=scripts.pgen_sequences:main',
-            'igor-infer_sequences=scripts.infer_sequences:main',
-            'igor-model_plot=scripts.model_plot:main',
-            'igor-model_export=scripts.model_export:main',
-            'igor-model_create=scripts.model_create:main',
-            'igor-get_imgt_data=scripts.get_imgt_data:main',
-            'igor-download_imgt_gene_templates=scripts.download_imgt_gene_templates:main',
-            'igor-short_names_imgt_templates.py=scripts.short_names_imgt_templates:main',
+            'igor-pgen_sequences=pygor3.scripts.pgen_sequences:main',
+            'igor-infer_sequences=pygor3.scripts.infer_sequences:main',
+            'igor-model_plot=pygor3.scripts.model_plot:main',
+            'igor-model_export=pygor3.scripts.model_export:main',
+            'igor-model_create=pygor3.scripts.model_create:main',
+            'igor-get_imgt_data=pygor3.scripts.get_imgt_data:main',
+            'igor-download_imgt_gene_templates=pygor3.scripts.download_imgt_gene_templates:main',
+            'igor-short_names_imgt_templates=pygor3.scripts.short_names_imgt_templates:main'
             #'igor-model_import=pygor3.model_import:main',
             #'igor-get_imgt_data=pygor3.get_imgt_data:main'
         ],

@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
+"""
+Export Igor Model to csv files.
+"""
+
 import pygor3 as p3
 import pandas as pd
+
 
 from optparse import OptionParser
 
@@ -35,20 +40,21 @@ def main():
     if options.batch == None:
         print("Batchname not set. Random batchname will be assing.")
 
-    if len(args) > 0 and len(args) <2:
-      filename = str(args[0])
-      task.igor_read_seqs = filename
-    else:
-      print("Supply a correct filename")
-      exit()
+    # if len(args) > 0 and len(args) <2:
+    #   filename = str(args[0])
+    #   task.igor_read_seqs = filename
+    # else:
+    #   print("Supply a correct filename")
+    #   exit()
 
     # task.run_evaluate()
-    task.update_batch_filenames()
+    # task.update_batch_filenames()
     task.load_IgorModel()
 
     for strEvent in task.mdl.xdata.keys():
         da = task.mdl.xdata[strEvent]
         dependencias = list(task.mdl.xdata[strEvent].dims)
+        print("********", dependencias, strEvent)
         dependencias.remove(strEvent)
         dependencias_dim = [task.mdl.xdata[strEvent][dep].shape[0] for dep in dependencias]
         print(strEvent, da.dims, dependencias_dim, dependencias)

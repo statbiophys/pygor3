@@ -271,7 +271,7 @@ class IgorTask:
         run_command(cmd)
 
     def run_datadir(self):
-        cmd = self.igor_exec_path+ " -datadir"
+        cmd = self.igor_exec_path+ " -getdatadir"
         self.igor_datadir = run_command(cmd).replace('\n','')
         self.igor_modelspath = self.igor_datadir + "/models/"
 
