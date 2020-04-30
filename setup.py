@@ -17,12 +17,13 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     entry_points= {
         'console_scripts' : [
-            'igor-scriptTest=scripts.scriptTest:main',
-            'igor-bs_export=scripts.bs_export:main',
+            'igor-scriptTest=pygor3.scripts.scriptTest:main',
+            'igor-bs_export=pygor3.scripts.bs_export:main',
             'igor-pgen_sequences=pygor3.scripts.pgen_sequences:main',
             'igor-infer_sequences=pygor3.scripts.infer_sequences:main',
             'igor-model_plot=pygor3.scripts.model_plot:main',
-            'igor-model_export=pygor3.scripts.model_export:main',
+            #'igor-model_export=pygor3.scripts.model_export:main',
+            'pygor3-model_export=pygor3.scripts.model_export:main',
             'igor-model_create=pygor3.scripts.model_create:main',
             'igor-get_imgt_data=pygor3.scripts.get_imgt_data:main',
             'igor-download_imgt_gene_templates=pygor3.scripts.download_imgt_gene_templates:main',

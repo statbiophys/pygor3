@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import pygor3 as p3
 
+
 from  optparse import OptionParser
 def main():
     #parser = OptionParser()
@@ -11,8 +12,55 @@ def main():
 
     #(options, args) = parser.parse_args()
     #print("hola fasdasdfd 888888")
-    #mdl = p3.IgorModel.load_default("human", "tcr_beta")
-    #print(mdl.xdata)
+    species="human"
+    chain="tcr_beta"
+    mdl = p3.IgorModel.load_default(species, chain)
+    # import hvplot
+    # hvplot.save(mdl.parms.plot_Graph(), species+"__"+chain+".html")
+
+    # print(mdl.xdata)
+    print(mdl.parms.G.edges)
+    # print(mdl.parms.G.nodes)
+    for node in mdl.parms.G.nodes:
+        print(node)
+
+    # TODO: I want the marginals of each event, so for each event
+    strEvent = 'v_choice'
+    strEvent = 'j_choice'
+    strEvent = 'd_gene'
+    # strEvent = 'd_3_del'
+    mdl.generate_Pmarginals()
+    print('%'*50)
+    print(strEvent)
+    print( mdl.xdata[strEvent] )
+
+    print(mdl.xdata[strEvent][strEvent].values)
+    print( mdl.Pmarginal[strEvent] )
+    # print( mdl.get_Event_Marginal(strEvent) )
+    mdl.export_csv("jojo")
+    print(list(mdl.xdata.keys()))
+
+    # print(df)
+    # print( mdl.xdata['d_3_del'] )  # P( D3| D5,D)
+    # print(mdl.xdata['d_5_del'])  # P( D3| D5,D)
+    # da = mdl.xdata['d_3_del'] * mdl.xdata['d_5_del']
+    # print("0000000000"*10)  # P( D3| D5,D)
+    #
+    # for ii in da[strEvent][strEvent].values:
+    #     print("--"*5,ii,da[strEvent]["lbl__"+strEvent].values[ii], "-"*30)
+    #     print(da[{strEvent:ii}])
+
+    # import matplotlib.pyplot as plt
+    # fig, ax = plt.subplots()
+    # da[{strEvent: ii}].plot(ax = ax)
+    # plt.show()
+
+
+
+
+
+
+    """
     directory = "/home/alfaceor/Dropbox/PosDoc/IGoR/Thierry/Lightchain_Thierry/Lightchain/IGL/"
     flnVanchors = directory + "V_gene_CDR3_anchors.csv"
     flnJanchors = directory + "J_gene_CDR3_anchors.csv"
@@ -38,6 +86,7 @@ def main():
     # set dataframe to envento
 
     new_df
+    """
 
 if __name__ == "__main__":
     main()

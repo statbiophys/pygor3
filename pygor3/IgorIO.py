@@ -599,6 +599,8 @@ class IgorModel:
         self.specie = ""
         self.chain = ""
 
+        self.Pmarginal = dict()
+
 
         # check input files
         flag_parms = (model_parms_file is not None)
@@ -676,12 +678,20 @@ class IgorModel:
                 strCoord = 'lbl__' + strDim
                 self.xdata[key][strCoord] = (strDim, labels)
 
+                self.xdata[key]["event_type"] = event.event_type
+                self.xdata[key]["seq_type"] = event.seq_type
+                self.xdata[key]["seq_side"] = event.seq_side
+
             else:
                 self.xdata[key] = xr.DataArray(self.marginals.marginals_dict[key], \
                                                    dims=tuple(self.marginals.network_dict[key]))
                 #print "key: ", key, self.xdata[key].dims
+                event = self.parms.get_Event(key)
+                self.xdata[key]["event_type"] = event.event_type
+                self.xdata[key]["seq_type"] = event.seq_type
+                self.xdata[key]["seq_side"] = event.seq_side
                 strCoord = "priority"
-                self.xdata[key][strCoord] = self.parms.get_Event(key).priority
+                self.xdata[key][strCoord] = event.priority
                 for strDim in self.xdata[key].dims:
                     self.xdata[key][strDim] = range(len(self.xdata[key][strDim]))
                     if strDim in Event_Genechoice_List:
@@ -697,16 +707,347 @@ class IgorModel:
                         strCoord = 'lbl__'+strDim
                         self.xdata[key][strCoord] = (strDim, labels) # range(len(self.xdata[key][coord]))
 
+        self.generate_Pmarginals()
+
+
+    def generate_Pmarginals(self):
+        # FIXME: GENERALIZE FOR ANY NETWORK NOT ONLY FOR VDJ AND VJ
+        strEvent = 'v_choice'
+        self.Pmarginal[strEvent] = self.xdata[strEvent]
+
+        strEvent = 'j_choice'
+        strEventParent01 = 'v_choice'
+        self.Pmarginal[strEvent] = self.xdata[strEvent].dot(self.xdata[strEventParent01])
+
+        strEvent = 'v_3_del'
+        strEventParent01 = 'v_choice'
+        Pjoint_aux = self.Pmarginal[strEventParent01]
+        self.Pmarginal[strEvent] = self.xdata[strEvent].dot(Pjoint_aux)
+
+        strEvent = 'j_5_del'
+        strEventParent01 = 'j_choice'
+        Pjoint_aux = self.Pmarginal[strEventParent01]
+        self.Pmarginal[strEvent] = self.xdata[strEvent].dot(Pjoint_aux)
+
+        if 'd_gene' in self.xdata.keys():
+            strEvent = 'd_gene'
+            strEventParent01 = 'v_choice'
+            strEventParent02 = 'j_choice'
+            Pjoint_aux = self.xdata[strEventParent02] * self.Pmarginal[strEventParent01]
+            self.Pmarginal[strEvent] = self.xdata[strEvent].dot(Pjoint_aux)
+
+            strEvent = 'd_gene'
+            strEventParent01 = 'v_choice'
+            strEventParent02 = 'j_choice'
+            Pjoint_aux = self.xdata[strEventParent02] * self.Pmarginal[strEventParent01]
+            self.Pmarginal[strEvent] = self.xdata[strEvent].dot(Pjoint_aux)
+
+            strEvent = 'd_5_del'
+            strEventParent01 = 'd_gene'
+            Pjoint_aux = self.Pmarginal[strEventParent01]
+            self.Pmarginal[strEvent] = self.xdata[strEvent].dot(Pjoint_aux)
+
+            strEvent = 'd_3_del'
+            strEventParent01 = 'd_gene'
+            strEventParent02 = 'd_5_del'
+            Pjoint_aux = self.xdata[strEventParent02] * self.Pmarginal[strEventParent01]
+            self.Pmarginal[strEvent] = self.xdata[strEvent].dot(Pjoint_aux)
+
+            strEvent = 'vd_ins'
+            self.Pmarginal[strEvent] = self.xdata[strEvent]
+
+            strEvent = 'vd_dinucl'
+            self.Pmarginal[strEvent] = self.xdata[strEvent]
+
+            strEvent = 'dj_ins'
+            self.Pmarginal[strEvent] = self.xdata[strEvent]
+
+            strEvent = 'dj_dinucl'
+            self.Pmarginal[strEvent] = self.xdata[strEvent]
+
+        else: # VJ NETWORK
+            strEvent = 'vj_ins'
+            self.Pmarginal[strEvent] = self.xdata[strEvent]
+
+            strEvent = 'vj_dinucl'
+            self.Pmarginal[strEvent] = self.xdata[strEvent]
+
+    def export_csv(self, fln_prefix, sep=";"):
+        # FIXME: TEMPORARY SOLUTION FOR VERY PARTICULAR CASES.
+        #################################################################################
+        strEvent = 'v_choice'
+        da = self.xdata[strEvent]
+        # print(list(self.parms.G.predecessors(strEvent)))
+        evento = self.parms.get_Event(strEvent)
+        df = pd.DataFrame(data=da.values, index=da['lbl__' + strEvent].values,
+                          columns=["P"])  # da['lbl__' + strEvent].values
+        lbl_file = fln_prefix + "P__" + strEvent + ".csv"
+        df.to_csv(lbl_file, index_label=evento.seq_type, sep=sep)
+
+        ### v_3_del
+        strEvent = 'v_3_del'
+        da = self.xdata[strEvent]
+        # print(list(self.parms.G.predecessors(strEvent)))
+        parents = list(self.parms.G.predecessors(strEvent))
+        evento = self.parms.get_Event(strEvent)
+
+        dependencias = list(self.xdata[strEvent].dims)
+        # print("********", dependencias, strEvent)
+        dependencias.remove(strEvent)
+        dependencias_dim = [self.xdata[strEvent][dep].shape[0] for dep in dependencias]
+
+        if len(parents) == 1:
+            df = pd.DataFrame(data=da.values, index=da['lbl__' + dependencias[0]].values,
+                              columns=da['lbl__' + strEvent].values)
+            lbl_file = fln_prefix + "P__" + strEvent + "__G__" + dependencias[0] + ".csv"
+            df.to_csv(lbl_file, sep=sep)  # , index_label=evento.seq_type)
+
+
+
+        #################################################################################
+        strEvent = 'j_choice'
+        da = self.xdata[strEvent]
+        parents = list(self.parms.G.predecessors(strEvent))
+        evento = self.parms.get_Event(strEvent)
+
+        dependencias = list(self.xdata[strEvent].dims)
+        #print("********", dependencias, strEvent)
+        dependencias.remove(strEvent)
+        dependencias_dim = [self.xdata[strEvent][dep].shape[0] for dep in dependencias]
+
+        if len(parents) == 0:
+            df = pd.DataFrame(data=da.values, index=da['lbl__' + strEvent].values,
+                              columns=["P"])  # da['lbl__' + strEvent].values
+            lbl_file = fln_prefix + "P__" + strEvent + ".csv"
+            df.to_csv(lbl_file, index_label=evento.seq_type, sep=sep)
+        elif len(parents) == 1:
+            df = pd.DataFrame(data=da.values, index=da['lbl__' + dependencias[0]].values,
+                              columns=da['lbl__' + strEvent].values)
+            lbl_file = fln_prefix + "P__" + strEvent + "__G__" + dependencias[0] + ".csv"
+            df.to_csv(lbl_file, sep=sep) #, index_label=evento.seq_type)
+        else:
+            print("Recombination event "+strEvent+" has an export problem!")
+
+        ### j_5_del
+        strEvent = 'j_5_del'
+        da = self.xdata[strEvent]
+        # print(list(self.parms.G.predecessors(strEvent)))
+        parents = list(self.parms.G.predecessors(strEvent))
+        evento = self.parms.get_Event(strEvent)
+
+        dependencias = list(self.xdata[strEvent].dims)
+        # print("********", dependencias, strEvent)
+        dependencias.remove(strEvent)
+        dependencias_dim = [self.xdata[strEvent][dep].shape[0] for dep in dependencias]
+
+        if len(parents) == 1:
+            df = pd.DataFrame(data=da.values, index=da['lbl__' + dependencias[0]].values,
+                              columns=da['lbl__' + strEvent].values)
+            lbl_file = fln_prefix + "P__" + strEvent + "__G__" + dependencias[0] + ".csv"
+            df.to_csv(lbl_file, sep=sep)  # , index_label=evento.seq_type)
+
+        #################################################################################
+
+        if 'd_gene' in self.xdata.keys():
+
+            strEvent = 'd_gene'
+            da = self.xdata[strEvent]
+            parents = list(self.parms.G.predecessors(strEvent))
+            print(parents)
+            evento = self.parms.get_Event(strEvent)
+            print(evento.event_type)
+            print(evento.seq_type)
+            dependencias = list(self.xdata[strEvent].dims)
+            print("********", dependencias, strEvent)
+            dependencias.remove(strEvent)
+            dependencias_dim = [self.xdata[strEvent][dep].shape[0] for dep in dependencias]
+
+            if len(parents) == 0:
+                df = pd.DataFrame(data=da.values, index=da['lbl__' + strEvent].values,
+                                  columns=["P"])  # da['lbl__' + strEvent].values
+                lbl_file = fln_prefix + "P__" + strEvent + ".csv"
+                df.to_csv(lbl_file, index_label=evento.seq_type, sep=sep)
+            elif len(parents) == 1:
+                df = pd.DataFrame(data=da.values, index=da['lbl__' + dependencias[0]].values,
+                              columns=da['lbl__' + strEvent].values)
+                lbl_file = fln_prefix + "P__" + strEvent + "__G__" + dependencias[0] + ".csv"
+                df.to_csv(lbl_file, sep=sep)  # , index_label=evento.seq_type)
+            elif len(parents) == 2:
+                lbl_file = fln_prefix + "P__" + strEvent + "__G__" + dependencias[0] + "__" + dependencias[1] + ".csv"
+                with open(lbl_file, 'w') as ofile:
+                    for ii in da[strEvent].values:
+                        title = "P(" + da["lbl__"+strEvent].values[ii] +"| "+dependencias[0] + "," + dependencias[1]+")"
+                        ofile.write("\n"+title+"\n")
+                        da_ii = da[{strEvent: ii}]
+                        df = pd.DataFrame(data=da_ii.values, index=da['lbl__' + dependencias[0]].values,
+                                          columns=da['lbl__' + dependencias[1]].values)
+
+                        df.to_csv(ofile, mode='a', sep=sep) # , index_label=evento.seq_type)
+            else:
+                print("Recombination event " + strEvent + " has an export problem!")
+
+            strEvent = 'd_gene'
+            da = self.xdata[strEvent]
+            parents = list(self.parms.G.predecessors(strEvent))
+            evento = self.parms.get_Event(strEvent)
+            dependencias = list(self.xdata[strEvent].dims)
+            dependencias.remove(strEvent)
+            dependencias_dim = [self.xdata[strEvent][dep].shape[0] for dep in dependencias]
+
+            if len(parents) == 0:
+                df = pd.DataFrame(data=da.values, index=da['lbl__' + strEvent].values,
+                                  columns=["P"])  # da['lbl__' + strEvent].values
+                lbl_file = fln_prefix + "P__" + strEvent + ".csv"
+                df.to_csv(lbl_file, index_label=evento.seq_type, sep=sep)
+            elif len(parents) == 1:
+                df = pd.DataFrame(data=da.values, index=da['lbl__' + dependencias[0]].values,
+                                  columns=da['lbl__' + strEvent].values)
+                lbl_file = fln_prefix + "P__" + strEvent + "__G__" + dependencias[0] + ".csv"
+                df.to_csv(lbl_file, sep=sep)  # , index_label=evento.seq_type)
+            elif len(parents) == 2:
+                lbl_file = fln_prefix + "P__" + strEvent + "__G__" + dependencias[0] + "__" + dependencias[1] + ".csv"
+                with open(lbl_file, 'w') as ofile:
+                    for ii in da[strEvent].values:
+                        title = "P(" + da["lbl__" + strEvent].values[ii] + "| " + dependencias[0] + "," + dependencias[1] + ")"
+                        ofile.write("\n" + title + "\n")
+                        da_ii = da[{strEvent: ii}]
+                        df = pd.DataFrame(data=da_ii.values, index=da['lbl__' + dependencias[0]].values,
+                                          columns=da['lbl__' + dependencias[1]].values)
+
+                        df.to_csv(ofile, mode='a', sep=sep)  # , index_label=evento.seq_type)
+            else:
+                print("Recombination event " + strEvent + " has an export problem!")
+
+            #return df
+
+            ## P(D3, D5 | D) = P( D3| D5,D) x P (D5,D)
+            #### Deletions in D
+            da = self.xdata['d_3_del']*self.xdata['d_5_del']
+
+            ### DELETIONS
+            strEvent = 'd_gene'
+            da = self.xdata[strEvent]
+            dependencias = list(da.dims)
+            print("********", dependencias, strEvent)
+            dependencias.remove(strEvent)
+            dependencias_dim = [da[dep].shape[0] for dep in dependencias]
+
+            lbl_file = fln_prefix + "P__" + strEvent + "__deletions" + ".csv"
+            with open(lbl_file, 'w') as ofile:
+                for ii in da[strEvent].values:
+                    da_ii = da[{strEvent: ii}]
+                    lbl_event_realization = da['lbl__' + strEvent].values[ii]
+                    title = "_P(" + dependencias[0] + "," + dependencias[1] + "| " + strEvent + " = " + lbl_event_realization + ")"
+                    ofile.write(title + "\n")
+                    df = pd.DataFrame(data=da_ii.values, index=da['lbl__' + dependencias[0]].values,
+                                      columns=da['lbl__' + dependencias[1]].values)
+
+                    df.to_csv(ofile, mode='a', sep=sep)  # , index_label=evento.seq_type)
+                    ofile.write("\n")
+
+            # self.xdata['d_3_del'] # P( D3| D5,D)
+
+            ### INSERTIONS
+            strEvent = 'vd_ins'
+            da = self.xdata[strEvent]
+            df_vd = pd.DataFrame(data=da.values, index=da['lbl__' + strEvent].values,
+                                 columns=["P("+strEvent+")"])  # da['lbl__' + strEvent].values
+            strEvent = 'dj_ins'
+            da = self.xdata[strEvent]
+            df_dj = pd.DataFrame(data=da.values, index=da['lbl__' + strEvent].values,
+                                 columns=["P("+strEvent+")"])  # da['lbl__' + strEvent].values
+
+            df = df_vd.merge(df_dj, left_index=True, right_index=True)
+            lbl_file = fln_prefix + "P__" + "insertions" + ".csv"
+            df.to_csv(lbl_file, index_label="Insertions", sep=sep)
+
+            ### DINUCL
+            strEvent = 'vd_dinucl'
+            da = self.xdata[strEvent]
+            print(da)
+            df = pd.DataFrame(data=da.values, index=da['lbl__x'].values,
+                                 columns=da['lbl__y'].values)
+            lbl_file = fln_prefix + "P__" + strEvent + ".csv"
+            df.to_csv(lbl_file, index_label="From\To", sep=sep)
+
+            strEvent = 'dj_dinucl'
+            da = self.xdata[strEvent]
+            print(da)
+            df = pd.DataFrame(data=da.values, index=da['lbl__x'].values,
+                              columns=da['lbl__y'].values)
+            lbl_file = fln_prefix + "P__" + strEvent + ".csv"
+            df.to_csv(lbl_file, index_label="From\To", sep=sep)
+
+        else:
+            ### INSERTIONS
+            strEvent = 'vj_ins'
+            da = self.xdata[strEvent]
+            df = pd.DataFrame(data=da.values, index=da['lbl__' + strEvent].values,
+                                 columns=["P(" + strEvent + ")"])  # da['lbl__' + strEvent].values
+
+
+            lbl_file = fln_prefix + "P__" + "insertions" + ".csv"
+            df.to_csv(lbl_file, index_label="Insertions", sep=sep)
+
+            ### DINUCL
+            strEvent = 'vj_dinucl'
+            da = self.xdata[strEvent]
+            print(da)
+            df = pd.DataFrame(data=da.values, index=da['lbl__x'].values,
+                              columns=da['lbl__y'].values)
+            lbl_file = fln_prefix + "P__" + strEvent + ".csv"
+            df.to_csv(lbl_file, index_label="From\To", sep=sep)
+
+        #################################################################################
+
+        # strEvent = 'j_choice'
+        # strEventParent01 = 'v_choice'
+        # self.Pmarginal[strEvent] = self.xdata[strEvent].dot(self.xdata[strEventParent01])
+        #
+        # strEvent = 'v_3_del'
+        # strEventParent01 = 'v_choice'
+        # Pjoint_aux = self.Pmarginal[strEventParent01]
+        # self.Pmarginal[strEvent] = self.xdata[strEvent].dot(Pjoint_aux)
+
+
+
     def get_Event_Marginal(self, event_nickname: str):
         """Returns an xarray with the marginal probability of the event given the nickname"""
         # FIXME: add new way to make the recursion.
+        # FIXME: FIRST without recursion, return
         if event_nickname in self.parms.get_EventsNickname_list():
             da_event = self.xdata[event_nickname]
             dependencies = self.parms.Edges_dict[event_nickname]
+            event_parents = list( self.parms.G.predecessors(event_nickname) )
             #1. Sort the dependencies by priority, then by dependencie
-            if queue is not empty:
-                self.get_Event_Marginal(nicki)
-            return da_event
+            # if queue is not empty:
+            #     self.get_Event_Marginal(nicki)
+            if event_nickname == 'v_choice':
+                da_marginal = da_event
+                return da_marginal
+            elif event_nickname == 'j_choice':
+                print(event_parents)
+                strEventParent = 'v_choice'
+                da_event_parent = self.xdata[strEventParent]
+                da_marginal = da_event_parent.dot(da_event)
+                da_parents = 1
+                for parent in event_parents:
+                    da_parents = da_parents * self.xdata[parent]
+                print('&'*20)
+                print(da_event.dot(da_parents))
+                return da_marginal
+                # return da_event, da_event_parent, (da_event_parent.dot(da_event)), da_marginal.sum()
+            elif event_nickname == 'd_gene':
+
+                print(event_parents)
+                strEventParent = 'v_choice'
+                strEventParent2 = 'j_choice'
+                da_event_parent = self.xdata[strEventParent]
+                da_event_parent2 = self.xdata[strEventParent2]
+                # da_marginal = da_event.dot()
+                da_marginal = da_event_parent*da_event_parent2
+                return da_marginal
+
         else:
             print("Event nickname : " + event_nickname + " is not an event in this IGoR model.")
             return list()
@@ -1218,6 +1559,7 @@ class IgorModel_Parms:
                             arrowstyle='fancy', arrowsize=2000, node_size=1000, width=400, height=400)
                             ##, arrows=True, arrowsize=20, node_size=800, font_size=10, font_weight='bold')
             return graph
+
         except ImportError as e:
             try:
                 print("matplotlib")
