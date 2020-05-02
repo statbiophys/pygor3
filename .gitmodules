@@ -1,0 +1,3 @@
+[submodule "IGoR"]
+	path = IGoR
+	url = https://github.com/statbiophys/IGoR.git
