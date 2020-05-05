@@ -28,17 +28,67 @@ def main():
     strEvent = 'v_choice'
     strEvent = 'j_choice'
     strEvent = 'd_gene'
-    # strEvent = 'd_3_del'
-    mdl.generate_Pmarginals()
-    print('%'*50)
-    print(strEvent)
-    print( mdl.xdata[strEvent] )
+    strEvent = 'v_3_del'
+    strEvent = 'd_3_del'
+    strEvent = 'd_5_del'
+    strEvent = 'j_5_del'
+    strEvent = 'vd_ins'
+    strEvent = 'dj_ins'
+    strEvent = 'vd_dinucl'
+    strEvent = 'dj_dinucl'
 
-    print(mdl.xdata[strEvent][strEvent].values)
-    print( mdl.Pmarginal[strEvent] )
-    # print( mdl.get_Event_Marginal(strEvent) )
-    mdl.export_csv("jojo")
-    print(list(mdl.xdata.keys()))
+    # strEvent = 'd_3_del'
+    # mdl.get_events_types_list()
+    for strEvent in ['d_gene'] : #, 'd_3_del', 'vd_ins', 'dj_dinucl']:
+        print(strEvent)
+        da = mdl[strEvent]
+        pd = mdl.parms.Event_dict[strEvent] #['name'].map(genLabel).values  # FIXME: use the exact name defined in model_parms
+        print(pd)
+        print(da)
+
+    print(mdl.parms.Event_dict['v_choice'])
+
+    import hvplot
+    import hvplot.pandas
+
+    strEvent = 'j_choice'
+    print("= " * 20)
+    evento = mdl.parms.get_Event(strEvent)
+    df = mdl.parms.Event_dict[strEvent]  #mdl.Pmarginal['d_gene'].to_dataframe(name='P')
+    print(df)
+
+    print("* " * 20)
+    df['name'] = df['name'].apply(p3.genLabel)
+    print(df)
+    # new_df = df
+    evento.update_realizations_from_dataframe(df)
+    new_df = mdl.parms.Event_dict[strEvent]
+    print(new_df)
+
+    ####################
+    print( mdl.Pmarginal['dj_dinucl'] )
+    print(mdl.Pmarginal['dj_dinucl'].sum())
+
+    print( mdl.Pmarginal['dj_dinucl'].dims )
+
+
+
+    import matplotlib.pyplot as plt
+    fig, ax = mdl.plot_Event_Marginal('dj_dinucl')
+    plt.show()
+
+
+    # fig, ax = plt.subplots()
+    # da.plot(ax=ax, x='x', y='y')
+    # # ax.set_xticks(ticks=mdl[strEvent]["x"].values, labels=mdl[strEvent]["lbl__x"].values)
+    # ax.set_xticks(da['x'].values)
+    # ax.set_xticklabels(da['lbl__' + 'x'].values)  #, rotation=90)
+    # ax.set_yticks(da['y'].values)
+    # ax.set_yticklabels(da['lbl__' + 'y'].values)
+    # print(da)
+    # plt.show()
+
+
 
     # print(df)
     # print( mdl.xdata['d_3_del'] )  # P( D3| D5,D)

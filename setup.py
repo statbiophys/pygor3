@@ -17,7 +17,7 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     entry_points= {
         'console_scripts' : [
-            'igor-scriptTest=pygor3.scripts.scriptTest:main',
+            'pygor3-scriptTest=pygor3.scripts.scriptTest:main',
             'igor-bs_export=pygor3.scripts.bs_export:main',
             'igor-pgen_sequences=pygor3.scripts.pgen_sequences:main',
             'igor-infer_sequences=pygor3.scripts.infer_sequences:main',

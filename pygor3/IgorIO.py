@@ -430,7 +430,6 @@ class IgorTask:
 
     ### IGOR INPUT SEQUENCES  ####
 
-
 class IgorIndexedSequence:
     """
     Return a IgorIndexedSequence instance
@@ -614,6 +613,9 @@ class IgorModel:
         if flag_xdata:
             self.generate_xdata()
 
+    def __getitem__(self, key):
+        return self.xdata[key]
+
     def __str__(self):
         return ".xdata" + str(self.get_events_nicknames_list())
 
@@ -657,14 +659,17 @@ class IgorModel:
         return cls
 
     def generate_xdata(self):
+        # TODO: CHANGE TO
         Event_Genechoice_List = ['v_choice', 'j_choice', 'd_gene']
         Event_Dinucl_List = ['vd_dinucl', 'dj_dinucl', 'vj_dinucl']
         Event_Insertion_List = ['vd_ins', 'dj_ins', 'vj_ins']
         Event_Deletion_List = ['v_3_del', 'j_5_del', 'd_3_del', 'd_5_del']
         
         for key in self.marginals.marginals_dict:
+            event = self.parms.get_Event(key)
 
-            if key in Event_Dinucl_List:
+            if event.event_type == 'DinucMarkov':
+            #if key in Event_Dinucl_List:
                 self.xdata[key] = xr.DataArray(self.marginals.marginals_dict[key].reshape(4,4), \
                           dims=('x', 'y'))
                 labels = self.parms.Event_dict[key]['value'].values
@@ -678,34 +683,44 @@ class IgorModel:
                 strCoord = 'lbl__' + strDim
                 self.xdata[key][strCoord] = (strDim, labels)
 
-                self.xdata[key]["event_type"] = event.event_type
-                self.xdata[key]["seq_type"] = event.seq_type
-                self.xdata[key]["seq_side"] = event.seq_side
-
             else:
                 self.xdata[key] = xr.DataArray(self.marginals.marginals_dict[key], \
                                                    dims=tuple(self.marginals.network_dict[key]))
                 #print "key: ", key, self.xdata[key].dims
-                event = self.parms.get_Event(key)
-                self.xdata[key]["event_type"] = event.event_type
-                self.xdata[key]["seq_type"] = event.seq_type
-                self.xdata[key]["seq_side"] = event.seq_side
-                strCoord = "priority"
-                self.xdata[key][strCoord] = event.priority
+
                 for strDim in self.xdata[key].dims:
                     self.xdata[key][strDim] = range(len(self.xdata[key][strDim]))
                     if strDim in Event_Genechoice_List:
                         #print strDim
-                        labels = self.parms.Event_dict[strDim]['name'].map(genLabel).values
-                        #print type(labels)
+                        #labels = self.parms.Event_dict[strDim]['name'].map(genLabel).values # FIXME: use the exact name defined in model_parms
+                        labels = self.parms.Event_dict[strDim]['name'].values
                         strCoord = 'lbl__'+strDim
                         self.xdata[key][strCoord] = (strDim, labels) # range(len(self.xdata[key][coord]))
+
+                        sequences = self.parms.Event_dict[strDim]['value'].values
+                        strCoord = 'seq__' + strDim
+                        self.xdata[key][strCoord] = (strDim, sequences)
+
                     elif not (strDim in Event_Dinucl_List):
                         labels = self.parms.Event_dict[strDim]['value'].values
-                        #print strDim
-                        #print labels
                         strCoord = 'lbl__'+strDim
                         self.xdata[key][strCoord] = (strDim, labels) # range(len(self.xdata[key][coord]))
+                        # event = self.parms.get_Event(key)
+                        # print(event.event_type)
+                        # self.xdata[key].attrs["event_type"] = event.event_type
+                        # self.xdata[key].attrs["seq_type"] = event.seq_type
+                        # self.xdata[key].attrs["seq_side"] = event.seq_side
+
+            # Event attributes
+            self.xdata[key].attrs["nickname"] = event.nickname
+            self.xdata[key].attrs["event_type"] = event.event_type
+            self.xdata[key].attrs["seq_type"] = event.seq_type
+            self.xdata[key].attrs["seq_side"] = event.seq_side
+            self.xdata[key].attrs["priority"] = event.priority
+
+            self.xdata[key].attrs["parents"] = list(self.parms.G.predecessors(key))
+            self.xdata[key].attrs["childs"] = list(self.parms.G.successors(key))
+
 
         self.generate_Pmarginals()
 
@@ -772,7 +787,7 @@ class IgorModel:
             strEvent = 'vj_dinucl'
             self.Pmarginal[strEvent] = self.xdata[strEvent]
 
-    def export_csv(self, fln_prefix, sep=";"):
+    def export_csv(self, fln_prefix, sep=';'):
         # FIXME: TEMPORARY SOLUTION FOR VERY PARTICULAR CASES.
         #################################################################################
         strEvent = 'v_choice'
@@ -801,8 +816,6 @@ class IgorModel:
                               columns=da['lbl__' + strEvent].values)
             lbl_file = fln_prefix + "P__" + strEvent + "__G__" + dependencias[0] + ".csv"
             df.to_csv(lbl_file, sep=sep)  # , index_label=evento.seq_type)
-
-
 
         #################################################################################
         strEvent = 'j_choice'
@@ -1009,6 +1022,47 @@ class IgorModel:
         # Pjoint_aux = self.Pmarginal[strEventParent01]
         # self.Pmarginal[strEvent] = self.xdata[strEvent].dot(Pjoint_aux)
 
+    def export_event_to_csv(self, event_nickname, fln_prefix, sep=';'):
+        # if kwargs.get('sep') is None:
+        #     kwargs['sep'] = ';'
+
+        da = self.xdata[event_nickname]
+        event = self.parms.get_Event(event_nickname)
+        if da.event_type == 'GeneChoice':
+            # print(list(self.parms.G.predecessors(strEvent)))
+            df = pd.DataFrame(data=da.values, index=da['lbl__' + event_nickname].values,
+                              columns=["P"])  # da['lbl__' + strEvent].values
+            lbl_file = fln_prefix + "P__" + event_nickname + ".csv"
+            df.to_csv(lbl_file, index_label=event.seq_type, sep=sep)
+
+    def export_Pmarginal_to_csv(self, event_nickname:str, *args, **kwargs):
+
+        if kwargs.get('sep') is None:
+            kwargs['sep'] = ';'
+
+        event = self.parms.get_Event(event_nickname, by_nickname=True)
+        da = self.xdata[event_nickname]
+        if event.event_type == 'GeneChoice' :
+            df = da.to_dataframe(name="P") #.drop('priority', 1)
+            df.to_csv(*args, **kwargs)
+        elif event.event_type == 'Insertion':
+            df = da.to_dataframe(name="P")  # .drop('priority', 1)
+            df.to_csv(*args, **kwargs)
+        elif event.event_type == 'Deletion':
+            df = da.to_dataframe(name="P")  # .drop('priority', 1)
+            df.to_csv(*args, **kwargs)
+
+        elif event.event_type == 'DinucMarkov':
+            ### FIXME:
+            strEvent = 'dj_dinucl'
+            df = pd.DataFrame(data=da.values, index=da['lbl__x'].values,
+                              columns=da['lbl__y'].values)
+            kwargs['index_label'] = "From\To"
+            df.to_csv(*args, **kwargs) #, index_label=, sep=sep)
+
+        else:
+            print("Event nickname "+event_nickname+" is not present in this model.")
+            print("Accepted Events nicknames are : "+str(self.get_events_nicknames_list()))
 
 
     def get_Event_Marginal(self, event_nickname: str):
@@ -1057,56 +1111,80 @@ class IgorModel:
         # TODO: assuming Genechoice
         self.xdata[event_nickname]
 
-    def plot_Event_Marginal(self, event_nickname:str):
+    def plot_Event_Marginal(self, event_nickname:str, ax=None):
+        """
+        Plot marginals of model events by nickname
+        """
         event = self.parms.get_Event(event_nickname, by_nickname=True)
+        da = self.Pmarginal[event_nickname] # real marginal DataArray
+
         lblEvent = event_nickname.replace("_", " ")
         xEtiqueta = lblEvent
         yEtiqueta = "P"
 
-        import matplotlib.pyplot as plt
-        fig, ax = plt.subplots()
+        if ax is None:
+            import matplotlib.pyplot as plt
+            fig, ax = plt.subplots()
+
         ax.set_xlabel(xEtiqueta)
-        ax.set_ylabel(yEtiqueta)
+        ax.set_ylabel(yEtiqueta, rotation=0)
 
         if event.event_type == 'GeneChoice' :
-            # TODO: plot using bar plot, and add the names on that.
-            XX = self.xdata[event_nickname][event_nickname].values
-            YY = self.xdata[event_nickname].values
+            # Bar plot
+            XX = da[event_nickname].values
+            YY = da.values
+
             ax.bar(XX, YY)
-            #self.xdata[event_nickname].plot(ax=ax)
-            #ax.legend()
-            # mdl.xdata[strEvent]['lbl__'+strEvent]
-            ax.set_xticks(self.xdata[event_nickname][event_nickname].values)
-            ax.set_xticklabels(self.xdata[event_nickname]['lbl__' + event_nickname].values, rotation=90)
-            fig.tight_layout()
+
+            lbl_XX = da['lbl__' + event_nickname].values
+            ax.set_xticks(XX)
+            ax.set_xticklabels(lbl_XX, rotation=90)
+            #return ax
 
         elif event.event_type == 'Insertion':
             # Use labels as a coordinate.
             # Insertions are in principle independent,
             # FIXME: but if not what to do.
-            YY = self.xdata[event_nickname].values
-            XX = self.xdata[event_nickname]['lbl__' + event_nickname].values
+            XX = da['lbl__' + event_nickname].values
+            YY = da.values
             ax.plot(XX, YY)
+
         elif event.event_type == 'Deletion':
             #YY = self.xdata[event_nickname].values
             #XX = self.xdata[event_nickname]['lbl__' + event_nickname].values
             #ax.plot(XX, YY)
-            self.xdata[event_nickname].plot(ax=ax)
+            XX = da['lbl__' + event_nickname].values
+            YY = da.values
+            ax.plot(XX, YY)
+
+        elif event.event_type == 'DinucMarkov':
+            XX = da['x'].values
+            YY = da['y'].values
+
+            lbl__XX = da['lbl__' + 'x'].values
+            lbl__YY = da['lbl__' + 'y'].values
+
+            ZZ = da.values
+
+            da.plot(ax=ax, x='x', y='y', vmin=0, vmax=1)
+
+            ax.set_xlabel('From')
+            ax.set_xticks(XX)
+            ax.set_xticklabels(lbl__XX, rotation=0)
+
+            ax.set_ylabel('To')
+            ax.set_yticks(YY)
+            ax.set_yticklabels(lbl__YY, rotation=0)
+
+            ax.set_title(lblEvent)
 
         else:
-            print(event)
-            if len (self.xdata[event_nickname].shape ) == 2:
-                self.xdata[event_nickname].plot(ax=ax)
-                ax.legend()
-                ax.set_xlabel(xEtiqueta)
-                ax.set_ylabel(yEtiqueta)
-                # mdl.xdata[strEvent]['lbl__'+strEvent]
-                ax.set_xticks(self.xdata[event_nickname][event_nickname].values)
-                ax.set_xticklabels(self.xdata[event_nickname]['lbl__' + event_nickname].values, rotation=90)
-                ax.set_xticks(self.xdata[event_nickname][event_nickname].values)
-                ax.set_xticklabels(self.xdata[event_nickname]['lbl__' + event_nickname].values, rotation=90)
-                print("Accepted Events nicknames are : "+str(self.get_events_nicknames_list()))
+            print("Event nickname "+event_nickname+" is not present in this model.")
+            print("Accepted Events nicknames are : "+str(self.get_events_nicknames_list()))
+
         #return self.get_Event_Marginal(nickname)
+        # ax.set_title(lblEvent)
+        return ax
 
     def get_events_types_list(self):
         "Return list of event types in current model"
@@ -1340,6 +1418,7 @@ class IgorModel_Parms:
             if strip_line == "@ErrorRate" :
                 self.read_ErrorRate(ofile)
         self.model_parms_file = filename
+
         self.get_EventDict_DataFrame()
 
     # save in Event_list
@@ -1448,7 +1527,7 @@ class IgorModel_Parms:
         #return dictio
         self.dictNicknameName = {v: k for k, v in self.dictNameNickname.items()}
         self.getBayesGraph()
-    
+
     def getBayesGraph(self):
         self.G = nx.DiGraph()
         for rec_event in self.Event_list:
@@ -1628,15 +1707,38 @@ class IgorRec_Event:
 
         return cls
 
-    # FIXME:
-    @classmethod
-    def update_realizations_from_dataframe(cls, dataframe):
-        cls.realizations = list()
+    def update_realizations_from_fasta(self, flnGenomic):
+        from Bio import SeqIO
+        if self.event_type == 'GeneChoice':
+            for index, record in enumerate(SeqIO.parse(flnGenomic, "fasta")):
+                event_realization = IgorEvent_realization()
+                event_realization.index = index
+                event_realization.value = record.seq
+                event_realization.name = record.description
+                self.add_realization(event_realization)
+
+
+    def export_realizations_to_fasta(self, flnGenomic):
+        from Bio.SeqRecord import SeqRecord
+        from Bio.Seq import Seq
+        sequences_list = list()
+        for realization in self.realizations:
+            record = SeqRecord(Seq(realization.value), realization.name, '', '')
+            sequences_list.append(record)
+
+        SeqIO.write(sequences_list, flnGenomic, "fasta")
+
+    def update_realizations_from_dataframe(self, dataframe):
+        """
+        Update realizations with a dataframe (index, value, name)
+        """
+        self.realizations = list()
         for index, row in dataframe.iterrows():
             dict_realiz = row.to_dict()
+            # print(index, dict_realiz)
             dict_realiz['index'] = index
             realiz = IgorEvent_realization.from_dict(dict_realiz)
-            cls.realizations.append(realiz)
+            self.realizations.append(realiz)
 
     @classmethod
     def from_default_nickname(cls, nickname:str):

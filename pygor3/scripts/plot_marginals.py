@@ -25,6 +25,9 @@ def main():
     if options.output == None:
         print("output option is mandatory")
         exit()
+    else:
+        flnPrefix = options.output
+
     Q_species_chain = ( not (options.species == None) and not(options.chain == None))
     Q_model_files = ( not (options.model_params == None) and not( options.model_marginals == None))
     if ( Q_species_chain or Q_model_files):
@@ -37,25 +40,34 @@ def main():
             task.igor_chain = str(options.chain)
             task.load_IgorModel()
 
-            fig, ax = plt.subplots()
-            print( task.mdl.xdata['v_3_del'] )
-            print(task.mdl.Pmarginal['v_3_del'])
+            for event_nickname in task.mdl.Pmarginal.keys():
 
-            for event_nickname in task.mdl.Pmarginal:
-                print("8"*25)
-                # event_nickname = 'v_choice'
-                df = task.mdl.Pmarginal[event_nickname].to_dataframe(name=event_nickname)
-                print(df)
-
-                if not task.mdl.Pmarginal[event_nickname].event_type == 'Dinucl':
-                    df.plot.bar(y=event_nickname, x='lbl__'+event_nickname, ax=ax)
-                    fig.savefig("PM_"+event_nickname+".pdf")
+                fig, ax = plt.subplots()
+                # df = task.mdl.Pmarginal[event_nickname].to_dataframe(name=event_nickname)
+                task.mdl.plot_Event_Marginal(event_nickname, ax=ax)
+                fig.tight_layout()
+                flnOutput = "PM_"+flnPrefix+"_"+event_nickname+".pdf"
+                fig.savefig(flnOutput)
+                print("***** Marginal plot of ", event_nickname, " in ", flnOutput)
+                # if task.mdl.parms.get_Event(event_nickname).event_type == 'Dinucl':
+                #     df.plot.bar(y=event_nickname, x='lbl__'+event_nickname, ax=ax)
+                #     fig.savefig("PM_"+event_nickname+".pdf")
 
 
         if Q_model_files:
             task.igor_model_parms_file = options.model_params
             task.igor_model_marginals_file = options.model_marginals
             task.load_IgorModel()
+
+            for event_nickname in task.mdl.Pmarginal.keys():
+                fig, ax = plt.subplots()
+                # df = task.mdl.Pmarginal[event_nickname].to_dataframe(name=event_nickname)
+                task.mdl.plot_Event_Marginal(event_nickname, ax=ax)
+                fig.tight_layout()
+                flnOutput = "PM_"+flnPrefix+"_"+event_nickname+".pdf"
+                fig.savefig(flnOutput)
+                print("***** Marginal plot of ", event_nickname, " in ", flnOutput)
+
             task.mdl.export_csv(options.output)
 
     else:
