@@ -205,8 +205,9 @@ def download_Vgene_anchors(specie: str, chain: str, flnVGenome, modelspath=None,
 
     flnAnchors = ref_genes_path +  "V_gene_CDR3_anchors__imgt.csv"
     ofileAnch = open(flnAnchors, "w")
-    ofileAnch.write("gene;anchor_index;function" + "\n")
     CSVDELIM = ";"
+    ofileAnch.write("gene"+CSVDELIM+"anchor_index"+CSVDELIM+"function" + "\n")
+
 
     Vrecords = SeqIO.parse(flnVGenome, "fasta")
     for rec in Vrecords:
@@ -222,7 +223,6 @@ def download_Vgene_anchors(specie: str, chain: str, flnVGenome, modelspath=None,
             print("No anchor is found for : " + rec.description)
 
     ofileAnch.close()
-
 
 def download_Jgene_anchors(specie: str, chain: str, flnJGenome, modelspath=None, imgt_genedb=imgt_params['url.genedb']):
     # records = get_gene_template(specie, gene, imgt_genedb=imgt_genedb)
@@ -241,10 +241,10 @@ def download_Jgene_anchors(specie: str, chain: str, flnJGenome, modelspath=None,
     dictJ_TRP = genAnchDict(urlJ_TRP)
 
     # write the files
-    flnAnchors = ref_genes_path + "J_gene_CDR3_anchors.csv"
+    flnAnchors = ref_genes_path + "J_gene_CDR3_anchors__imgt.csv"
     ofileAnch = open(flnAnchors, "w")
-    ofileAnch.write("gene;anchor_index" + "\n")
     CSVDELIM = ";"
+    ofileAnch.write("gene" + CSVDELIM + "anchor_index" + CSVDELIM + "function" + "\n")
     Jrecords = SeqIO.parse(flnJGenome, "fasta")
     for rec in Jrecords:
         key = genKey(rec.description)
@@ -254,13 +254,15 @@ def download_Jgene_anchors(specie: str, chain: str, flnJGenome, modelspath=None,
         if key in dictJ_PHE.keys():
             posJ_PHE = dictJ_PHE[key] - getStartPos(rec.description)
             posAnch = posJ_PHE
-            ofileAnch.write(rec.description + CSVDELIM + str(posAnch) + "\n")
+            seqFunc = getFunction(rec.description)
+            ofileAnch.write(rec.description + CSVDELIM + str(posAnch) + CSVDELIM + str(seqFunc) + "\n")
 
         # FIXME: this should be elif, but I want to check If the system is consistent
         elif key in dictJ_TRP.keys():
             posJ_TRP = dictJ_TRP[key] - getStartPos(rec.description)
             posAnch = posJ_TRP
-            ofileAnch.write(rec.description + CSVDELIM + str(posAnch) + "\n")
+            seqFunc = getFunction(rec.description)
+            ofileAnch.write(rec.description + CSVDELIM + str(posAnch) + CSVDELIM + str(seqFunc) + "\n")
         else:
             print("No anchor is found for : " + rec.description)
 

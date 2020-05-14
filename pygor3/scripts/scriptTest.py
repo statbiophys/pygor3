@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import pygor3 as p3
-
+import numpy as np
 
 from  optparse import OptionParser
 def main():
@@ -14,9 +14,45 @@ def main():
     #print("hola fasdasdfd 888888")
     species="human"
     chain="tcr_beta"
+
+    igor_genome = p3.IgorGenomics.load_from_path_ref_genome(".")
+    df_joined00 = igor_genome.df_V_gene.set_index('name').join(igor_genome.df_V_anchors.set_index('gene'))
+    df_joined00 = df_joined00.reset_index()
+    print(df_joined00)
+    print(type(df_joined00.loc[3]['anchor_index']))
+    print(df_joined00.loc[ np.isnan(df_joined00["anchor_index"] ) ] )
+    df = df_joined00.loc[df_joined00['anchor_index'] == np.NaN]
+    print(df)
+
+    igor_genome.df_V_gene['ID'] = igor_genome.df_V_gene['name'].apply(p3.genLabel)
+    igor_genome.df_V_anchors['ID'] = igor_genome.df_V_anchors['gene'].apply(p3.genLabel)
+
+
+    # print(igor_genome.df_V_gene)
+    # print(igor_genome.df_V_anchors)
+    df_joined = igor_genome.df_V_gene.set_index('ID').join(igor_genome.df_V_anchors.set_index('ID')).reset_index()
+    print(df_joined)
+    print(df_joined.loc[np.isnan(df_joined["anchor_index"])])
+
+    print(igor_genome.df_V_gene.loc[igor_genome.df_V_gene['ID']  == 'TRBV17*01'])
+    # From dataframe create the two files genomic template and also CDR3 anchors
+
+    # load data into dataframe and then export to fasta and csv. show the excluded
+
+
+
+    # print(df_tmp)
+    # for gene_id in df_tmp['name']:
+    #     print(gene_id.split("*"))
+
+
+
+    """
     mdl = p3.IgorModel.load_default(species, chain)
     # import hvplot
     # hvplot.save(mdl.parms.plot_Graph(), species+"__"+chain+".html")
+
+    # genomicDs__imgt.fasta  genomicJs__imgt.fasta  genomicJs__imgt_trim.fasta  genomicVs__imgt.fasta  genomicVs__imgt_trim.fasta
 
     # print(mdl.xdata)
     print(mdl.parms.G.edges)
@@ -70,73 +106,8 @@ def main():
     print(mdl.Pmarginal['dj_dinucl'].sum())
 
     print( mdl.Pmarginal['dj_dinucl'].dims )
-
-
-
-    import matplotlib.pyplot as plt
-    fig, ax = mdl.plot_Event_Marginal('dj_dinucl')
-    plt.show()
-
-
-    # fig, ax = plt.subplots()
-    # da.plot(ax=ax, x='x', y='y')
-    # # ax.set_xticks(ticks=mdl[strEvent]["x"].values, labels=mdl[strEvent]["lbl__x"].values)
-    # ax.set_xticks(da['x'].values)
-    # ax.set_xticklabels(da['lbl__' + 'x'].values)  #, rotation=90)
-    # ax.set_yticks(da['y'].values)
-    # ax.set_yticklabels(da['lbl__' + 'y'].values)
-    # print(da)
-    # plt.show()
-
-
-
-    # print(df)
-    # print( mdl.xdata['d_3_del'] )  # P( D3| D5,D)
-    # print(mdl.xdata['d_5_del'])  # P( D3| D5,D)
-    # da = mdl.xdata['d_3_del'] * mdl.xdata['d_5_del']
-    # print("0000000000"*10)  # P( D3| D5,D)
-    #
-    # for ii in da[strEvent][strEvent].values:
-    #     print("--"*5,ii,da[strEvent]["lbl__"+strEvent].values[ii], "-"*30)
-    #     print(da[{strEvent:ii}])
-
-    # import matplotlib.pyplot as plt
-    # fig, ax = plt.subplots()
-    # da[{strEvent: ii}].plot(ax = ax)
-    # plt.show()
-
-
-
-
-
-
     """
-    directory = "/home/alfaceor/Dropbox/PosDoc/IGoR/Thierry/Lightchain_Thierry/Lightchain/IGL/"
-    flnVanchors = directory + "V_gene_CDR3_anchors.csv"
-    flnJanchors = directory + "J_gene_CDR3_anchors.csv"
-    fln_model_parms = directory + "final_parms.txt"
-    fln_model_marginals = directory + "final_marginals.txt"
-    mdl = p3.IgorModel(model_parms_file=fln_model_parms, model_marginals_file=fln_model_marginals)
-    mdl_anchs = p3.IgorAnchors(flnVanchors, flnJanchors)
-    mdl_parms = p3.IgorModel_Parms(model_parms_file=fln_model_parms)
-    mdl_marginals = p3.IgorModel_Marginals(model_marginals_file=fln_model_marginals)
-    print(mdl_marginals)
-    evento = mdl_parms.get_Event('v_choice')  # get_realization_DataFrame()
-    print(evento)
-    ev_da = evento.get_realization_DataFrame()
-    ev_da.head()
-    # remove the ones without
-    ev_da_drop = ev_da.drop([0, 2, 4])  # .head()
-    aaa = ev_da_drop.head()
 
-    import pandas as pd
-    df_Vanchors = mdl_anchs.df_Vanchors.rename(columns={'gene': 'name'})
-    result = pd.merge(ev_da, df_Vanchors, on='name')  # , left_index=True, right_index=True, how='inner');
-    new_df = result.drop(columns=['anchor_index'])
-    # set dataframe to envento
-
-    new_df
-    """
 
 if __name__ == "__main__":
     main()

@@ -350,7 +350,6 @@ class IgorTask:
         run_command(cmd)
         #run_command_no_output(cmd)
         self.b_infer = True # FIXME: If run_command success then True
-        
 
     def run_clean_batch(self):
         cmd = "rm -r " + self.igor_wd + "/" + self.igor_batchname + "_evaluate"
@@ -423,10 +422,6 @@ class IgorTask:
         df = df.merge(df_seq, left_index=True, right_index=True)
         df = df.merge(df_cdr3, left_index=True, right_index=True)
         return df
-
-
-
-
 
     ### IGOR INPUT SEQUENCES  ####
 
@@ -650,6 +645,7 @@ class IgorModel:
 
         return cls
 
+    #FIXME
     @classmethod
     def load_from_networkx(cls, IgorSpecie, IgorChain):
         """
@@ -724,7 +720,6 @@ class IgorModel:
 
         self.generate_Pmarginals()
 
-
     def generate_Pmarginals(self):
         # FIXME: GENERALIZE FOR ANY NETWORK NOT ONLY FOR VDJ AND VJ
         strEvent = 'v_choice'
@@ -786,6 +781,33 @@ class IgorModel:
 
             strEvent = 'vj_dinucl'
             self.Pmarginal[strEvent] = self.xdata[strEvent]
+
+    # TODO: Make a general case using a general event
+    def export_event_to_csv(self, event_nickname, fln_prefix, sep=';'):
+        # Model_Parms.get_roots()
+        # root_list.sort(Event_comparator())
+
+        # if kwargs.get('sep') is None:
+        #     kwargs['sep'] = ';'
+
+        da = self.xdata[event_nickname]
+        event = self.parms.get_Event(event_nickname)
+        if da.event_type == 'GeneChoice':
+            # print(list(self.parms.G.predecessors(strEvent)))
+            df = pd.DataFrame(data=da.values, index=da['lbl__' + event_nickname].values,
+                              columns=["P"])  # da['lbl__' + strEvent].values
+            lbl_file = fln_prefix + "P__" + event_nickname + ".csv"
+            df.to_csv(lbl_file, index_label=event.seq_type, sep=sep)
+
+    def export_event_v_choice_csv(self, fln_prefix, sep=';'):
+        strEvent = 'v_choice'
+        da = self.xdata[strEvent]
+        # print(list(self.parms.G.predecessors(strEvent)))
+        evento = self.parms.get_Event(strEvent)
+        df = pd.DataFrame(data=da.values, index=da['lbl__' + strEvent].values,
+                          columns=["P"])  # da['lbl__' + strEvent].values
+        lbl_file = fln_prefix + "P__" + strEvent + ".csv"
+        df.to_csv(lbl_file, index_label=evento.seq_type, sep=sep)
 
     def export_csv(self, fln_prefix, sep=';'):
         # FIXME: TEMPORARY SOLUTION FOR VERY PARTICULAR CASES.
@@ -866,12 +888,12 @@ class IgorModel:
             strEvent = 'd_gene'
             da = self.xdata[strEvent]
             parents = list(self.parms.G.predecessors(strEvent))
-            print(parents)
+            #print(parents)
             evento = self.parms.get_Event(strEvent)
-            print(evento.event_type)
-            print(evento.seq_type)
+            #print(evento.event_type)
+            #print(evento.seq_type)
             dependencias = list(self.xdata[strEvent].dims)
-            print("********", dependencias, strEvent)
+            #print("********", dependencias, strEvent)
             dependencias.remove(strEvent)
             dependencias_dim = [self.xdata[strEvent][dep].shape[0] for dep in dependencias]
 
@@ -933,13 +955,32 @@ class IgorModel:
 
             #return df
 
-            ## P(D3, D5 | D) = P( D3| D5,D) x P (D5,D)
-            #### Deletions in D
-            da = self.xdata['d_3_del']*self.xdata['d_5_del']
+
 
             ### DELETIONS
-            strEvent = 'd_gene'
-            da = self.xdata[strEvent]
+            ## P(D3, D5 | D) = P( D3| D5,D) x P (D5,D)
+            #### Deletions in D
+
+            #strEvent = 'd_gene'
+            #da = self.xdata[strEvent]
+            da = self.xdata['d_3_del'] * self.xdata['d_5_del']  # P(d_3_del, d_5_del | d_gene)
+            print(da)
+            import matplotlib.pyplot as plt
+            fig, ax = plt.subplots()
+            ii = 0
+            da_ii = da[{'d_gene':ii}]
+            x_coord = 'd_3_del'
+            y_coord = 'd_5_del'
+            da_ii.plot(ax=ax, x=x_coord, y=y_coord, cmap=plt.get_cmap('gnuplot2_r') ) #, vmin=0, vmax=1)
+            print("da_ii: ", ii, da_ii, da_ii.sum())
+            ax.set_title(da["lbl__"+"d_gene"].values[ii])
+            ax.set_xticks(da_ii[x_coord].values)
+            ax.set_xticklabels(da_ii["lbl__"+x_coord].values)
+            ax.set_yticks(da_ii[y_coord].values)
+            ax.set_yticklabels(da_ii["lbl__" + y_coord].values)
+
+            fig.savefig("XXXXXXXXXxx.pdf")
+
             dependencias = list(da.dims)
             print("********", dependencias, strEvent)
             dependencias.remove(strEvent)
@@ -950,12 +991,12 @@ class IgorModel:
                 for ii in da[strEvent].values:
                     da_ii = da[{strEvent: ii}]
                     lbl_event_realization = da['lbl__' + strEvent].values[ii]
-                    title = "_P(" + dependencias[0] + "," + dependencias[1] + "| " + strEvent + " = " + lbl_event_realization + ")"
-                    ofile.write(title + "\n")
+                    title = "P(" + dependencias[0] + "," + dependencias[1] + "| " + strEvent + " = " + lbl_event_realization + ")"
+                    #ofile.write(title + "\n")
                     df = pd.DataFrame(data=da_ii.values, index=da['lbl__' + dependencias[0]].values,
                                       columns=da['lbl__' + dependencias[1]].values)
 
-                    df.to_csv(ofile, mode='a', sep=sep)  # , index_label=evento.seq_type)
+                    df.to_csv(ofile, mode='a', sep=sep, index_label=title)  # , index_label=evento.seq_type)
                     ofile.write("\n")
 
             # self.xdata['d_3_del'] # P( D3| D5,D)
@@ -977,7 +1018,6 @@ class IgorModel:
             ### DINUCL
             strEvent = 'vd_dinucl'
             da = self.xdata[strEvent]
-            print(da)
             df = pd.DataFrame(data=da.values, index=da['lbl__x'].values,
                                  columns=da['lbl__y'].values)
             lbl_file = fln_prefix + "P__" + strEvent + ".csv"
@@ -985,7 +1025,6 @@ class IgorModel:
 
             strEvent = 'dj_dinucl'
             da = self.xdata[strEvent]
-            print(da)
             df = pd.DataFrame(data=da.values, index=da['lbl__x'].values,
                               columns=da['lbl__y'].values)
             lbl_file = fln_prefix + "P__" + strEvent + ".csv"
@@ -1022,19 +1061,6 @@ class IgorModel:
         # Pjoint_aux = self.Pmarginal[strEventParent01]
         # self.Pmarginal[strEvent] = self.xdata[strEvent].dot(Pjoint_aux)
 
-    def export_event_to_csv(self, event_nickname, fln_prefix, sep=';'):
-        # if kwargs.get('sep') is None:
-        #     kwargs['sep'] = ';'
-
-        da = self.xdata[event_nickname]
-        event = self.parms.get_Event(event_nickname)
-        if da.event_type == 'GeneChoice':
-            # print(list(self.parms.G.predecessors(strEvent)))
-            df = pd.DataFrame(data=da.values, index=da['lbl__' + event_nickname].values,
-                              columns=["P"])  # da['lbl__' + strEvent].values
-            lbl_file = fln_prefix + "P__" + event_nickname + ".csv"
-            df.to_csv(lbl_file, index_label=event.seq_type, sep=sep)
-
     def export_Pmarginal_to_csv(self, event_nickname:str, *args, **kwargs):
 
         if kwargs.get('sep') is None:
@@ -1063,7 +1089,6 @@ class IgorModel:
         else:
             print("Event nickname "+event_nickname+" is not present in this model.")
             print("Accepted Events nicknames are : "+str(self.get_events_nicknames_list()))
-
 
     def get_Event_Marginal(self, event_nickname: str):
         """Returns an xarray with the marginal probability of the event given the nickname"""
@@ -1346,7 +1371,6 @@ class IgorModel_Parms:
                 event_realization = IgorEvent_realization()
                 event_realization.index = index
                 event_realization.value = nt_char
-
 
     # FIXME: FINISH THIS METHOD
     def write_model_parms(self, filename="tmp_mdl_parms.txt"):
@@ -1674,6 +1698,12 @@ class IgorRec_Event:
 #            self.nickname = nickname
         self.update_name()
 
+    def __lt__(self, other):
+        return self.priority < other.priority
+
+    def __gt__(self, other):
+        return self.priority > other.priority
+
     def to_dict(self):
         dictIgorRec_Event = {
             "event_type": self.event_type, \
@@ -1717,7 +1747,6 @@ class IgorRec_Event:
                 event_realization.name = record.description
                 self.add_realization(event_realization)
 
-
     def export_realizations_to_fasta(self, flnGenomic):
         from Bio.SeqRecord import SeqRecord
         from Bio.Seq import Seq
@@ -1747,13 +1776,6 @@ class IgorRec_Event:
 
     def __str__(self):
         return str(self.to_dict())
-
-    def __lt__(self, other):
-        return self.priority < other.priority 
-#        if ( self.priority < other.priority ):
-#            return True
-#        elif ( self.priority == other.priority  ):
-#            # FIXME: less dependencies should be on top
 
     def add_realization(self, realization):
         """Add a realization to the RecEvent realizations list."""
@@ -2034,6 +2056,78 @@ class IgorAnchors:
         self.df_Vanchors = pd.read_csv(flnVanchors, sep=';')
         self.df_Janchors = pd.read_csv(flnJanchors, sep=';')
         # rename indices.
+
+# IgorGenomics or IgorDBAlignments? which one is the best name
+class IgorGenomics:
+    def __init__(self):
+        self.path_ref_genome = None
+
+        self.b_V_gene = False
+        self.flnVgenomics = None
+        self.flnVanchors = None
+        self.df_V_gene = None
+        self.df_V_anchors = None
+
+        self.b_J_gene = False
+        self.flnJgenomics = None
+        self.flnJanchors = None
+        self.df_J_gene = None
+
+        self.b_D_gene = False
+        self.flnDgenomics = None
+        self.df_D_gene = None
+
+    @classmethod
+    def load_from_path_ref_genome(cls, path_ref_genome):
+        cls = IgorGenomics()
+        cls.path_ref_genome = path_ref_genome
+        try:
+
+            # TODO: FROM FASTA TO DATAFRAME
+            cls.flnVgenomics = "genomicVs__imgt.fasta"
+            cls.flnVanchors = "V_gene_CDR3_anchors__imgt.csv"
+
+            # Fasta to dataframe
+            from Bio import SeqIO
+            V_name_list = list()
+            V_value_list = list()
+            for v_record in SeqIO.parse(cls.flnVgenomics, "fasta"):
+                V_name_list.append(v_record.description)
+                V_value_list.append(str(v_record.seq))
+            cls.df_V_gene = pd.DataFrame.from_dict({'name': V_name_list, 'value': V_value_list})
+
+            # dicto = cls.df_V_gene.to_dict()
+            cls.df_V_anchors = pd.read_csv(cls.path_ref_genome + "/" + cls.flnVanchors, sep=';')
+            cls.df_V_ref_genome = cls.df_V_gene.set_index('name').join(cls.df_V_anchors.set_index('gene')).reset_index()
+
+            print(df_joined00.loc[np.isnan(df_joined00["anchor_index"])])
+            df = df_joined00.loc[df_joined00['anchor_index'] == np.NaN]
+            print(df)
+
+            igor_genome.df_V_gene['ID'] = igor_genome.df_V_gene['name'].apply(p3.genLabel)
+            igor_genome.df_V_anchors['ID'] = igor_genome.df_V_anchors['gene'].apply(p3.genLabel)
+
+            # print(igor_genome.df_V_gene)
+            # print(igor_genome.df_V_anchors)
+            df_joined = igor_genome.df_V_gene.set_index('ID').join(
+                igor_genome.df_V_anchors.set_index('ID')).reset_index()
+            print(df_joined)
+            print(df_joined.loc[np.isnan(df_joined["anchor_index"])])
+
+            print(igor_genome.df_V_gene.loc[igor_genome.df_V_gene['ID'] == 'TRBV17*01'])
+
+            #print(pd_Vgenomics)
+            #print(df_Vanchors)
+
+        except Exception as e:
+            print(e)
+            raise e
+
+        return cls
+
+class IgorBestScenarios:
+    def __init__(self):
+        self.mdl = None
 
 ### IGOR BEST SCENARIOS VDJ ###
 class IgorBestScenariosVDJ:

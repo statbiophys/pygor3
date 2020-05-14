@@ -35,8 +35,8 @@ def main():
 
         # FIXME: ONCE THE GENE TEMPLATES ARE DOWNLOADED CHANGE THE NAME TO
         print(flnVGenome)
-
-
+        print(flnDGenome)
+        print(flnJGenome)
 
         # write anchors
         p3.imgt.download_genes_anchors(options.species, options.chain, flnVGenome, flnJGenome)
@@ -45,16 +45,22 @@ def main():
         strGene = options.chain +"V"
         urlV_2CYS = p3.imgt.get_genedb_query81_imgtlabel(options.species, strGene, imgtlabel="2nd-CYS")
         dict2CYS = p3.imgt.genAnchDict(urlV_2CYS)
+        print(dict2CYS)
+
         list2CYS = list(dict2CYS.keys())
 
         v_genomes_list = p3.imgt.load_records_from_fasta(flnVGenome)
         v_genomes_trim_list = list()
         for v_genome in v_genomes_list:
-            if v_genome in list2CYS:
+            #print("v_genome : ",v_genome)
+            if v_genome.description in list2CYS:
                 v_genomes_trim_list.append(v_genome)
             else:
-                print(v_genome)
-        p3.imgt.save_records2fasta(v_genomes_trim_list, flnVGenome + "_trim")
+                print("Record without anchor : ",v_genome)
+
+        flnVGenome_split = flnVGenome.split(".fasta")
+        flnVGenome_trim = flnVGenome_split[0]+"_trim"+flnVGenome_split[1]+".fasta"
+        p3.imgt.save_records2fasta(v_genomes_trim_list, flnVGenome_trim)
 
         # J-PHE
         urlJ_PHE = p3.imgt.get_genedb_query81_imgtlabel(options.species, options.species + "J", imgtlabel="J-PHE")
@@ -74,9 +80,12 @@ def main():
             elif j_genome in listJ_TRP:
                 j_genomes_trim_list.append(j_genome)
             else:
-                print(j_genome)
+                print("Record without anchor : ", j_genome)
 
-        p3.imgt.save_records2fasta(j_genomes_trim_list, flnJGenome+"_trim")
+        flnJGenome_split = flnJGenome.split(".fasta")
+        flnJGenome_trim = flnJGenome_split[0] + "_trim" + flnJGenome_split[1]+".fasta"
+        p3.imgt.save_records2fasta(j_genomes_trim_list, flnJGenome_trim)
+        # p3.imgt.save_records2fasta(j_genomes_trim_list, flnJGenome+"_trim")
 
     elif options.type == "VJ":
         flnVGenome = p3.imgt.download_gene_template(options.species, options.chain + 'V')
