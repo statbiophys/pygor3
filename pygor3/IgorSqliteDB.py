@@ -47,6 +47,7 @@ class IgorSqliteDB:
     
     #@classmethod
     def createSqliteDB(self, flnIgorDB):
+        # FIXME: THIS METHOD SHOULD BE SOMETHING LIKE EXECUTE SQL SCRIPT and in particular
         """
         Create a SQLite database with the flnIgorDB sql script.
         """
@@ -62,6 +63,51 @@ class IgorSqliteDB:
             #self.conn.close()
         except sqlite3.Error as e:
             print(e)
+
+    @classmethod
+    def create_db(cls, flnIgorDB):
+        """
+        Connect (or create if not exits) with filename
+        """
+        cls = IgorSqliteDB()
+        cls.flnIgorDB = flnIgorDB
+        cls.connect_db()
+        return cls
+
+    def connect_db(self):
+        """
+        Connect (or create if not exits) to database
+        """
+        self.conn = sqlite3.connect(self.flnIgorDB)
+
+    def execute_query(self, str_query):
+        """
+        Execute sql script in the SQLite database .
+        """
+        try:
+            self.conn = sqlite3.connect(self.flnIgorDB)
+            cur = self.conn.cursor()
+            cur.executescript(str_query)
+            self.conn.commit()
+            cur.close()
+            #self.conn.close()
+        except sqlite3.Error as e:
+            print(e)
+
+    def createSqliteDB_tmp(self):
+        # TODO: create database in base of IgorSQL scripts
+        self.conn = None
+        try:
+            self.conn = sqlite3.connect(self.flnIgorDB)
+            qry = sqlcmd_ct['indexed_sequences']
+            cur = self.conn.cursor()
+            cur.executescript(qry)
+            self.conn.commit()
+            cur.close()
+            # self.conn.close()
+        except sqlite3.Error as e:
+            print(e)
+
 
     # TODO: load database by receiving a list of identifiers defined in IgorDictionaries
     def load_db(self, **kwargs):
@@ -104,7 +150,6 @@ class IgorSqliteDB:
     ###############################################
     ####  IgorIndexedSeq Table Methods
     ###############################################
-    
     def load_IgorIndexedSeq_FromCSV(self, flnIgorIndexedSeq):
         """
         Insert indexed sequence in database from csv igor indexed_seqs file.
@@ -112,8 +157,8 @@ class IgorSqliteDB:
         :param csvline:
         :return:
         """
+        self.execute_query(sqlcmd_ct['indexed_sequences'])
         self.flnIgorIndexedSeq = flnIgorIndexedSeq
-
         cur = self.conn.cursor()
         try:
             cur.execute('BEGIN TRANSACTION')
@@ -164,7 +209,12 @@ class IgorSqliteDB:
         #    print(sqlSelect)
         record = cur.fetchone()
         return (record)
-    
+
+    def get_IgorIndexedSeq_By_seq_index(self, seq_index):
+        record = self.fetch_IgorIndexedSeq_By_seq_index(seq_index)
+        from .IgorIO import IgorIndexedSequence
+        return IgorIndexedSequence.load_FromSQLRecord(record)
+
     def fetch_IgorIndexedSeq_By_seq_indexList(self, seq_indexList):
         """
         Fetch seq_index and sequence in Igor database.
@@ -183,13 +233,11 @@ class IgorSqliteDB:
         #    print(sqlSelect)
         record = cur.fetchall()
         return (record)
-    
-    
-    
+
+
     ###############################################
     ####  IgorXGeneTemplate Tables Methods
     ###############################################
-    
     def load_IgorGeneTemplate_FromFASTA(self, strGene, flnGeneTemplate):
         """
         Insert D Gene templates in database from fasta files used by IGoR.
@@ -198,11 +246,12 @@ class IgorSqliteDB:
         # TODO: ADD A PANDAS OBJECT FOR RAPID ACCESS TO GENOMIC TEMPLATES.
         filename = {'V': self.flnVGeneTemplate, 'D' : self.flnDGeneTemplate, 'J': self.flnJGeneTemplate }
         filename[strGene] = flnGeneTemplate
+        # Create table if don't exits
+        self.execute_query(sqlcmd_ct['genomic'+strGene + 's'])
         with open(filename[strGene], "r") as handle:
             for gene_id, bioRecord in enumerate(SeqIO.parse(handle, "fasta") ):
                 self.insert_IgorGeneTemplate_FromBioRecord(strGene, gene_id, bioRecord)
-        
-   
+
     def insert_IgorGeneTemplate_FromBioRecord(self, strGene, gene_id, bioRecord):
         """
         Insert IGoR Gene template in Database flnIgorDB
@@ -221,14 +270,12 @@ class IgorSqliteDB:
             print(e)
             pass
 
-    
     def fetch_IgorGeneTemplate_By_gene_name(self, strGene, gene_name):
         """
         Fetch Gene templates in database from fasta files used by IGoR.
         :param strGene: string to specify the type of gene V, D or J
         :param flnIgorGeneTemplate: Fasta file
         """
-
         sqlSelect = "SELECT * FROM Igor"+strGene.upper()+"GeneTemplate WHERE gene_name =\""+gene_name+"\";"
         #print(sqlSelect)
         cur = self.conn.cursor()
@@ -248,7 +295,7 @@ class IgorSqliteDB:
         cur = self.conn.cursor()
         cur.execute(sqlSelect)
         record = cur.fetchone()
-        return (record)        
+        return (record)
     
     
     ###############################################
@@ -261,9 +308,13 @@ class IgorSqliteDB:
         :param strGene: string to specify the type of gene V, D or J
         :param flnIgorGeneTemplate: Fasta file
         """
+
+        # Load database from file
         strGene = strGene.upper()
         filename = {'V': self.flnVAlignments, 'D' : self.flnDAlignments, 'J': self.flnJAlignments}
         filename[strGene] = flnAlignments
+        # Create table if don't exits
+        self.execute_query(sqlcmd_ct[strGene + '_alignments'])
         try:
             cur = self.conn.cursor()
             cur.execute('BEGIN TRANSACTION')
@@ -277,9 +328,7 @@ class IgorSqliteDB:
             cur.execute('COMMIT')
         except sqlite3.Error as e:
             print(e)
-    
-        
-    
+
     def insert_IgorAlignments_FromCSVline(self, cur, strGene, csvline):
         """
         Insert IGoR Alignments on Database flnIgorDB
@@ -322,8 +371,7 @@ class IgorSqliteDB:
                 pass
         else:
             print(csvlist)
-            
-    
+
     def fetch_IgorAlignments_By_seq_index(self, strGene, seq_index):
         """
         Fetch IgorAlignments from database by seq_index.
@@ -334,10 +382,35 @@ class IgorSqliteDB:
         cur = self.conn.cursor()
         cur.execute(sqlSelect)
         record = cur.fetchall()
-        return (record) 
-    
-    
-    # TODO: Create an IgorAlignment_data instance with a better sql query (join the necessary tables.)
+        return (record)
+
+    def fetch_best_IgorAlignments_By_seq_index(self, strGene, seq_index):
+        """
+        Fetch IgorAlignments from database by seq_index.
+        :param strGene: string to specify the type of gene V, D or J
+        :param seq_index: IgorIndexedSequences index
+        """
+        sqlSelect = "SELECT * FROM Igor" + strGene.upper() + "Alignments WHERE seq_index==" + str(
+            seq_index) + " ORDER BY score DESC LIMIT 1"
+        cur = self.conn.cursor()
+        cur.execute(sqlSelect)
+        record = cur.fetchone()
+        return (record)
+
+    def get_best_IgorAlignment_data_By_seq_index(self, strGene, seq_index):
+        from .IgorIO import IgorAlignment_data
+        best_align_data_record = self.fetch_best_IgorAlignments_By_seq_index(strGene, seq_index)
+        print("best_align_data_record ", best_align_data_record)
+        best_align_data = IgorAlignment_data.load_FromSQLRecord(best_align_data_record)
+        best_align_data.strGene_class = strGene
+
+        gene_record = self.fetch_IgorGeneTemplate_By_gene_id(best_align_data.strGene_class, best_align_data.gene_id)
+        best_align_data.strGene_name = gene_record[1]
+        best_align_data.strGene_seq = gene_record[2]
+        return best_align_data
+
+            # TODO: Create an IgorAlignment_data instance with a better sql query (join the necessary tables.)
+
     def appendList_IgorAlignments_data_By_seq_index(self, strGene_class, seq_index, alnDataList=None):
         """
         Append to a list of IgorAlignment_data objects given gene class ("V", "D", "J"), seq_index 
@@ -370,5 +443,11 @@ class IgorSqliteDB:
         print(alnDataList)
 
 
+    # def get_naive_alignment(self, seq_index):
+    #     alnDataListV = db.fetch_IgorAlignments_By_seq_index('V', seq_index)
+    #     v_align_data = p3.IgorAlignment_data.load_FromSQLRecord(alnDataListV[0])
+    #     print(v_align_data.to_dict())
+    #     v_gene_seq = db.fetch_IgorGeneTemplate_By_gene_id('V', v_align_data.gene_id)[2]
+    #     print(v_gene_seq)
 
 

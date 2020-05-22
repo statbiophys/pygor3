@@ -32,6 +32,7 @@ from .IgorSqliteDBBestScenarios import *
 from pygor3 import rcParams
 import subprocess
 
+from .utils import *
 from .IgorSQL import *
 
 
@@ -83,24 +84,40 @@ class IgorTask:
     the input parameters and output files when IGoR run.
     """
     def __init__(self):
+        # To execute IGoR externally
         self.igor_exec_path = ""
         self.igor_datadir = ""
+
+        # To load default models and genomic templates
         self.igor_modelspath = ""
+        self.igor_specie = ""
+        self.igor_chain = ""
 
         self.igor_modeldirpath = ""
 
+        # genome references alignments
+        self.igor_path_ref_genome = ""
+        self.fln_genomicVs = ""
+        self.fln_genomicDs = ""
+        self.fln_genomicJs = ""
+
+
         self.igor_wd = ""
         self.igor_batchname = ""
-        self.igor_specie = ""
-        self.igor_chain = ""
+
         self.igor_model_parms_file = ""
         self.igor_model_marginals_file = ""
+
         self.igor_read_seqs = ""
         self.igor_threads = ""
 
         # read
         self.igor_fln_indexed_sequences = ""
+        # aligns
         self.igor_fln_indexed_CDR3 = ""
+        self.igor_fln_align_V_alignments = ""
+        self.igor_fln_align_J_alignments = ""
+        self.igor_fln_align_D_alignments = ""
         # inference
         self.igor_fln_infer_final_marginals = ""
         self.igor_fln_infer_final_parms = ""
@@ -119,7 +136,7 @@ class IgorTask:
         self.batch_data = igor_batch_dict
 
 
-        self.igor_db = None #IgorSqliteDB()
+        self.igor_db = IgorSqliteDB()
         self.igor_db_bs = None
 
         self.b_read_seqs = False
@@ -129,14 +146,9 @@ class IgorTask:
         self.b_generate = False
 
         self.mdl = IgorModel()
+        self.genomes = IgorRefGenome() #{ 'V' : IgorRefGenome(), 'D' : IgorRefGenome(), 'J' : IgorRefGenome() }
 
-        # FIXME: THIS OPTIONS SHOULD BE AT RC PARMS
-        tmp_dict_options = {
-                         '---thresh': {'active': False, 'value': '15', 'dict_options': {}},
-                         '---matrix': {'active': False, 'value': 'path/to/file', 'dict_options': {}},
-                         '---gap_penalty': {'active': False, 'value': 'X', 'dict_options': {}},
-                         '---best_align_only': {'active': False, 'value': '', 'dict_options': {}}
-                     }
+
         self.igor_align_dict_options = igor_align_dict_options
 
         self.igor_output_dict_options = igor_output_dict_options
@@ -171,6 +183,9 @@ class IgorTask:
             print(e)
             raise e
 
+    def load_IgorRefGenome(self):
+        self.genomes = IgorRefGenome.load_from_path(self.igor_path_ref_genome)
+
     def load_IgorModel(self):
         if (self.igor_specie == "" or self.igor_chain == ""):
             self.mdl = IgorModel(model_parms_file = self.igor_model_parms_file, model_marginals_file=self.igor_model_marginals_file)
@@ -182,15 +197,25 @@ class IgorTask:
         """Return an IgorTask object"""
         cls.igor_specie = specie
         cls.igor_chain = chain
-        cls.igor_modeldirpath =  model_parms_file
+        #cls.igor_modeldirpath =  model_parms_file
         cls.run_datadir()
 
         if model_parms_file is None:
             cls.igor_model_parms_file = cls.igor_modelspath +"/" + cls.igor_specie + "/" + igor_option_path_dict[cls.igor_chain]
 
+    def define_filenames_default(self):
+
+
     def update_batch_filenames(self):
+        # reads
         self.igor_fln_indexed_sequences = self.igor_wd + "/aligns/" + self.igor_batchname + "_indexed_sequences.csv"
+
+        # aligns
         self.igor_fln_indexed_CDR3 = self.igor_wd + "/aligns/" + self.igor_batchname + "_indexed_CDR3.csv"
+
+        self.igor_fln_align_V_alignments = self.igor_wd + "/aligns/" + self.igor_batchname + "_V_alignments.csv"
+        self.igor_fln_align_J_alignments = self.igor_wd + "/aligns/" + self.igor_batchname + "_J_alignments.csv"
+        self.igor_fln_align_D_alignments = self.igor_wd + "/aligns/" + self.igor_batchname + "_D_alignments.csv"
 
         # inference
         tmpstr = self.igor_wd + "/" + self.igor_batchname + "_inference/"
@@ -350,7 +375,6 @@ class IgorTask:
         run_command(cmd)
         #run_command_no_output(cmd)
         self.b_infer = True # FIXME: If run_command success then True
-        
 
     def run_clean_batch(self):
         cmd = "rm -r " + self.igor_wd + "/" + self.igor_batchname + "_evaluate"
@@ -360,6 +384,25 @@ class IgorTask:
         cmd = "rm " + self.igor_wd + "/aligns/" + self.igor_batchname + "*.csv"
         run_command_no_output(cmd)
 
+    def create_db(self):
+        self.igor_db = IgorSqliteDB.create_db(self.igor_fln_db)
+
+
+    def load_db_from_indexed_sequences(self):
+        self.igor_db.load_IgorIndexedSeq_FromCSV(self.igor_fln_indexed_sequences)
+
+    def load_db_from_genomes(self):
+        self.igor_db.load_IgorGeneTemplate_FromFASTA("V", self.genomes.fln_genomicVs)
+        self.igor_db.load_IgorGeneTemplate_FromFASTA("D", self.genomes.fln_genomicDs)
+        self.igor_db.load_IgorGeneTemplate_FromFASTA("J", self.genomes.fln_genomicJs)
+
+    def load_db_from_alignments(self):
+        self.igor_db.load_IgorAlignments_FromCSV("V", self.igor_fln_align_V_alignments)
+        self.igor_db.load_IgorAlignments_FromCSV("D", self.igor_fln_align_D_alignments)
+        self.igor_db.load_IgorAlignments_FromCSV("J", self.igor_fln_align_J_alignments)
+
+
+    # FIXME: this method should be deprecated!!!
     def load_VDJ_database(self, flnIgorSQL):
         self.flnIgorSQL = flnIgorSQL
         self.igor_db = IgorSqliteDB(flnIgorSQL)
@@ -493,13 +536,85 @@ class IgorIndexedSequence:
         cls = IgorIndexedSequence()
         try:
             cls.seq_index    = int  (sqlRecord[0])
-            cls.sequence     = int  (sqlRecord[1])
+            cls.sequence     = str  (sqlRecord[1]).replace('\n','')
         except Exception as e:
             print(e)
             raise e
         return cls
 
 ### IGOR ALIGNMENTS  ####
+class IgorRefGenome:
+    def __init__(self):
+        # FIXME: find a better way to add a default value for this and also the "/" separator
+        self.path_ref_genome = "."
+
+        self.fln_genomicVs = None # "genomicVs.fasta"
+        self.fln_genomicDs = None # "genomicDs.fasta"
+        self.fln_genomicJs = None # "genomicJs.fasta"
+
+        self.fln_V_gene_CDR3_anchors = None # "V_gene_CDR3_anchors.csv"
+        self.fln_J_gene_CDR3_anchors = None # "J_gene_CDR3_anchors.csv"
+
+        self.df_genomicVs = None
+        self.df_genomicDs = None
+        self.df_genomicJs = None
+
+        self.dict_genomicVs = None #(self.df_genomicVs.set_index('name').to_dict())['value']
+        self.dict_genomicDs = None
+        self.dict_genomicJs = None
+
+
+    @classmethod
+    def load_from_path(cls, path_ref_genome):
+        cls = IgorRefGenome()
+        cls.path_ref_genome = path_ref_genome
+        cls.update_fln_names()
+        cls.load_dataframes()
+        return cls
+
+
+    def update_fln_names(self):
+
+        self.fln_genomicVs = self.path_ref_genome + "/" + "genomicVs.fasta"
+        self.fln_genomicDs = self.path_ref_genome + "/" + "genomicDs.fasta"
+        self.fln_genomicJs = self.path_ref_genome + "/" + "genomicJs.fasta"
+
+        self.fln_V_gene_CDR3_anchors = self.path_ref_genome + "/" + "V_gene_CDR3_anchors.csv"
+        self.fln_J_gene_CDR3_anchors = self.path_ref_genome + "/" + "J_gene_CDR3_anchors.csv"
+
+
+    def load_dataframes(self):
+        # Fasta to dataframe
+        # V genes
+        self.df_genomicVs = from_fasta_to_dataframe(self.fln_genomicVs)
+        df_V_anchors = pd.read_csv(self.fln_V_gene_CDR3_anchors, sep=';')
+        df_V_ref_genome = self.df_genomicVs.set_index('name').join(df_V_anchors.set_index('gene')).reset_index()
+        self.dict_genomicVs = (self.df_genomicVs.set_index('name').to_dict())['value']
+
+        # J genes
+        self.df_genomicJs = from_fasta_to_dataframe(self.fln_genomicJs)
+        df_J_anchors = pd.read_csv(self.fln_J_gene_CDR3_anchors, sep=';')
+        df_J_ref_genome = self.df_genomicJs.set_index('name').join(df_J_anchors.set_index('gene')).reset_index()
+        self.dict_genomicJs = (self.df_genomicJs.set_index('name').to_dict())['value']
+
+        # D genes
+        try:
+            self.df_genomicDs = from_fasta_to_dataframe(self.fln_genomicDs)
+            self.dict_genomicDs = (self.df_genomicDs.set_index('name').to_dict())['value']
+        except Exception as e:
+            print('No D genes are found.')
+            print(e)
+            pass
+
+        return df_V_ref_genome, df_J_ref_genome
+
+    def get_naive_sequence_from_IgorAligment_data(self, align_data):
+        # TODO: use self.dicts and IgorAlignment_data to reconstruct sequence
+
+        return ""
+
+
+
 class IgorAlignment_data:
     def __init__(self):
         self.seq_index     = -1
@@ -516,6 +631,9 @@ class IgorAlignment_data:
         self.strGene_name  = ""
         self.strGene_class = ""
         self.strGene_seq   = ""
+
+    def __str__(self):
+        return str(self.to_dict())
 
     def to_dict(self):
         dictAlignment_data       =  {
@@ -546,9 +664,9 @@ class IgorAlignment_data:
             cls.strGene_name = str  (csvsplit[1])
             cls.score        = float(csvsplit[2])
             cls.offset       = int  (csvsplit[3])
-            cls.insertions   = eval (csvsplit[4])
-            cls.deletions    = eval (csvsplit[5])
-            cls.mismatches   = eval (csvsplit[6])
+            cls.insertions   = eval (csvsplit[4].replace("{","[").replace("}","]"))
+            cls.deletions    = eval (csvsplit[5].replace("{","[").replace("}","]"))
+            cls.mismatches   = eval (csvsplit[6].replace("{","[").replace("}","]"))
             cls.length       = int  (csvsplit[7])
             cls.offset_5_p   = int  (csvsplit[8])
             cls.offset_3_p   = int  (csvsplit[9])
@@ -586,6 +704,17 @@ class IgorAlignment_data:
         except Exception as e:
             print(e)
             raise e
+
+
+class IgorGeneTemplate:
+    def __init__(self):
+        self.flnGene = None
+        self.dataframe = None
+
+    def get_sequence(self, gene_name):
+        # TODO: use dataframe return sequence
+        sequence = ""
+        return sequence
 
 ### IGOR MODEL ####
 class IgorModel:

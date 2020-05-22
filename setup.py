@@ -18,6 +18,8 @@ setuptools.setup(
     entry_points= {
         'console_scripts' : [
             'pygor3-scriptTest=pygor3.scripts.scriptTest:main',
+            'pygor3-load_database=pygor3.scripts.load_database:main',
+            'pygor3-align_export=pygor3.scripts.align_export:main',
             'igor-bs_export=pygor3.scripts.bs_export:main',
             'igor-pgen_sequences=pygor3.scripts.pgen_sequences:main',
             'igor-infer_sequences=pygor3.scripts.infer_sequences:main',
