@@ -62,20 +62,18 @@ def generate_str_fasta(indexed_sequence, list_vdj_alignments:dict):
 
     return str_fasta
 
-def generate_csv_line(indexed_sequence:p3.IgorIndexedSequence, list_vdj_alignments:dict, sep=';',
-                      header_list=['sequence_id', 'sequence', 'v_call', 'd_call', 'j_call', 'v_score', 'd_score', 'j_score']):
+def generate_csv_line(indexed_sequence:p3.IgorIndexedSequence, list_vdj_alignments:dict, sep=';', header_list=['sequence_id', 'sequence', 'v_call', 'd_call', 'j_call', 'v_score', 'd_score', 'j_score','junction']):
     csv_line = ""
     indexed_sequence.sequence = indexed_sequence.sequence.lower()
     fields_dict = dict()
-    fields_dict['sequence_id'] = str(indexed_sequence.seq_index)
+    fields_dict['sequence_id'] = indexed_sequence.seq_index
     fields_dict['sequence'] = indexed_sequence.sequence
     fields_dict['v_call'] =  list_vdj_alignments['V'].strGene_name
     fields_dict['d_call'] = list_vdj_alignments['D'].strGene_name
     fields_dict['j_call'] = list_vdj_alignments['J'].strGene_name
-    fields_dict['v_score'] = str(list_vdj_alignments['V'].score)
-    fields_dict['d_score'] = str(list_vdj_alignments['D'].score)
-    fields_dict['j_score'] = str(list_vdj_alignments['J'].score)
-    fields_dict['junction'] = ""
+    fields_dict['v_score'] = list_vdj_alignments['V'].score
+    fields_dict['d_score'] = list_vdj_alignments['D'].score
+    fields_dict['j_score'] = list_vdj_alignments['J'].score
 
     align = p3.IgorAlignment_data()
 
@@ -138,23 +136,23 @@ import argparse
 def main():
 
     parser = argparse.ArgumentParser()
-    # parser.add_argument("-b", "--batch", dest="batch", help='Batchname to identify run. If not set random name is generated')
+    parser.add_argument("-D", "--database", dest="database", help="Igor database created with database script.")
+    #parser.add_argument("-b", "--batch", dest="batch", help='Batchname to identify run. If not set random name is generated')
     parser.add_argument("-o", "--output", dest="output", help='filename of csv file to export data')
+    parser.add_argument("-i", "--seq_index", dest="seq_index", type=int, default=0, help='Seq index in database/<batch>_indexed_sequences.csv')
     # parser.add_argument("-g", "--path_ref_genome", dest="path_ref_genome", help='Directory where genome references are stored: genomicDs.fasta,  genomicJs.fasta,  genomicVs.fasta,  J_gene_CDR3_anchors.csv,  V_gene_CDR3_anchors.csv', default='./ref_genome')
     # parser.add_argument("-w", "--WD", dest="working_directory", help="Path where files gonna be created.", default='./')
-    parser.add_argument("-D", "--database", dest="database", help="Igor database created with database script.")
     # parser.add_argument("")
 
     args = parser.parse_args()
-
 
     # # load gene templates
     # genomes = p3.IgorRefGenome()
     # genomes.path_ref_genome = args.path_ref_genome # "/home/alfaceor/Dropbox/PosDoc/IGoR/dev/MyGithub/pygor3/demo/thi/genomics_repseqio_F"
     # genomes.update_fln_names()
     # genomes.load_dataframes()
-
-
+    #
+    #
     # task = p3.IgorTask()
     # task.igor_wd = args.working_directory #"/home/alfaceor/Dropbox/PosDoc/IGoR/dev/MyGithub/pygor3/demo/thi/test"
     # task.igor_batchname = args.batch #"sample"
@@ -162,84 +160,57 @@ def main():
     # task.update_batch_filenames()
 
     db = p3.IgorSqliteDB()
-    #db.flnIgorDB = task.igor_wd+"/"+task.igor_batchname+".db"
+    # db.flnIgorDB = task.igor_wd+"/"+task.igor_batchname+".db"
     db.flnIgorDB = args.database
     db.connect_db()
 
-    # Make a loop over all sequences
+    seq_index = args.seq_index
+    indexed_sequence = db.get_IgorIndexedSeq_By_seq_index(seq_index)
+    indexed_sequence.offset = 0
+
+    best_v_align_data = db.get_best_IgorAlignment_data_By_seq_index('V', indexed_sequence.seq_index)
+    best_d_align_data = db.get_best_IgorAlignment_data_By_seq_index('D', indexed_sequence.seq_index)
+    best_j_align_data = db.get_best_IgorAlignment_data_By_seq_index('J', indexed_sequence.seq_index)
+
+    # print("v3", best_v_align_data.offset_3_p)
+    # print("d5", best_d_align_data.offset_5_p)
+    # print("d3", best_d_align_data.offset_3_p)
+    # print("j5", best_j_align_data.offset_5_p)
+
+    vdj_naive_alignment = {'V': best_v_align_data,
+                       'D': best_d_align_data,
+                       'J': best_j_align_data}
+
+    v_align_data_list = db.get_IgorAlignment_data_list_By_seq_index('V', indexed_sequence.seq_index)
+    print('V', len(v_align_data_list), [ ii.score for ii in v_align_data_list])
+    d_align_data_list = db.get_IgorAlignment_data_list_By_seq_index('D', indexed_sequence.seq_index)
+    print('D', len(d_align_data_list), [ ii.score for ii in d_align_data_list])
+    j_align_data_list = db.get_IgorAlignment_data_list_By_seq_index('J', indexed_sequence.seq_index)
+    print('J', len(j_align_data_list), [ ii.score for ii in j_align_data_list])
+
+
+    # 1. Choose the highest score then check if this one is the desire range.
+    # if there is an overlap
+    # calculate score without overlap. If overlap
+    # if hightest score
+    for i, d_align_data in enumerate(d_align_data_list):
+        # Check if D is btwn V and J position
+        if (best_v_align_data.offset_3_p <= d_align_data.offset_5_p) and (d_align_data.offset_3_p <= best_j_align_data.offset_5_p) :
+            #vdj_naive_alignment['D'+str(i)] = d_align_data
+            vdj_naive_alignment['D'] = d_align_data
+            break
+
     if args.output is None:
-        fln_output = args.database.split(".db")[0]+"_na.csv"
+        batchname = db.flnIgorDB.split(".db")[0]
+        fln_output = batchname + '__' + str(indexed_sequence.seq_index) + '_na.fasta'
+        # fln_output = args.database.split(".db")[0]+"_na.csv"
     else:
         fln_output = args.output
 
     ofile = open(fln_output, 'w')
-    seq_index_list = db.execute_select_query("SELECT seq_index FROM IgorIndexedSeq;")
-    seq_index_list = map(lambda x:x[0], seq_index_list)
-    for seq_index in seq_index_list:
-        try:
-            # seq_index = args.seq_index
-            indexed_sequence = db.get_IgorIndexedSeq_By_seq_index(seq_index)
-            indexed_sequence.offset = 0
-
-            best_v_align_data = db.get_best_IgorAlignment_data_By_seq_index('V', indexed_sequence.seq_index)
-            best_d_align_data = db.get_best_IgorAlignment_data_By_seq_index('D', indexed_sequence.seq_index)
-            best_j_align_data = db.get_best_IgorAlignment_data_By_seq_index('J', indexed_sequence.seq_index)
-
-            vdj_naive_alignment = {'V': best_v_align_data,
-                               'D': best_d_align_data,
-                               'J': best_j_align_data}
-
-            v_align_data_list = db.get_IgorAlignment_data_list_By_seq_index('V', indexed_sequence.seq_index)
-            print('V', len(v_align_data_list), [ ii.score for ii in v_align_data_list])
-            d_align_data_list = db.get_IgorAlignment_data_list_By_seq_index('D', indexed_sequence.seq_index)
-            print('D', len(d_align_data_list), [ ii.score for ii in d_align_data_list])
-            j_align_data_list = db.get_IgorAlignment_data_list_By_seq_index('J', indexed_sequence.seq_index)
-            print('J', len(j_align_data_list), [ ii.score for ii in j_align_data_list])
-
-            # 1. Choose the highest score then check if this one is the desire range.
-            # if there is an overlap
-            # calculate score without overlap. If overlap
-            # if hightest score
-            for i, d_align_data in enumerate(d_align_data_list):
-                # Check if D is btwn V and J position
-                if (best_v_align_data.offset_3_p <= d_align_data.offset_5_p) and (d_align_data.offset_3_p <= best_j_align_data.offset_5_p) :
-                    #vdj_naive_alignment['D'+str(i)] = d_align_data
-                    vdj_naive_alignment['D'] = d_align_data
-                    break
-
-            # ofile = open(task.igor_batchname+'__'+str(indexed_sequence.seq_index)+'_na.fasta', 'w')
-            # str_fasta = generate_str_fasta(indexed_sequence, vdj_naive_alignment)
-            # ofile.write(str_fasta)
-
-            str_csv_line = generate_csv_line(indexed_sequence, vdj_naive_alignment)
-            ofile.write(str_csv_line+"\n")
-        except Exception as e:
-            print(e)
-            pass
+    str_fasta = generate_str_fasta(indexed_sequence, vdj_naive_alignment)
+    ofile.write(str_fasta)
     ofile.close()
-
-    # given a IgorGenomic template and using pygor database for IGoR get anchors from alignment and then
-
-    # algn_fln = 'sample__2_na.fasta'
-    # seq_lens = [len(record.seq) for record in SeqIO.parse(algn_fln, 'fasta')]
-    # max_seq_lens = max(seq_lens)
-    # new_alignments = list()
-    # for record in SeqIO.parse(algn_fln, 'fasta'):
-    #     str_extra = max_seq_lens - len(record.seq)
-    #     record.seq = record.seq + "-" * str_extra
-    #     new_alignments.append(record)
-    #     # print(len(record.seq), max_seq_lens)
-    #
-    # tmp_fln = 'example.fasta'
-    # SeqIO.write(new_alignments, tmp_fln, "fasta")
-
-    # da_heavy_pen_nuc44 = p3.utils.da_heavy_pen_nuc44_vect
-    # print(da_heavy_pen_nuc44)
-    # import pandas as pd
-    # df = pd.DataFrame(data=da_heavy_pen_nuc44.values, index=da_heavy_pen_nuc44['lbl__' + 'x'].values,
-    #                   columns=da_heavy_pen_nuc44['lbl__' + 'y'].values)
-    #
-    # print(df)
 
 
 if __name__ == "__main__":
