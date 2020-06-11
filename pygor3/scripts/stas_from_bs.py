@@ -48,18 +48,36 @@ def main():
     ofile = open(fln_output_scenarios_names, "w")
     ofile.write(strHeader + '\n')
 
+    ii = 0
+    chosen_V = 0
+    chosen_D = 1
+    chosen_J = 2
+    # Keep the
+    normalization_factor = 0
     with open(task.igor_fln_output_scenarios, "r") as ifile:
         inputHeader = ifile.readline()
-
+        # Read line by line but make a group of the same seq_index
+        # FIXME: read_seq_index_from_bs(ii)
+        prev_seq_index = 99
+        list_of_bs = list()
         for line in ifile.readlines():
             # print(line.split(strSepChar), len(line.split(strSepChar)) )
             line = line.replace("\n", "")
             bs = p3.IgorBestScenariosVDJ.load_FromLineBestScenario(line)
             bs.mdlParms = task.mdl.parms
-            # print(bs)
-            # aaa = strSepChar.join(list(map(str, bs.to_dict_names().values())))
-            aaa = strSepChar.join(list(map(str, bs.to_dict_ntsequences().values())))
-            ofile.write(aaa+"\n")
+            if bs.seq_index == prev_seq_index:
+                list_of_bs.append(bs)
+                normalization_factor = normalization_factor + bs.scenario_proba_cond_seq
+                aaa = strSepChar.join(list(map(str, bs.to_dict_ntsequences().values())))
+                ofile.write(aaa+"\n")
+            else:
+                # Normalize the probabilities
+                if(bs.id_v_choice == chosen_V) :
+                    # count this prob scenario.
+                    chosen_V_prob
+                normalization_factor = 0
+
+
 
     ofile.close()
     print("Exported scenarios in :", fln_output_scenarios_names)

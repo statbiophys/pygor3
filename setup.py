@@ -18,9 +18,12 @@ setuptools.setup(
     entry_points= {
         'console_scripts' : [
             'pygor3-scriptTest=pygor3.scripts.scriptTest:main',
+            'pygor3-stas_from_bs=pygor3.scripts.stas_from_bs:main',
             'pygor3-load_database=pygor3.scripts.load_database:main',
+            'pygor3-naive_align=pygor3.scripts.naive_align:main',
+            'pygor3-naive_align_id=pygor3.scripts.naive_align_id:main',
             'pygor3-align_export=pygor3.scripts.align_export:main',
-            'igor-bs_export=pygor3.scripts.bs_export:main',
+            'pygor3-bs_export=pygor3.scripts.bs_export:main',
             'igor-pgen_sequences=pygor3.scripts.pgen_sequences:main',
             'igor-infer_sequences=pygor3.scripts.infer_sequences:main',
             'igor-model_plot=pygor3.scripts.model_plot:main',

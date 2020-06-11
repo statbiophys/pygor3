@@ -65,51 +65,95 @@ class IgorBestScenariosVDJ:
             }
         
         return dictBestScenario
-    
+
     def to_dict_names(self):
-        dictBestScenario       =  {
-            "seq_index"     : self.seq_index        , \
-            "scenario_rank" : self.scenario_rank    , \
-            "scenario_proba_cond_seq" : self.scenario_proba_cond_seq , \
-            "v_choice"      : self.getV_gene_name() , \
-            "j_choice"      : self.getJ_gene_name() , \
-            "d_gene"        : self.getD_gene_name() , \
-            "v_3_del"       : self.getV_3_dels()    , \
-            "d_5_del"       : self.getD_5_dels()    , \
-            "d_3_del"       : self.getD_3_dels()    , \
-            "j_5_del"       : self.getJ_5_dels()    , \
-            "vd_ins"        : self.getVD_ins()      , \
-            "vd_dinucl"     : self.vd_dinucl        , \
-            "dj_ins"        : self.getDJ_ins()      , \
-            "dj_dinucl"     : self.dj_dinucl        , \
-            "mismatches"    : self.mismatches       , \
-            "mismatcheslen" : self.mismatcheslen
-            }
-        
+        dictBestScenario = {
+            "seq_index": self.seq_index, \
+            "scenario_rank": self.scenario_rank, \
+            "scenario_proba_cond_seq": self.scenario_proba_cond_seq, \
+            "v_choice": self.getV_gene_name(), \
+            "j_choice": self.getJ_gene_name(), \
+            "d_gene": self.getD_gene_name(), \
+            "v_3_del": self.getV_3_dels(), \
+            "d_5_del": self.getD_5_dels(), \
+            "d_3_del": self.getD_3_dels(), \
+            "j_5_del": self.getJ_5_dels(), \
+            "vd_ins": self.getVD_ins(), \
+            "vd_dinucl": self.vd_dinucl, \
+            "dj_ins": self.getDJ_ins(), \
+            "dj_dinucl": self.dj_dinucl, \
+            "mismatches": self.mismatches, \
+            "mismatcheslen": self.mismatcheslen
+        }
+
         return dictBestScenario
-    
+
+    def to_dict_values(self):
+        dictBestScenario = {
+            "seq_index": self.seq_index, \
+            "scenario_rank": self.scenario_rank, \
+            "scenario_proba_cond_seq": self.scenario_proba_cond_seq, \
+            "v_choice": self.getV_gene_name(), \
+            "j_choice": self.getJ_gene_name(), \
+            "d_gene": self.getD_gene_name(), \
+            "v_3_del": self.getV_3_dels(), \
+            "d_5_del": self.getD_5_dels(), \
+            "d_3_del": self.getD_3_dels(), \
+            "j_5_del": self.getJ_5_dels(), \
+            "vd_ins": self.getVD_ins(), \
+            "vd_dinucl": self.getVD_Region(), \
+            "dj_ins": self.getDJ_ins(), \
+            "dj_dinucl": self.dj_dinucl, \
+            "mismatches": self.mismatches, \
+            "mismatcheslen": self.mismatcheslen
+        }
+
+        return dictBestScenario
+
     def to_dict_ntsequences(self):
-        dictBestScenario       =  {
-            "seq_index"     : self.seq_index     , \
-            "scenario_rank" : self.scenario_rank , \
-            "scenario_proba_cond_seq" : self.scenario_proba_cond_seq , \
-            "v_choice"      : self.getV_ntsequence() , \
-            "j_choice"      : self.getJ_ntsequence() , \
-            "d_gene"        : self.getD_ntsequence() , \
-            "v_3_del"       : self.getV_3_dels()     , \
-            "d_5_del"       : self.getD_5_dels()     , \
-            "d_3_del"       : self.getD_3_dels()     , \
-            "j_5_del"       : self.getJ_5_dels()     , \
-            "vd_ins"        : self.getVD_ins()       , \
-            "vd_dinucl"     : self.getVD_Region()    , \
-            "dj_ins"        : self.getDJ_ins()       , \
-            "dj_dinucl"     : self.getDJ_Region()    , \
-            "mismatches"    : self.mismatches        , \
-            "mismatcheslen" : self.mismatcheslen
-            }
-        
+        dictBestScenario = {
+            "seq_index": self.seq_index, \
+            "scenario_rank": self.scenario_rank, \
+            "scenario_proba_cond_seq": self.scenario_proba_cond_seq, \
+            "v_choice": self.getV_ntsequence(), \
+            "j_choice": self.getJ_ntsequence(), \
+            "d_gene": self.getD_ntsequence(), \
+            "v_3_del": self.getV_3_dels(), \
+            "d_5_del": self.getD_5_dels(), \
+            "d_3_del": self.getD_3_dels(), \
+            "j_5_del": self.getJ_5_dels(), \
+            "vd_ins": self.getVD_ins(), \
+            "vd_dinucl": self.getVD_Region(), \
+            "dj_ins": self.getDJ_ins(), \
+            "dj_dinucl": self.getDJ_Region(), \
+            "mismatches": self.mismatches, \
+            "mismatcheslen": self.mismatcheslen
+        }
+
         return dictBestScenario
-    
+
+    # FIXME: CHANGE FOR A BETTER NAME
+    def to_dict_export(self):
+        dictBestScenario = {
+            "seq_index": self.seq_index, \
+            "scenario_rank": self.scenario_rank, \
+            "scenario_proba_cond_seq": self.scenario_proba_cond_seq, \
+            "v_choice": self.getV_ntsequence(), \
+            "j_choice": self.getJ_ntsequence(), \
+            "d_gene": self.getD_ntsequence(), \
+            "v_3_del": self.getV_3_dels(), \
+            "d_5_del": self.getD_5_dels(), \
+            "d_3_del": self.getD_3_dels(), \
+            "j_5_del": self.getJ_5_dels(), \
+            "vd_ins": self.getVD_ins(), \
+            "vd_dinucl": self.getVD_Region(), \
+            "dj_ins": self.getDJ_ins(), \
+            "dj_dinucl": self.getDJ_Region(), \
+            "mismatches": self.mismatches, \
+            "mismatcheslen": self.mismatcheslen
+        }
+
+        return dictBestScenario
 
 
     @classmethod

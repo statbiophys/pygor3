@@ -13,7 +13,6 @@ import pygor3 as p3
 # from optparse import OptionParser
 import argparse
 
-
 def main():
     parser = argparse.ArgumentParser()
 
@@ -27,47 +26,50 @@ def main():
     parser.add_argument("-M", "--model_path", dest="model_path",
                         help='IGoR model directory path, this path include ref_genomes and model_parms')
 
-    parser.add_argument("--set_model_params", dest="model_params", help='IGoR model_params.txt')
-    parser.add_argument("--set_model_marginals", dest="model_marginals", help='IGoR model_marginals.txt')
+    # parser.add_argument("-m", "--set_custom_model", dest="model", nargs=2, help='IGoR model_params.txt')
 
-    parser.add_argument("--set_genomicVs", dest="genomicVs", help='V gene templates fasta file path')
-    parser.add_argument("--set_genomicDs", dest="genomicDs", help='D gene templates fasta file path')
-    parser.add_argument("--set_genomicJs", dest="genomicJs", help='J gene templates fasta file path')
+    parser.add_argument("-g", "--path_ref_genome", dest="path_ref_genome", help='Directory where genome references are stored: genomicDs.fasta,  genomicJs.fasta,  genomicVs.fasta,  J_gene_CDR3_anchors.csv,  V_gene_CDR3_anchors.csv', default='./ref_genome')
+    # parser.add_argument("--set_genomicVs", dest="genomicVs", help='V gene templates fasta file path')
+    # parser.add_argument("--set_genomicDs", dest="genomicDs", help='D gene templates fasta file path')
+    # parser.add_argument("--set_genomicJs", dest="genomicJs", help='J gene templates fasta file path')
+
+    parser.add_argument("-w", "--WD", dest="working_directory", help="Path where files gonna be created.", default='./')
 
 
     # To load all data files use batchname
     parser.add_argument("-b", "--batch", dest="batch",
                         help='Batchname to identify run. If not set random name is generated')
     # parser.add_option(dest="path_ref_genome")
-    parser.add_argument("-o", "--output", dest="output", help='filename of csv file to export data')
+    # parser.add_argument("-o", "--output", dest="output", help='filename of csv file to export data')
 
     args = parser.parse_args()
-    print(args)
 
     # load a task object to get all data in one structure
     task = p3.IgorTask()
-    task.igor_batchname = "sample"  # options.batchname
-    task.igor_wd = "./test"
-    task.igor_path_ref_genome = "/home/alfaceor/Dropbox/PosDoc/IGoR/dev/MyGithub/pygor3/demo/thi/genomics_repseqio_F"
+    task.igor_batchname = args.batch #"sample"  # options.batchname
+    task.igor_wd = args.working_directory #"./test"
+    task.igor_model_dir_path = args.model_path
+    task.igor_path_ref_genome = args.path_ref_genome # "/home/alfaceor/Dropbox/PosDoc/IGoR/dev/MyGithub/pygor3/demo/thi/genomics_repseqio_F"
     task.update_batch_filenames()
     task.load_IgorRefGenome()
-    # print(task.genomes.df_genomicVs) # is where all this data is collected
-    # print(task.genomes.df_genomicDs)
-    # print(task.genomes.df_genomicJs)
+    print(task.igor_fln_indexed_sequences)
+    print(task.genomes.df_genomicVs) # is where all this data is collected
+    print(task.genomes.df_genomicDs)
+    print(task.genomes.df_genomicJs)
 
     # Now create database to save genome references and also the data
     print(task.igor_fln_db)
     task.create_db()
-    task.load_db_from_genomes()
     task.load_db_from_indexed_sequences()
+    task.load_db_from_genomes()
     task.load_db_from_alignments()
     # task.load_db_from_models()
     # task.load_db_from_bestscenarios()
 
-    seq_index = 0
-    indexed_sequence = task.igor_db.get_IgorIndexedSeq_By_seq_index(seq_index)
-    indexed_sequence.offset = 0
-    print(indexed_sequence)
+    # seq_index = 0
+    # indexed_sequence = task.igor_db.get_IgorIndexedSeq_By_seq_index(seq_index)
+    # indexed_sequence.offset = 0
+    # print(indexed_sequence)
 
     # genomes = p3.IgorRefGenome()
     # genomes.path_ref_genome =

@@ -10,8 +10,23 @@ CREATE TABLE IF NOT EXISTS IgorIndexedSeq (
 """
 
 sqlcmd_ct['indexed_CDR3'] = """
-YYYYYYYYYYYYYYYYYYYYYYY
+-- IgorIndexedSeq table
+CREATE TABLE IF NOT EXISTS IgorIndexedCDR3 (
+    seq_index integer PRIMARY KEY,
+    v_anchor integer,
+    j_anchor integer
+);
 """
+# """
+# -- IgorIndexedSeq table
+# CREATE TABLE IF NOT EXISTS IgorIndexedCDR3 (
+#     seq_index integer PRIMARY KEY,
+#     v_anchor integer,
+#     j_anchor integer,
+#     CDR3nt text,
+#     CDR3aa text
+# );
+# """
 
 sqlcmd_ct['genomicVs'] = """
 -- IgorVGeneTemplate table
