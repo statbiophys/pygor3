@@ -17,6 +17,35 @@ $ pip3 install -r requirements.txt
 $ pip3 install -e .
 
 # simple usage.
+## pygor3-load_database 
+
+Script to load genomes references and alignments in a single file
+
+usage: pygor3-load_database [-h] [-s SPECIES] [-c CHAIN] [-M MODEL_PATH]
+                            [-g PATH_REF_GENOME] [-w WORKING_DIRECTORY]
+                            [-b BATCH]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -M MODEL_PATH, --model_path MODEL_PATH
+                        IGoR model directory path, this path include
+                        ref_genomes and model_parms
+  -g PATH_REF_GENOME, --path_ref_genome PATH_REF_GENOME
+                        Directory where genome references are stored:
+                        genomicDs.fasta, genomicJs.fasta, genomicVs.fasta,
+                        J_gene_CDR3_anchors.csv, V_gene_CDR3_anchors.csv
+  -w WORKING_DIRECTORY, --WD WORKING_DIRECTORY
+                        Path where files gonna be created.
+  -b BATCH, --batch BATCH
+                        Batchname to identify run. If not set random name is
+                        generated
+
+IGoR default models:
+  -s SPECIES, --species SPECIES
+                        Igor species
+  -c CHAIN, --chain CHAIN
+                        Igor chain
+
 
 # Scripts
 pygor3-model_export : Human readable tab-separated models in different files (http://physics.princeton.edu/~ccallan/TCRPaper/results/event_distributions.xls,) 
