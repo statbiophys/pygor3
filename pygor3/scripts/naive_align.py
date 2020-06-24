@@ -62,7 +62,7 @@ def generate_str_fasta(indexed_sequence, list_vdj_alignments:dict):
 
     return str_fasta
 
-def generate_csv_line(indexed_sequence:p3.IgorIndexedSequence, list_vdj_alignments:dict, sep=';',
+def generate_csv_line(indexed_sequence:p3.IgorIndexedSequence, indexed_cdr3_record:list, list_vdj_alignments:dict, sep=';',
                       header_list=['sequence_id', 'sequence', 'v_call', 'd_call', 'j_call', 'v_score', 'd_score', 'j_score']):
     csv_line = ""
     indexed_sequence.sequence = indexed_sequence.sequence.lower()
@@ -75,9 +75,22 @@ def generate_csv_line(indexed_sequence:p3.IgorIndexedSequence, list_vdj_alignmen
     fields_dict['v_score'] = str(list_vdj_alignments['V'].score)
     fields_dict['d_score'] = str(list_vdj_alignments['D'].score)
     fields_dict['j_score'] = str(list_vdj_alignments['J'].score)
+    # FIXME: CREATE A BETTER WAY TO DO THIS
+    fields_dict['v_anchor'] = ""
+    fields_dict['j_anchor'] = ""
     fields_dict['junction'] = ""
+    fields_dict['junction_aa'] = ""
+    try:
+        fields_dict['v_anchor'] = str(indexed_cdr3_record[1]) #""
+        fields_dict['j_anchor'] = str(indexed_cdr3_record[2]) #""
+        fields_dict['junction'] = str(indexed_cdr3_record[3]) #""
+        fields_dict['junction_aa'] = str(indexed_cdr3_record[4]) #""
+    except Exception as e:
+        print("No junction for sequence : "+fields_dict['sequence_id'])
+        print(e)
+        pass
 
-    align = p3.IgorAlignment_data()
+    # align = p3.IgorAlignment_data()
 
     for field in header_list:
         csv_line = csv_line + fields_dict[field]+sep
@@ -175,11 +188,18 @@ def main():
     ofile = open(fln_output, 'w')
     seq_index_list = db.execute_select_query("SELECT seq_index FROM IgorIndexedSeq;")
     seq_index_list = map(lambda x:x[0], seq_index_list)
+    header_list = ['sequence_id', 'sequence', 'v_call', 'd_call', 'j_call', 'v_score', 'd_score', 'j_score', 'v_anchor', 'j_anchor', 'junction', 'junction_aa']
+    sep = ";"
+    str_header = sep.join(header_list)
+    ofile.write(str_header+'\n')
     for seq_index in seq_index_list:
         try:
             # seq_index = args.seq_index
             indexed_sequence = db.get_IgorIndexedSeq_By_seq_index(seq_index)
             indexed_sequence.offset = 0
+
+            indexed_cdr3_record = db.fetch_IgorIndexedCDR3_By_seq_index(seq_index)
+            print(indexed_cdr3_record)
 
             best_v_align_data = db.get_best_IgorAlignment_data_By_seq_index('V', indexed_sequence.seq_index)
             best_d_align_data = db.get_best_IgorAlignment_data_By_seq_index('D', indexed_sequence.seq_index)
@@ -190,11 +210,11 @@ def main():
                                'J': best_j_align_data}
 
             v_align_data_list = db.get_IgorAlignment_data_list_By_seq_index('V', indexed_sequence.seq_index)
-            print('V', len(v_align_data_list), [ ii.score for ii in v_align_data_list])
+            # print('V', len(v_align_data_list), [ ii.score for ii in v_align_data_list])
             d_align_data_list = db.get_IgorAlignment_data_list_By_seq_index('D', indexed_sequence.seq_index)
-            print('D', len(d_align_data_list), [ ii.score for ii in d_align_data_list])
+            # print('D', len(d_align_data_list), [ ii.score for ii in d_align_data_list])
             j_align_data_list = db.get_IgorAlignment_data_list_By_seq_index('J', indexed_sequence.seq_index)
-            print('J', len(j_align_data_list), [ ii.score for ii in j_align_data_list])
+            # print('J', len(j_align_data_list), [ ii.score for ii in j_align_data_list])
 
             # 1. Choose the highest score then check if this one is the desire range.
             # if there is an overlap
@@ -211,9 +231,10 @@ def main():
             # str_fasta = generate_str_fasta(indexed_sequence, vdj_naive_alignment)
             # ofile.write(str_fasta)
 
-            str_csv_line = generate_csv_line(indexed_sequence, vdj_naive_alignment)
+            str_csv_line = generate_csv_line(indexed_sequence, indexed_cdr3_record, vdj_naive_alignment, sep=sep, header_list=header_list)
             ofile.write(str_csv_line+"\n")
         except Exception as e:
+            print("balsa : "+str(seq_index))
             print(e)
             pass
     ofile.close()

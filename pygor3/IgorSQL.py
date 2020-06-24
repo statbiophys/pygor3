@@ -14,7 +14,9 @@ sqlcmd_ct['indexed_CDR3'] = """
 CREATE TABLE IF NOT EXISTS IgorIndexedCDR3 (
     seq_index integer PRIMARY KEY,
     v_anchor integer,
-    j_anchor integer
+    j_anchor integer,
+    CDR3 text,
+    CDR3_aa text
 );
 """
 # """
@@ -145,4 +147,111 @@ YYYYYYYYYYYYYYYYYYYYYYY
 sqlcmd_ct['XXXXXXXXXXXXXXXX'] = """
 YYYYYYYYYYYYYYYYYYYYYYY
 """
+
+sqlcmd_ct['MP_Event_list'] = """
+-- MP_Event_list table
+--     event_id integer,
+CREATE TABLE IF NOT EXISTS MP_Event_list (
+    nickname text NOT NULL PRIMARY KEY,
+    event_type text,
+    seq_type text,
+    seq_side text,
+    priority integer,
+    realizations_table text,
+    name text
+);
+"""
+
+sqlcmd_ct['ER_event_template'] = """
+-- ER_event_template table
+CREATE TABLE IF NOT EXISTS {} (
+    id integer NOT NULL PRIMARY KEY,
+    value text,
+    name text
+);
+"""
+
+sqlcmd_ct['ER_XXXXXX'] = """
+-- MP_Event_list table
+CREATE TABLE IF NOT EXISTS MM_XXXXXX (
+    XXXXX_id integer NOT NULL,
+    realization_value text,
+    realization_name text
+);
+"""
+
+
+sqlcmd_ct['MP_Edges'] = """
+-- MP_Event_list table
+CREATE TABLE IF NOT EXISTS MP_Edges (
+    parent_event text NOT NULL,
+    child_event text NOT NULL PRIMARY KEY,
+    FOREIGN KEY (parent_event) REFERENCES MP_Event_list (event_id),
+    FOREIGN KEY (child_event)  REFERENCES MP_Event_list (event_id)
+);
+"""
+
+sqlcmd_ct['MP_ErrorRate'] = """
+-- MP_Event_list table
+CREATE TABLE IF NOT EXISTS MP_ErrorRate (
+    error_type text NOT NULL,
+    values text NOT NULL
+);
+"""
+
+sqlcmd_ct['MM_XXXXXX'] = """
+-- MM_XXXXXX table
+CREATE TABLE IF NOT EXISTS MM_XXXXXX (
+    XXXXX_id integer NOT NULL,
+    P real,
+    FOREIGN KEY (XXXXX_id) REFERENCES ER_XXXXXX (id),
+);
+"""
+
+def sqlcmd_ct_Model_Marginals(event_nickname, list_dependencies:list):
+    # from the xarray get the list of events something like:
+    lista = [event_nickname]+list_dependencies
+    str_column_ct = "id_{} integer NOT NULL" #.format(event_nickname)
+    str_foreign_key_ct = "FOREIGN KEY (id_{}) REFERENCES ER_{} (id)" #.format(event_nickname)
+
+    sqlcmd_table_fields_ct = ",\n".join([str_column_ct.format(evento_nickname) for evento_nickname in lista])
+    sqlcmd_foreign_keys_ct = ",\n".join([str_foreign_key_ct.format(evento_nickname, evento_nickname) for evento_nickname in lista])
+
+    sqlcmd_ct_aux = """
+            -- MM_XXXXXX table
+            CREATE TABLE IF NOT EXISTS MM_{} (
+                -- Events id columns
+                {},
+                P real,
+                -- Foreign keys
+                {}
+            );
+            """
+
+    sqlcmd_ct = sqlcmd_ct_aux.format(event_nickname, sqlcmd_table_fields_ct, sqlcmd_foreign_keys_ct)
+    return sqlcmd_ct
+
+def sqlcmd_ct_Model_Marginals_DinucMarkov(event_nickname, list_dependencies:list):
+    # from the xarray get the list of events something like:
+    lista = [event_nickname]+list_dependencies
+    str_column_ct = "id_{} integer NOT NULL" #.format(event_nickname)
+    str_foreign_key_ct = "FOREIGN KEY (id_{}) REFERENCES ER_{} (id)" #.format(event_nickname)
+
+    sqlcmd_table_fields_ct = ",\n".join([str_column_ct.format(evento_nickname) for evento_nickname in lista])
+    sqlcmd_foreign_keys_ct = ",\n".join([str_foreign_key_ct.format(evento_nickname, event_nickname) for evento_nickname in lista])
+
+    sqlcmd_ct_aux = """
+            -- MM_XXXXXX table
+            CREATE TABLE IF NOT EXISTS MM_{} (
+                -- Events id columns
+                {},
+                P real,
+                -- Foreign keys
+                {}
+            );
+            """
+
+    sqlcmd_ct = sqlcmd_ct_aux.format(event_nickname, sqlcmd_table_fields_ct, sqlcmd_foreign_keys_ct)
+    return sqlcmd_ct
+
 

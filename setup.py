@@ -18,6 +18,7 @@ setuptools.setup(
     entry_points= {
         'console_scripts' : [
             'pygor3-scriptTest=pygor3.scripts.scriptTest:main',
+            'pygor3-scriptTest02=pygor3.scripts.scriptTest02:main',
             'pygor3-stas_from_bs=pygor3.scripts.stas_from_bs:main',
             'pygor3-load_database=pygor3.scripts.load_database:main',
             'pygor3-naive_align=pygor3.scripts.naive_align:main',

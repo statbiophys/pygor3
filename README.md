@@ -47,6 +47,18 @@ IGoR default models:
                         Igor chain
 
 
+## pygor3-load_database 
+
+usage: pygor3-naive_align [-h] [-o OUTPUT] [-D DATABASE]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -o OUTPUT, --output OUTPUT
+                        filename of csv file to export data
+  -D DATABASE, --database DATABASE
+                        Igor database created with database script.
+
+
 # Scripts
 pygor3-model_export : Human readable tab-separated models in different files (http://physics.princeton.edu/~ccallan/TCRPaper/results/event_distributions.xls,) 
 Usage: pygor3-model_export [options]

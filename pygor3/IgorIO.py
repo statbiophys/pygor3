@@ -229,7 +229,7 @@ class IgorTask:
         self.igor_fln_indexed_sequences = self.igor_wd + "/aligns/" + self.igor_batchname + "_indexed_sequences.csv"
 
         # aligns
-        self.igor_fln_indexed_CDR3 = self.igor_wd + "/aligns/" + self.igor_batchname + "_indexed_CDR3.csv"
+        self.igor_fln_indexed_CDR3 = self.igor_wd + "/aligns/" + self.igor_batchname + "_indexed_CDR3s.csv"
 
         self.igor_fln_align_V_alignments = self.igor_wd + "/aligns/" + self.igor_batchname + "_V_alignments.csv"
         self.igor_fln_align_J_alignments = self.igor_wd + "/aligns/" + self.igor_batchname + "_J_alignments.csv"
@@ -421,6 +421,9 @@ class IgorTask:
         self.igor_db.load_IgorAlignments_FromCSV("D", self.igor_fln_align_D_alignments)
         self.igor_db.load_IgorAlignments_FromCSV("J", self.igor_fln_align_J_alignments)
 
+    def load_db_from_indexed_cdr3(self):
+        print(self.igor_fln_indexed_CDR3)
+        self.igor_db.load_IgorIndexedCDR3_FromCSV(self.igor_fln_indexed_CDR3)
 
     # FIXME: this method should be deprecated!!!
     def load_VDJ_database(self, flnIgorSQL):
@@ -769,6 +772,10 @@ class IgorModel:
         self.chain = ""
 
         self.Pmarginal = dict()
+
+        # FIXME: But since DB is in refactor keep it for the moment
+        self.BestScenariosHeaderList = list() # This is a ordered list store the nicknames of events in the header of the file
+        # should be only necessary if no database present
 
 
         # check input files
@@ -1192,6 +1199,7 @@ class IgorModel:
         # Pjoint_aux = self.Pmarginal[strEventParent01]
         # self.Pmarginal[strEvent] = self.xdata[strEvent].dot(Pjoint_aux)
 
+    # FIXME: THIS METHOD IS NOT FINISH!!
     def export_event_to_csv(self, event_nickname, fln_prefix, sep=';'):
         # if kwargs.get('sep') is None:
         #     kwargs['sep'] = ';'
@@ -1233,7 +1241,6 @@ class IgorModel:
         else:
             print("Event nickname "+event_nickname+" is not present in this model.")
             print("Accepted Events nicknames are : "+str(self.get_events_nicknames_list()))
-
 
     def get_Event_Marginal(self, event_nickname: str):
         """Returns an xarray with the marginal probability of the event given the nickname"""
@@ -1482,7 +1489,7 @@ class IgorModel_Parms:
         if event.event_type == 'GeneChoice':
             for index, record in enumerate(SeqIO.parse(flnGenomic, "fasta")):
                 event_realization = IgorEvent_realization()
-                event_realization.index = index
+                event_realization.id = index
                 event_realization.value = record.seq
                 event_realization.name = record.description
                 event.add_realization(IgorEvent_realization)
@@ -1494,7 +1501,7 @@ class IgorModel_Parms:
             start, end = limits
             for index, ndels in enumerate(range(start, end)):
                 event_realization = IgorEvent_realization()
-                event_realization.index = index
+                event_realization.id = index
                 event_realization.value = ndels
             print(event_nickname, " limits : ", limits)
 
@@ -1505,7 +1512,7 @@ class IgorModel_Parms:
             # FIXME: VALIDATE FOR POSITIVE VALUES
             for index, nins in enumerate(range(start, end)):
                 event_realization = IgorEvent_realization()
-                event_realization.index = index
+                event_realization.id = index
                 event_realization.value = nins
             print(event_nickname, " limits : ", limits)
 
@@ -1514,7 +1521,7 @@ class IgorModel_Parms:
         if event.event_type == 'DinucMarkov':
             for index, nt_char in enumerate(['A', 'C', 'G', 'T']):
                 event_realization = IgorEvent_realization()
-                event_realization.index = index
+                event_realization.id = index
                 event_realization.value = nt_char
 
 
@@ -1617,13 +1624,13 @@ class IgorModel_Parms:
                 if event.event_type == "GeneChoice":
                     realization.name  = realizData[0]
                     realization.value = realizData[1]
-                    realization.index = int(realizData[2])
+                    realization.id = int(realizData[2])
                 elif event.event_type == "DinucMarkov":
                     realization.value = realizData[0]
-                    realization.index = int(realizData[1])
+                    realization.id = int(realizData[1])
                 else:
                     realization.value = int(realizData[0])
-                    realization.index = int(realizData[1])
+                    realization.id = int(realizData[1])
 
                 event.add_realization(realization)
                 # next line
@@ -1899,7 +1906,7 @@ class IgorRec_Event:
         if self.event_type == 'GeneChoice':
             for index, record in enumerate(SeqIO.parse(flnGenomic, "fasta")):
                 event_realization = IgorEvent_realization()
-                event_realization.index = index
+                event_realization.id = index
                 event_realization.value = record.seq
                 event_realization.name = record.description
                 self.add_realization(event_realization)
@@ -1995,36 +2002,35 @@ class IgorRec_Event:
         """ return an Event realizations as a pandas DataFrame to manipulate it.
 
         """
-        return pd.DataFrame.from_records([realiz.to_dict() for realiz in self.realizations], index='index').sort_index()
+        return pd.DataFrame.from_records([realiz.to_dict() for realiz in self.realizations], index='id').sort_index()
 
 class IgorEvent_realization:
     """A small class storing for each RecEvent realization its name, value and
     corresponding index.
-
     """
     def __init__(self):
         self.name  = "" #name
         self.value = "" #value
-        self.index = "" #index
+        self.id = "" #index
 
     def __lt__(self, other):
-        return self.index < other.index
+        return self.id < other.index
 
     def __gt__(self, other):
-        return self.index > other.index
+        return self.id > other.index
 
     def __str__(self):
         if self.name == "":
-            return self.value+";"+self.index
+            return self.value+";"+self.id
         else:
-            return self.name+";"+self.value+";"+str(self.index)
+            return self.name+";"+self.value+";"+str(self.id)
 
     def __repr__(self):
-        return "Event_realization(" + str(self.index) + ")"
+        return "Event_realization(" + str(self.id) + ")"
 
     def to_dict(self):
         return {
-            'index': self.index,
+            'id': self.id,
             'value': self.value,
             'name': self.name
             }
@@ -2032,7 +2038,7 @@ class IgorEvent_realization:
     @classmethod
     def from_dict(self, event_dict:dict):
         cls = IgorEvent_realization()
-        cls.index = event_dict['index']
+        cls.id = event_dict['index']
         cls.value = event_dict['value']
         cls.name = event_dict['name']
         return cls
@@ -2214,24 +2220,52 @@ class IgorAnchors:
 
 class IgorScenario:
     def __init__(self):
-        self.realizations_dict = dict()
+        self.seq_index = -1
+        self.scenario_rank = -1
+        self.scenario_proba_cond_seq = -1
+        #self.events_ordered_list = list()
+        self.realizations_ids_dict = dict()
 
     def __getitem__(self, key):
-        return self.realizations_dict[key]
+        return self.realizations_ids_dict[key]
 
+    # TODO: This method should return a scenario in a fasta format with corresponding ID and events
     def get_scenario_fasta(self, mdl:IgorModel):
         str_fasta = ""
         # sort events to construct fasta sequence:
         mdl.parms.Event_list
         for key in mdl.xdata.keys():
-            self.realizations_dict[key]
+            self.realizations_ids_dict[key]
 
         return str_fasta
 
     def set_model(self, mdl:IgorModel):
-        # mdl = IgorModel()
+        """ Initiate scenario dictionary with a IgorModel """
         for key in mdl.xdata.keys():
-            self.realizations_dict[key] = -1
+            self.realizations_ids_dict[key] = -1
+
+    # TODO: in DEV - FINISH THIS METHOD
+    def set_model_from_headers(self, header_line:str):
+        # seq_index;scenario_rank;scenario_proba_cond_seq;GeneChoice_V_gene_Undefined_side_prio7_size35;GeneChoice_J_gene_Undefined_side_prio7_size14;GeneChoice_D_gene_Undefined_side_prio6_size2;Deletion_V_gene_Three_prime_prio5_size21;Deletion_D_gene_Five_prime_prio5_size21;Deletion_D_gene_Three_prime_prio5_size21;Deletion_J_gene_Five_prime_prio5_size23;Insertion_VD_genes_Undefined_side_prio4_size31;DinucMarkov_VD_genes_Undefined_side_prio3_size16;Insertion_DJ_gene_Undefined_side_prio2_size31;DinucMarkov_DJ_gene_Undefined_side_prio1_size16;Mismatches
+        header_line = "seq_index;scenario_rank;scenario_proba_cond_seq;GeneChoice_V_gene_Undefined_side_prio7_size35;GeneChoice_J_gene_Undefined_side_prio7_size14;GeneChoice_D_gene_Undefined_side_prio6_size2;Deletion_V_gene_Three_prime_prio5_size21;Deletion_D_gene_Five_prime_prio5_size21;Deletion_D_gene_Three_prime_prio5_size21;Deletion_J_gene_Five_prime_prio5_size23;Insertion_VD_genes_Undefined_side_prio4_size31;DinucMarkov_VD_genes_Undefined_side_prio3_size16;Insertion_DJ_gene_Undefined_side_prio2_size31;DinucMarkov_DJ_gene_Undefined_side_prio1_size16;Mismatches"
+        header_fields = header_line.split(";")
+        events_list = header_fields[3:]
+        print("hoajs")
+
+
+    @classmethod
+    def load_FromLineBestScenario(cls, line, delimiter=";"):
+        #seq_index;scenario_rank;scenario_proba_cond_seq;GeneChoice_V_gene_Undefined_side_prio7_size35;GeneChoice_J_gene_Undefined_side_prio7_size14;GeneChoice_D_gene_Undefined_side_prio6_size2;Deletion_V_gene_Three_prime_prio5_size21;Deletion_D_gene_Five_prime_prio5_size21;Deletion_D_gene_Three_prime_prio5_size21;Deletion_J_gene_Five_prime_prio5_size23;Insertion_VD_genes_Undefined_side_prio4_size31;DinucMarkov_VD_genes_Undefined_side_prio3_size16;Insertion_DJ_gene_Undefined_side_prio2_size31;DinucMarkov_DJ_gene_Undefined_side_prio1_size16;Mismatches
+        cls = IgorScenario()
+        linesplit = line.split(delimiter)
+        linesplit = line.split(";")
+        for ii in range(len(linesplit)):
+            # TODO: find a better way to do this, if is a list keep it as list
+            if (ii in [ 11, 13, 14 ]):
+                linesplit[ii] = linesplit[ii]
+            else:
+                linesplit[ii] = linesplit[ii].replace("(", "").replace(")", "")
+
 
 
 ### IGOR BEST SCENARIOS VDJ ###

@@ -46,7 +46,7 @@ def main():
                 # df = task.mdl.Pmarginal[event_nickname].to_dataframe(name=event_nickname)
                 task.mdl.plot_Event_Marginal(event_nickname, ax=ax)
                 fig.tight_layout()
-                flnOutput = "PM_"+flnPrefix+"_"+event_nickname+".pdf"
+                flnOutput = flnPrefix+"_"+event_nickname+".pdf"
                 fig.savefig(flnOutput)
                 print("***** Marginal plot of ", event_nickname, " in ", flnOutput)
                 # if task.mdl.parms.get_Event(event_nickname).event_type == 'Dinucl':

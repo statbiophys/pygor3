@@ -61,6 +61,7 @@ def main():
     print(task.igor_fln_db)
     task.create_db()
     task.load_db_from_indexed_sequences()
+    task.load_db_from_indexed_cdr3()
     task.load_db_from_genomes()
     task.load_db_from_alignments()
     # task.load_db_from_models()
