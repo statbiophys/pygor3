@@ -46,8 +46,13 @@ class IgorSqliteDB:
 
         self.flnIgorModel_Parms = ""
         self.flnIgorModel_Marginals = "" #
+
+        self.flnIgorBestScenarios = ""
         
         self.conn               = None
+
+        self.sql_cols_list = None
+        self.sqlcmd_ins_bs = None
     
     #@classmethod
     def createSqliteDB(self, flnIgorDB):
@@ -117,7 +122,6 @@ class IgorSqliteDB:
             #self.conn.close()
         except sqlite3.Error as e:
             print(e)
-
 
     def createSqliteDB_tmp(self):
         # TODO: create database in base of IgorSQL scripts
@@ -632,7 +636,7 @@ class IgorSqliteDB:
 
     ############################
     def load_IgorModel_Parms(self, mdl_parms): #fln_model_parms):
-        # TODO: Insert Event_list
+        ################## TODO: Insert Event_list
         self.execute_query(sqlcmd_ct['MP_Event_list'])
         # self.flnIgorModel_Parms = fln_model_parms
         cur = self.conn.cursor()
@@ -646,7 +650,7 @@ class IgorSqliteDB:
                 event_dict = event.to_dict()
                 # print("-"*50, event.nickname)
                 event_realizations_list = event_dict.pop('realizations')
-                event_dict['realizations_table'] = "ER_" + event_dict['nickname']
+                event_dict['realizations_table'] = "IgorER_" + event_dict['nickname']
                 self.insert_IgorRec_Event_FromDict(cur, event_dict)
                 # Create database with realizations
                 script_table = sqlcmd_ct['ER_event_template'].format(event_dict['realizations_table'])
@@ -654,7 +658,7 @@ class IgorSqliteDB:
                 try:
                     # Create table of realizations
                     cur.execute(script_table)
-                    # TODO: Insert realizations
+                    # Insert realizations
                     for realization in event_realizations_list:
                         # print(realization.to_dict())
                         self.insert_IgorEvent_realization_FromDict(cur, event_dict['realizations_table'], realization.to_dict())
@@ -667,14 +671,43 @@ class IgorSqliteDB:
             print("Can't create IgorModel_Parms table")
             print(e)
 
-        # TODO: Insert Edges
-        # TODO: Insert ErrorRate
+        ################## TODO: Insert Edges XXX
+        # Create database if not exist.
+        self.execute_query(sqlcmd_ct['MP_Edges'])
+        cur = self.conn.cursor()
+        sql = 'INSERT INTO IgorMP_Edges(parent_event,child_event) VALUES (?,?)'
+        cur.execute('BEGIN TRANSACTION')
+        for edge in mdl_parms.Edges:
+            # Insert in Edges table
+            try:
+                # cur = self.conn.cursor()
+                data = (mdl_parms.dictNameNickname[ edge[0] ], mdl_parms.dictNameNickname[ edge[1] ])
+                print(data)
+                cur.execute(sql, data)
+                # self.conn.commit()
+            except sqlite3.Error as e:
+                print(edge, data)
+                print(e)
+                exit()
+                # pass
+        cur.execute('COMMIT')
+
+        ################## TODO: Insert ErrorRate
+        self.execute_query(sqlcmd_ct['MP_ErrorRate'])
+        cur = self.conn.cursor()
+        columns = ', '.join(mdl_parms.ErrorRate_dict.keys())
+        placeholders = ':' + ', :'.join(mdl_parms.ErrorRate_dict.keys())
+        sql = 'INSERT INTO IgorMP_ErrorRate (%s) VALUES (%s)' % (columns, placeholders)
+        cur.execute('BEGIN TRANSACTION')
+        print(mdl_parms.ErrorRate_dict)
+        cur.execute(sql, mdl_parms.ErrorRate_dict)
+        cur.execute('COMMIT')
 
     def insert_IgorRec_Event_FromDict(self, cur, event_dict: dict):
         # print(event_dict.keys())
         columns = ', '.join(event_dict.keys())
         placeholders = ':' + ', :'.join(event_dict.keys())
-        sql = 'INSERT INTO MP_Event_list (%s) VALUES (%s)' % (columns, placeholders)
+        sql = 'INSERT INTO IgorMP_Event_list (%s) VALUES (%s)' % (columns, placeholders)
         # print(sql)
         try:
             # cur = self.conn.cursor()
@@ -717,6 +750,7 @@ class IgorSqliteDB:
             else:
                 tmp_list = [event_nickname] + da.attrs['parents']
                 da = da.transpose(*tmp_list)
+                # Create table for model marginals
                 self.execute_query( sqlcmd_ct_Model_Marginals(event_nickname, da.attrs['parents']) )
 
                 cur = self.conn.cursor()
@@ -724,6 +758,7 @@ class IgorSqliteDB:
                     cur.execute('BEGIN TRANSACTION')
                     df = da.to_dataframe(name='P')
                     df.reset_index(inplace=True)
+
                     # Rename names of dataframe
                     dicto2rename = dict()
                     for col in df.columns:
@@ -732,51 +767,20 @@ class IgorSqliteDB:
                             dicto2rename[col] = "id_"+col
                     df.rename(dicto2rename, axis='columns', inplace=True)
 
-                    """
-                    # TODO: INSERT ROWS OF DATAFRAME IN TABLE with the respective column names
-                    tmp_list
-                    columns = ', '.join(event_realization_dict.keys())
-                    placeholders = ':' + ', :'.join(event_realization_dict.keys())
-                    tmp_sql = 'INSERT INTO ' + event_table + ' (%s) VALUES (%s)'
-                    sql = tmp_sql % (columns, placeholders)
-                    str_column_ct = "id_{}"  # .format(event_nickname)
-                    sqlcmd_table_fields_ct = ",\n".join([str_column_ct.format(evento_nickname) for evento_nickname in lista])
-                    """
+                    mm_table = "IgorMM_"+event_nickname
+                    columns_list = list(df.columns)
+                    str_columns = ",".join(columns_list )
+                    placeholders = ':' + ', :'.join(columns_list)
+                    sql = 'INSERT INTO ' + mm_table + ' (%s) VALUES (%s)' % (str_columns, placeholders)
 
                     for index, row in df.iterrows():
                         dicto = row.to_dict()
-                        #P = dicto['P']
-                        #del dicto['P']
-                        print(dicto)
-                        # self.insert_IgorEvent_realization_FromDict(cur, event_dict['realizations_table'], realization.to_dict())
-                        #self.insert_IgorModel_Marginals_FromDict(cur, row.to_dict())
-
-                    # for event in df :
-                    #     event_dict = event.to_dict()
-                    #     print("-" * 50, event.nickname)
-                    #     event_realizations_list = event_dict.pop('realizations')
-                    #     event_dict['realizations_table'] = "ER_" + event_dict['nickname']
-                    #     self.insert_IgorRec_Event_FromDict(cur, event_dict)
-                    #     # Create database with realizations
-                    #     script_table = sqlcmd_ct['ER_event_template'].format(event_dict['realizations_table'])
-                    #     # insert realizations from realizations object
-                    #     try:
-                    #         # Create table of realizations
-                    #         cur.execute(script_table)
-                    #         # TODO: Insert realizations
-                    #         for realization in event_realizations_list:
-                    #             print(realization.to_dict())
-                    #             self.insert_IgorEvent_realization_FromDict(cur, event_dict['realizations_table'],
-                    #                                                        realization.to_dict())
-                    #     except sqlite3.Error as e:
-                    #         print(e)
-
+                        cur.execute(sql, row.to_dict())
                     cur.execute('COMMIT')
                     # self.conn.commit()
                 except sqlite3.Error as e:
                     print("Can't insert in "+event_nickname+" table")
                     print(e)
-
 
     def insert_IgorModel_Marginals_FromDict(self, cur, event_table, event_realization_dict):
         # TODO: IgorEvent_realization
@@ -793,4 +797,121 @@ class IgorSqliteDB:
             print(event_realization_dict)
             print(e)
             pass
+
+    def load_IgorModel_FromTXT(self, flnIgorModel_Parms, flnIgorModel_Marginals):
+        self.flnIgorModel_Parms = flnIgorModel_Parms
+        self.flnIgorModel_Marginals = flnIgorModel_Marginals
+        from .IgorIO import IgorModel
+        mdl = IgorModel(model_parms_file=flnIgorModel_Parms, model_marginals_file=flnIgorModel_Marginals)
+        self.load_IgorModel(self, mdl)
+
+    def load_IgorModel(self, mdl):
+        self.load_IgorModel_Parms(mdl.parms)
+        self.load_IgorModel_Marginals(mdl.xdata)
+
+    def load_IgorBestScenarios_FromCSV(self, flnIgorBestScenarios, mdl):
+        self.flnIgorBestScenarios = flnIgorBestScenarios
+        with open(self.flnIgorBestScenarios, "r") as fp:
+            #### CREATE DATABASE
+            ## Get best scenarios header file
+            igor_bsfileHeader = fp.readline().replace('\n', '').replace('Mismatches', 'mismatches')
+            file_header_list = igor_bsfileHeader.split(';')
+            bs_events_name_list = file_header_list[3:-1]
+            ## Change event_name to event_nickname using dictionary.
+            # Get dictionary to change names to nicknames
+            events_name_nickname_dict = mdl.parms.get_event_dict('name', 'nickname')
+            bs_events_nickname_list = [ events_name_nickname_dict[event_name] for event_name in bs_events_name_list]
+
+            # Now generate sql_id, sql_type and foreign_key in the file order
+            events_dict_list = list()
+            sql_list_ct_table_cols = list()
+            sql_list_ct_table_foreign_keys = list()
+            sql_list_ins_table = list()
+            self.sql_list_of_listtypes = list()
+            for ii, event_nickname in enumerate(bs_events_nickname_list) :
+                event = mdl.parms.get_Event(event_nickname)
+                event_dict = event.to_dict()
+                del event_dict['realizations']
+                if event.event_type == 'DinucMarkov':
+                    event_dict['sql_id'] = event.nickname
+                    event_dict['sql_type'] = "text"
+                    sql_list_ct_table_cols.append(event_dict['sql_id']+" "+event_dict['sql_type'])
+                    sql_list_ins_table.append(event_dict['sql_id'])
+                    self.sql_list_of_listtypes.append(3+ii)
+                else:
+                    event_dict['sql_id'] = 'id_'+event.nickname
+                    event_dict['sql_type'] = "integer"
+                    event_dict['sql_foreign_key'] = "FOREIGN KEY (id_{}) REFERENCES IgorER_{} (id)".format(event_nickname, event_nickname)
+                    sql_list_ct_table_cols.append(event_dict['sql_id'] + " " + event_dict['sql_type'])
+                    sql_list_ins_table.append(event_dict['sql_id'])
+                    sql_list_ct_table_foreign_keys.append(event_dict['sql_foreign_key'])
+                events_dict_list.append(event_dict)
+
+            self.sql_list_of_listtypes.append(3+len(bs_events_nickname_list)) # mismatches position
+
+            # Now make script to create table in database and create table
+            self.execute_query(
+                sqlcmd_ct['BestScenario_template'].format(','.join(sql_list_ct_table_cols),
+                                                          ','.join(sql_list_ct_table_foreign_keys))
+            )
+
+            ### INSERT VALUES
+            sql_cols_list =['seq_index', 'scenario_rank', 'scenario_proba_cond_seq'] + sql_list_ins_table + ['mismatches', 'mismatcheslen']
+            sql_str_cols = ','.join(sql_cols_list)
+            sql_str_aux = ','.join(['?' for col in sql_cols_list])
+
+            self.sql_cols_list = sql_cols_list
+            self.sqlcmd_ins_bs = ''' INSERT INTO IgorBestScenarios({}) VALUES({}) '''.format(sql_str_cols, sql_str_aux)
+
+            #print(self.sqlcmd_ins_bs)
+
+            # INSERT VALUES IN DATABASE
+            cur = self.conn.cursor()
+            try:
+                cur.execute('BEGIN TRANSACTION')
+                with open(self.flnIgorBestScenarios) as fp:
+                    csvline = fp.readline()
+                    while csvline:
+                        csvline = fp.readline()
+                        self.insert_IgorBestScenarios_FromCSVline(cur, csvline)
+                cur.execute('COMMIT')
+                # self.conn.commit()
+            except sqlite3.Error as e:
+                print(e)
+
+
+    def insert_IgorBestScenarios_FromCSVline(self, cur, csvline):
+        # sql = ''' INSERT INTO IgorBestScenarios({}) VALUES({}) '''
+        csvline = csvline.replace('\n', '')
+        csvlist = csvline.split(";")
+        # FIXME: FIND A BETTER WAY TO REPLACE THE TYPE FOR INSERTION
+        for ii in range(len(csvlist)):
+            if ii in self.sql_list_of_listtypes:
+                csvlist[ii] = csvlist[ii].replace("(", "[").replace(")", "]")  # lists vd_dinucl, dj_dinucl, mismatches
+            else:
+                csvlist[ii] = csvlist[ii].replace("(", "").replace(")", "")
+
+        # print(csvlist)
+
+        # data[-1] convert it to list and
+        try:
+            data = csvlist + [len(eval(csvlist[-1]))]
+            try:
+                # cur = self.conn.cursor()
+                cur.execute(self.sqlcmd_ins_bs, data)
+                # self.conn.commit()
+            except sqlite3.Error as e:
+                print(data)
+                print(e)
+                pass
+        except Exception as e:
+            print("ohohohoho")
+            print(csvlist)
+            print(e)
+            pass
+
+
+
+
+
 

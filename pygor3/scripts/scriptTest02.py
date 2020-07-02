@@ -46,12 +46,20 @@ def main():
 
     mdl = p3.IgorModel.load_default("human", "tcr_beta")
     # mdl.export_event_to_csv('v_choice', 'putaque')
-
     db = p3.IgorSqliteDB.create_db("testando.db")
-    db.load_IgorModel_Parms(mdl.parms) # TODO: finish edges and ErrorRate
-    db.load_IgorModel_Marginals(mdl.xdata)
+    db.load_IgorModel(mdl)
+    db.load_IgorBestScenarios_FromCSV("here_output/best_scenarios_counts.csv", mdl)
 
-    # print(mdl.marginals.marginals_dict)
+    # str_batch = "here"
+    # flnIgorBestScenarios = str_batch+"_output/best_scenarios_counts.csv"
+    # db.load_IgorBestScenarios_FromCSV(flnIgorBestScenarios, mdl)
+
+
+    # print( mdl.parms.Edges, len(mdl.parms.Edges) )
+    # for edge in mdl.parms.Edges:
+    #     print(edge)
+    #     print(mdl.parms.dictNameNickname[edge[0]], mdl.parms.dictNameNickname[edge[1]])
+    # print( mdl.parms.model_parms_file )
 
     """
     strEvent = 'vd_dinucl'
@@ -97,15 +105,6 @@ def main():
     # change key name
     # dictionary[new_key] = dictionary.pop(old_key)
     # IgorRec_Event
-    print( db.flnIgorDB )
-
-    # TODO: Scenarios realizations.
-    # mdl.parms.Event_list
-    # scenario = p3.IgorScenario()
-    # scenario.set_model(mdl)
-    #
-    # print(scenario.realizations_ids_dict)
-    #
 
     # igor_fln_output_scenarios
     # with open(igor_fln_output_scenarios, "r") as ifile:

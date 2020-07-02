@@ -27,14 +27,12 @@ def main():
                         help='IGoR model directory path, this path include ref_genomes and model_parms')
 
     # parser.add_argument("-m", "--set_custom_model", dest="model", nargs=2, help='IGoR model_params.txt')
-
     parser.add_argument("-g", "--path_ref_genome", dest="path_ref_genome", help='Directory where genome references are stored: genomicDs.fasta,  genomicJs.fasta,  genomicVs.fasta,  J_gene_CDR3_anchors.csv,  V_gene_CDR3_anchors.csv', default='./ref_genome')
     # parser.add_argument("--set_genomicVs", dest="genomicVs", help='V gene templates fasta file path')
     # parser.add_argument("--set_genomicDs", dest="genomicDs", help='D gene templates fasta file path')
     # parser.add_argument("--set_genomicJs", dest="genomicJs", help='J gene templates fasta file path')
 
     parser.add_argument("-w", "--WD", dest="working_directory", help="Path where files gonna be created.", default='./')
-
 
     # To load all data files use batchname
     parser.add_argument("-b", "--batch", dest="batch",
@@ -48,8 +46,17 @@ def main():
     task = p3.IgorTask()
     task.igor_batchname = args.batch #"sample"  # options.batchname
     task.igor_wd = args.working_directory #"./test"
+
+    # TODO: IF MODEL DIRECTORY PATH IS SET THEN COMPLETE igor_model_{parms,marginals}_file path
+    # IF MODEL_PATH PROVIDED THEN
     task.igor_model_dir_path = args.model_path
+    task.igor_model_parms_file = task.igor_model_dir_path+"/models/model_parms.txt"
+    task.igor_model_marginals_file = task.igor_model_dir_path+"/models/model_marginals.txt"
+    task.igor_path_ref_genome = task.igor_model_dir_path+"/ref_genome/"
+
+    # IF GENOME PATH PROVIDED
     task.igor_path_ref_genome = args.path_ref_genome # "/home/alfaceor/Dropbox/PosDoc/IGoR/dev/MyGithub/pygor3/demo/thi/genomics_repseqio_F"
+    
     task.update_batch_filenames()
     task.load_IgorRefGenome()
     print(task.igor_fln_indexed_sequences)
@@ -64,8 +71,9 @@ def main():
     task.load_db_from_indexed_cdr3()
     task.load_db_from_genomes()
     task.load_db_from_alignments()
-    # task.load_db_from_models()
-    # task.load_db_from_bestscenarios()
+    task.load_db_from_models()
+
+    task.load_db_from_bestscenarios()
 
     # seq_index = 0
     # indexed_sequence = task.igor_db.get_IgorIndexedSeq_By_seq_index(seq_index)

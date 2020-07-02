@@ -125,7 +125,7 @@ class IgorTask:
         self.igor_fln_infer_final_parms = ""
         # evaluate
         self.igor_fln_evaluate_final_marginals = ""
-        self.igor_fln_evaluate_infer_final_parms = ""
+        self.igor_fln_evaluate_final_parms = ""
         # output
         self.igor_fln_output_pgen = ""
         self.igor_fln_output_scenarios = ""
@@ -421,9 +421,21 @@ class IgorTask:
         self.igor_db.load_IgorAlignments_FromCSV("D", self.igor_fln_align_D_alignments)
         self.igor_db.load_IgorAlignments_FromCSV("J", self.igor_fln_align_J_alignments)
 
+    def load_db_from_models(self):
+        try:
+            self.igor_db.load_IgorModel(self.mdl)
+        except Exception as e:
+            print("Couldnt load model to database.")
+            print(e)
+
     def load_db_from_indexed_cdr3(self):
         print(self.igor_fln_indexed_CDR3)
         self.igor_db.load_IgorIndexedCDR3_FromCSV(self.igor_fln_indexed_CDR3)
+
+    def load_db_from_bestscenarios(self):
+        print(self.igor_fln_output_scenarios)
+        self.igor_db.load_IgorBestScenarios_FromCSV(self.igor_fln_output_scenarios)
+
 
     # FIXME: this method should be deprecated!!!
     def load_VDJ_database(self, flnIgorSQL):
@@ -1429,7 +1441,7 @@ class IgorModel_Parms:
         ## Parms file representation
         self.Event_list = list() # list of Rec_event
         self.Edges      = list()
-        self.ErrorRate  = list()
+        self.ErrorRate_dict  = dict()
 
         ## pygor definitions
         self.Event_dict = dict()
@@ -1446,9 +1458,9 @@ class IgorModel_Parms:
             #self.get_EventDict_DataFrame()
 
     def __str__(self):
-        tmpstr = "{ 'len Event_list': "+str(len(self.Event_list)) \
-                +", 'len Egdes': "+str(len(self.Edges)) \
-                +", 'len ErrorRate': "+str(len(self.ErrorRate))+" }"
+        tmpstr = "{ 'len Event_list': " + str(len(self.Event_list)) \
+                 +", 'len Egdes': " + str(len(self.Edges)) \
+                 +", 'len ErrorRate': " + str(len(self.ErrorRate_dict)) + " }"
         return tmpstr
         #return "{ Event_list, Egdes, ErrorRate}"
 
@@ -1664,12 +1676,21 @@ class IgorModel_Parms:
         strip_line = line.rstrip('\n')  # Remove end of line character
         strip_line = strip_line.rstrip('\r')  # Remove carriage return character (if needed)
         while strip_line[0] == '#':
-            if 'SingleErrorRate' == strip_line[1:] :
-                lastPos  = ofile.tell()
-                line = ofile.readline()
-                strip_line = line.rstrip('\n').rstrip()
-                error = strip_line
-                self.ErrorRate = {"SingleErrorRate" : error }
+            # TODO: SAVE THE FOLLOWING TEXT AFTER # AS ERROR TYPE
+            self.ErrorRate_dict = dict()
+            self.ErrorRate_dict['error_type'] = strip_line[1:]
+            lastPos = ofile.tell()
+            line = ofile.readline()
+            strip_line = line.rstrip('\n').rstrip()
+            error = strip_line
+            self.ErrorRate_dict['error_values'] = error
+
+            # if 'SingleErrorRate' == strip_line[1:] :
+            #     lastPos  = ofile.tell()
+            #     line = ofile.readline()
+            #     strip_line = line.rstrip('\n').rstrip()
+            #     error = strip_line
+            #     self.ErrorRate = {"SingleErrorRate" : error }
         ofile.seek(lastPos)
 
     def get_EventsNickname_list(self):
@@ -1678,20 +1699,20 @@ class IgorModel_Parms:
     def get_EventsName_list(self):
         return [event.name for event in self.Event_list]
 
-    def get_Event(self, event_nickname, by_nickname=True):
+    def get_Event(self, event_nickname_or_name, by_nickname=True):
         """Returns the RecEvent with corresponding name or nickname."""
         if by_nickname:
             for ev in self.Event_list:
-                if ev.nickname == event_nickname:
+                if ev.nickname == event_nickname_or_name:
                     return ev
             raise Exception(
-                'RecEvent with nickname \"' + event_nickname + "\" not found.")
+                'RecEvent with nickname \"' + event_nickname_or_name + "\" not found.")
         else:
             for ev in self.Event_list:
-                if ev.name == event_nickname:
+                if ev.name == event_nickname_or_name:
                     return ev
             raise Exception(
-                'RecEvent with name \"' + event_nickname + "\" not found.")
+                'RecEvent with name \"' + event_nickname_or_name + "\" not found.")
 
     def get_EventDict_DataFrame(self):
         self.Event_dict = dict()
@@ -1704,6 +1725,17 @@ class IgorModel_Parms:
         #return dictio
         self.dictNicknameName = {v: k for k, v in self.dictNameNickname.items()}
         self.getBayesGraph()
+
+    def get_event_dict(self, str_key, str_value):
+        """
+        Return a python dictionary of the event_dict, like ('nickname', 'priority')
+        {'v_choice:7, 'd_gene':6, ...}
+        """
+        dicto = dict()
+        for event in self.Event_list:
+            event_dict = event.to_dict()
+            dicto[event_dict[str_key]] = event_dict[str_value]
+        return dicto
 
     def getBayesGraph(self):
         self.G = nx.DiGraph()
@@ -2225,6 +2257,8 @@ class IgorScenario:
         self.scenario_proba_cond_seq = -1
         #self.events_ordered_list = list()
         self.realizations_ids_dict = dict()
+        # given a templated list with ids
+        self.realizations_ids_list = dict()
 
     def __getitem__(self, key):
         return self.realizations_ids_dict[key]
@@ -2258,7 +2292,6 @@ class IgorScenario:
         #seq_index;scenario_rank;scenario_proba_cond_seq;GeneChoice_V_gene_Undefined_side_prio7_size35;GeneChoice_J_gene_Undefined_side_prio7_size14;GeneChoice_D_gene_Undefined_side_prio6_size2;Deletion_V_gene_Three_prime_prio5_size21;Deletion_D_gene_Five_prime_prio5_size21;Deletion_D_gene_Three_prime_prio5_size21;Deletion_J_gene_Five_prime_prio5_size23;Insertion_VD_genes_Undefined_side_prio4_size31;DinucMarkov_VD_genes_Undefined_side_prio3_size16;Insertion_DJ_gene_Undefined_side_prio2_size31;DinucMarkov_DJ_gene_Undefined_side_prio1_size16;Mismatches
         cls = IgorScenario()
         linesplit = line.split(delimiter)
-        linesplit = line.split(";")
         for ii in range(len(linesplit)):
             # TODO: find a better way to do this, if is a list keep it as list
             if (ii in [ 11, 13, 14 ]):

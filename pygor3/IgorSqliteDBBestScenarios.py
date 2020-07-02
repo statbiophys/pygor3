@@ -120,7 +120,7 @@ class IgorSqliteDBBestScenariosVDJ:
             if ii in [11, 13, 14]:
                 csvlist[ii] = csvlist[ii].replace("(", "[").replace(")", "]")  # lists vd_dinucl, dj_dinucl, mismatches
             else:
-                csvlist[ii] = csvlist[ii].replace("(", "").replace(")", "")  
+                csvlist[ii] = csvlist[ii].replace("(", "").replace(")", "")
         
         if len(csvlist) == 15:
             csvlist.append(str(len(eval(csvlist[14])))) # mismatcheslen
