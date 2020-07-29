@@ -17,6 +17,7 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     entry_points= {
         'console_scripts' : [
+            'pygor3-observable=pygor3.scripts.observable:main',
             'pygor3-scriptTest=pygor3.scripts.scriptTest:main',
             'pygor3-scriptTest02=pygor3.scripts.scriptTest02:main',
             'pygor3-stas_from_bs=pygor3.scripts.stas_from_bs:main',
@@ -33,8 +34,8 @@ setuptools.setup(
             'pygor3-plot_marginals=pygor3.scripts.plot_marginals:main',
             'igor-model_create=pygor3.scripts.model_create:main',
             'igor-get_imgt_data=pygor3.scripts.get_imgt_data:main',
-            'igor-download_imgt_gene_templates=pygor3.scripts.download_imgt_gene_templates:main',
-            'igor-short_names_imgt_templates=pygor3.scripts.short_names_imgt_templates:main'
+            'pygor3-download_imgt_gene_templates=pygor3.scripts.download_imgt_gene_templates:main',
+            'pygor3-short_names_imgt_templates=pygor3.scripts.short_names_imgt_templates:main'
             #'igor-model_import=pygor3.model_import:main',
             #'igor-get_imgt_data=pygor3.get_imgt_data:main'
         ],

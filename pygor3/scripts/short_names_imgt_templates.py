@@ -19,6 +19,7 @@ def main():
     new_records = list()
     for record in records:
         record.description = p3.genLabel(record.description)
+        record.id = record.description
         new_records.append(record)
     p3.imgt.save_records2fasta(new_records, flnGenome+"_short")
 
