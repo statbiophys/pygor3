@@ -57,8 +57,8 @@ def main():
             bs = p3.IgorBestScenariosVDJ.load_FromLineBestScenario(line)
             bs.mdlParms = task.mdl.parms
             # print(bs)
-            # aaa = strSepChar.join(list(map(str, bs.to_dict_names().values())))
-            aaa = strSepChar.join(list(map(str, bs.to_dict_ntsequences().values())))
+            aaa = strSepChar.join(list(map(str, bs.to_dict_names().values())))
+            # aaa = strSepChar.join(list(map(str, bs.to_dict_ntsequences().values())))
             ofile.write(aaa+"\n")
 
     ofile.close()

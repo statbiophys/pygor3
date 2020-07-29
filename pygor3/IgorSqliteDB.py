@@ -48,11 +48,13 @@ class IgorSqliteDB:
         self.flnIgorModel_Marginals = "" #
 
         self.flnIgorBestScenarios = ""
+        self.flnIgorPgen = ""
         
         self.conn               = None
 
-        self.sql_cols_list = None
+        self.sql_BestScenarios_cols_list = None
         self.sqlcmd_ins_bs = None
+        self.sql_IgorBestScenarios_cols_name_type_list = None
     
     #@classmethod
     def createSqliteDB(self, flnIgorDB):
@@ -104,6 +106,7 @@ class IgorSqliteDB:
             cur.close()
             # self.conn.close()
         except sqlite3.Error as e:
+            print('str_query : ', str_query)
             print(e)
 
     def execute_select_query(self, str_query):
@@ -136,7 +139,6 @@ class IgorSqliteDB:
             # self.conn.close()
         except sqlite3.Error as e:
             print(e)
-
 
     # TODO: load database by receiving a list of identifiers defined in IgorDictionaries
     def load_db(self, **kwargs):
@@ -179,6 +181,7 @@ class IgorSqliteDB:
     ###############################################
     ####  IgorIndexedSeq Table Methods
     ###############################################
+
     def load_IgorIndexedSeq_FromCSV(self, flnIgorIndexedSeq):
         """
         Insert indexed sequence in database from csv igor indexed_seqs file.
@@ -201,7 +204,6 @@ class IgorSqliteDB:
             # self.conn.commit()
         except sqlite3.Error as e:
             print(e)
-
 
     def insert_IgorIndexedSeq_FromCSVline(self, cur, csvline):
         """
@@ -264,10 +266,15 @@ class IgorSqliteDB:
         record = cur.fetchall()
         return (record)
 
+    def fetch_IgorIndexedSeq_indexes(self):
+        seq_indexes_list = self.execute_select_query("SELECT seq_index FROM IgorIndexedSeq;")
+        seq_indexes_list = list( map(lambda x: x[0], seq_indexes_list) )
+        return seq_indexes_list
 
     ###############################################
     ####  IgorXGeneTemplate Tables Methods
     ###############################################
+
     def load_IgorGeneTemplate_FromFASTA(self, strGene, flnGeneTemplate):
         """
         Insert D Gene templates in database from fasta files used by IGoR.
@@ -483,6 +490,7 @@ class IgorSqliteDB:
 
     # TODO: Create an IgorAlignment_data instance with a better sql query (join the necessary tables.)
     # TODO:
+
     def get_IgorAlignment_data_list_query(self, strGene, seq_index, where=None):
         sqlSelect = "SELECT * FROM Igor" + strGene.upper() + "Alignments WHERE seq_index==" + str(seq_index) + ""
         from .IgorIO import IgorAlignment_data
@@ -645,7 +653,6 @@ class IgorSqliteDB:
 
             from .IgorIO import IgorModel_Parms
             # mdl_parms = IgorModel_Parms(model_parms_file=fln_model_parms)
-
             for event in mdl_parms.Event_list:
                 event_dict = event.to_dict()
                 # print("-"*50, event.nickname)
@@ -663,12 +670,13 @@ class IgorSqliteDB:
                         # print(realization.to_dict())
                         self.insert_IgorEvent_realization_FromDict(cur, event_dict['realizations_table'], realization.to_dict())
                 except sqlite3.Error as e:
+                    print("Problem with realization", realization.to_dict())
                     print(e)
 
             cur.execute('COMMIT')
             # self.conn.commit()
         except sqlite3.Error as e:
-            print("Can't create IgorModel_Parms table")
+            print("Couldn't create IgorModel_Parms table")
             print(e)
 
         ################## TODO: Insert Edges XXX
@@ -693,15 +701,19 @@ class IgorSqliteDB:
         cur.execute('COMMIT')
 
         ################## TODO: Insert ErrorRate
-        self.execute_query(sqlcmd_ct['MP_ErrorRate'])
-        cur = self.conn.cursor()
-        columns = ', '.join(mdl_parms.ErrorRate_dict.keys())
-        placeholders = ':' + ', :'.join(mdl_parms.ErrorRate_dict.keys())
-        sql = 'INSERT INTO IgorMP_ErrorRate (%s) VALUES (%s)' % (columns, placeholders)
-        cur.execute('BEGIN TRANSACTION')
-        print(mdl_parms.ErrorRate_dict)
-        cur.execute(sql, mdl_parms.ErrorRate_dict)
-        cur.execute('COMMIT')
+        try:
+            self.execute_query(sqlcmd_ct['MP_ErrorRate'])
+            cur = self.conn.cursor()
+            columns = ', '.join(mdl_parms.ErrorRate_dict.keys())
+            placeholders = ':' + ', :'.join(mdl_parms.ErrorRate_dict.keys())
+            sql = 'INSERT INTO IgorMP_ErrorRate (%s) VALUES (%s)' % (columns, placeholders)
+            cur.execute('BEGIN TRANSACTION')
+            print(mdl_parms.ErrorRate_dict)
+            cur.execute(sql, mdl_parms.ErrorRate_dict)
+            cur.execute('COMMIT')
+        except Exception as e:
+            print("Couldn't insert ErrorRate in database")
+            print(e)
 
     def insert_IgorRec_Event_FromDict(self, cur, event_dict: dict):
         # print(event_dict.keys())
@@ -806,7 +818,9 @@ class IgorSqliteDB:
         self.load_IgorModel(self, mdl)
 
     def load_IgorModel(self, mdl):
+        print("Loading parms to database")
         self.load_IgorModel_Parms(mdl.parms)
+        print("Loading marginals to database")
         self.load_IgorModel_Marginals(mdl.xdata)
 
     def load_IgorBestScenarios_FromCSV(self, flnIgorBestScenarios, mdl):
@@ -860,7 +874,7 @@ class IgorSqliteDB:
             sql_str_cols = ','.join(sql_cols_list)
             sql_str_aux = ','.join(['?' for col in sql_cols_list])
 
-            self.sql_cols_list = sql_cols_list
+            self.sql_BestScenarios_cols_list = sql_cols_list
             self.sqlcmd_ins_bs = ''' INSERT INTO IgorBestScenarios({}) VALUES({}) '''.format(sql_str_cols, sql_str_aux)
 
             #print(self.sqlcmd_ins_bs)
@@ -878,7 +892,6 @@ class IgorSqliteDB:
                 # self.conn.commit()
             except sqlite3.Error as e:
                 print(e)
-
 
     def insert_IgorBestScenarios_FromCSVline(self, cur, csvline):
         # sql = ''' INSERT INTO IgorBestScenarios({}) VALUES({}) '''
@@ -909,6 +922,65 @@ class IgorSqliteDB:
             print(csvlist)
             print(e)
             pass
+
+    def load_IgorPgen_FromCSV(self, flnIgorPgen):
+        print(flnIgorPgen)
+        self.execute_query(sqlcmd_ct['Pgen'])
+        self.flnIgorPgen = flnIgorPgen
+        cur = self.conn.cursor()
+        try:
+            cur.execute('BEGIN TRANSACTION')
+            with open(self.flnIgorPgen) as fp:
+                csvline = fp.readline()
+                while csvline:
+                    csvline = fp.readline()
+                    # print(csvline)
+                    self.insert_load_IgorPgen_FromCSVline(cur, csvline)
+            cur.execute('COMMIT')
+            # self.conn.commit()
+        except sqlite3.Error as e:
+            print(e)
+
+    def insert_load_IgorPgen_FromCSVline(self, cur, csvline):
+        sql = ''' INSERT INTO IgorPgen(seq_index,Pgen_estimate)
+                          VALUES(?,?) '''
+        csvline = csvline.replace('\n', '')
+        data = tuple(csvline.split(";"))
+        try:
+            cur.execute(sql, data)
+        except sqlite3.Error as e:
+            print(data)
+            print(e)
+            pass
+
+    #########
+    def gen_IgorBestScenarios_cols_list(self):
+        self.sql_IgorBestScenarios_cols_name_type_list = self.execute_select_query("SELECT name, type FROM pragma_table_info('IgorBestScenarios');")
+
+    def fetch_IgorBestScenarios_By_events_dict(self, events_id_list_dict):
+        print(events_id_list_dict)
+        sqlselect = "SELECT * FROM IgorBestScenarios"
+        sql_tmp_ANDs_list = list()
+        print(sqlselect)
+        for key, values in events_id_list_dict.items():
+            print(key, values)
+            sql_tmp_ANDs_list.append( key+ " IN "+ "(" + ",".join(map(str,values))+ ")" )
+
+        if len(sql_tmp_ANDs_list) == 0:
+            sql_where = ";"
+        else:
+            sql_where = " WHERE " +  " AND ".join(sql_tmp_ANDs_list) + ";"
+
+        return self.execute_select_query(sqlselect + sql_where)
+
+    def fetch_IgorBestScenarios_By_seq_index(self, seq_index):
+        sqlSelect = "SELECT * FROM IgorBestScenarios WHERE seq_index==" + str(
+            seq_index) #+ " ORDER BY score DESC LIMIT 1"
+        cur = self.conn.cursor()
+        cur.execute(sqlSelect)
+        records = cur.fetchall()
+        return (records)
+
 
 
 

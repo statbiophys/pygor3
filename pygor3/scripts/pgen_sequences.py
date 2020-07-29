@@ -17,7 +17,7 @@ def main():
         print("species is mandatory")
         exit()
     else:
-        task.igor_specie = str(options.species)
+        task.igor_species = str(options.species)
 
     if options.chain == None:
         print("species is mandatory")

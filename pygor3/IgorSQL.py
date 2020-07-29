@@ -224,6 +224,15 @@ def sqlcmd_ct_Model_Marginals_DinucMarkov(event_nickname, list_dependencies:list
     return sqlcmd_ct
 
 ############## IGOR BEST SCENARIOS ##############
+sqlcmd_ct['Pgen'] = """
+-- IgorIndexedSeq table
+CREATE TABLE IF NOT EXISTS IgorPgen (
+    seq_index integer PRIMARY KEY,
+    Pgen_estimate real NOT NULL
+);
+"""
+
+
 sqlcmd_ct['BestScenario_template'] = """
 -- Best_scenarios table
 CREATE TABLE IF NOT EXISTS IgorBestScenarios (

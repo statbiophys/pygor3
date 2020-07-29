@@ -36,7 +36,7 @@ def main():
         import matplotlib.pyplot as plt
 
         if Q_species_chain :
-            task.igor_specie = str(options.species)
+            task.igor_species = str(options.species)
             task.igor_chain = str(options.chain)
             task.load_IgorModel()
 

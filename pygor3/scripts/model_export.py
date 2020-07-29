@@ -30,7 +30,7 @@ def main():
     Q_model_files = ( not (options.model_params == None) and not( options.model_marginals == None))
     if ( Q_species_chain or Q_model_files):
         if Q_species_chain :
-            task.igor_specie = str(options.species)
+            task.igor_species = str(options.species)
             task.igor_chain = str(options.chain)
             task.load_IgorModel()
             task.mdl.export_csv(options.output)

@@ -66,7 +66,7 @@ def run_command(cmd):
         line = p.stdout.readline()
         line = line.decode("utf-8")
         stdout.append(line)
-        print (line, end='')
+        #print (line, end='')
         if line == '' and p.poll() != None:
             break
     return ''.join(stdout)
@@ -90,7 +90,7 @@ class IgorTask:
 
         # To load default models and genomic templates
         self.igor_models_root_path = "" # igor models paths where all species and chains are stored.
-        self.igor_specie = ""
+        self.igor_species = ""
         self.igor_chain = ""
 
         self.igor_model_dir_path = ""
@@ -204,25 +204,27 @@ class IgorTask:
 
 
     def load_IgorModel(self):
-        if (self.igor_specie == "" or self.igor_chain == ""):
+        if (self.igor_species == "" or self.igor_chain == ""):
             self.mdl = IgorModel(model_parms_file = self.igor_model_parms_file, model_marginals_file=self.igor_model_marginals_file)
         else :
-            self.mdl = IgorModel.load_default(self.igor_specie, igor_option_path_dict[self.igor_chain])
+            self.mdl = IgorModel.load_default(self.igor_species, igor_option_path_dict[self.igor_chain])
 
     @classmethod
     def default_model(cls, specie, chain, model_parms_file=None, model_marginals_file=None):
         """Return an IgorTask object"""
-        cls.igor_specie = specie
+        cls.igor_species = specie
         cls.igor_chain = chain
         #cls.igor_modeldirpath =  model_parms_file
         cls.run_datadir()
 
         if model_parms_file is None:
-            cls.igor_model_parms_file = cls.igor_modelspath +"/" + cls.igor_specie + "/" + igor_option_path_dict[cls.igor_chain]
+            cls.igor_model_parms_file = cls.igor_modelspath +"/" + cls.igor_species + "/" + igor_option_path_dict[cls.igor_chain]
 
-    def define_filenames_default(self):
-        #
-        return ""
+    def update_model_filenames(self, model_path):
+        self.igor_model_dir_path = model_path
+        self.igor_model_parms_file = self.igor_model_dir_path + "/models/model_parms.txt"
+        self.igor_model_marginals_file = self.igor_model_dir_path + "/models/model_marginals.txt"
+        self.igor_path_ref_genome = self.igor_model_dir_path + "/ref_genome/"
 
     def update_batch_filenames(self):
         # reads
@@ -339,7 +341,7 @@ class IgorTask:
         cmd = cmd + " -batch " + self.igor_batchname
         # TODO: USE COSTUM MODEL OR USE SPECIFIED SPECIES?
         # I think that the safests is to use the
-        cmd = cmd + " -species " + self.igor_specie
+        cmd = cmd + " -species " + self.igor_species
         cmd = cmd + " -chain " + self.igor_chain
         cmd = cmd + " -align " + command_from_dict_options(self.igor_align_dict_options)
         #return cmd
@@ -359,14 +361,14 @@ class IgorTask:
         cmd = cmd + " -batch " + self.igor_batchname
         # TODO: USE COSTUM MODEL OR USE SPECIFIED SPECIES?
         # I think that the safests is to use the
-        cmd = cmd + " -species " + self.igor_specie
+        cmd = cmd + " -species " + self.igor_species
         cmd = cmd + " -chain " + self.igor_chain
         # here the evaluation
         cmd = cmd + " -evaluate -output " + command_from_dict_options(self.igor_output_dict_options)
         #return cmd
         print(cmd)
         # FIXME: REALLY BIG FLAW USE DICTIONARY FOR THE SPECIE AND CHAIN
-        self.mdl = IgorModel.load_default(self.igor_specie, igor_option_path_dict[self.igor_chain], modelpath=self.igor_models_root_path)
+        self.mdl = IgorModel.load_default(self.igor_species, igor_option_path_dict[self.igor_chain], modelpath=self.igor_models_root_path)
         run_command(cmd)
         #run_command_no_output(cmd)
         #self.b_evaluate = True # FIXME: If run_command success then Truerun_infer
@@ -382,14 +384,14 @@ class IgorTask:
         cmd = cmd + " -batch " + self.igor_batchname
         # TODO: USE COSTUM MODEL OR USE SPECIFIED SPECIES?
         # I think that the safests is to use the
-        cmd = cmd + " -species " + self.igor_specie
+        cmd = cmd + " -species " + self.igor_species
         cmd = cmd + " -chain " + self.igor_chain
         # here the evaluation
         cmd = cmd + " -infer " + command_from_dict_options(self.igor_output_dict_options)
         #return cmd
         print(cmd)
         # FIXME: REALLY BIG FLAW USE DICTIONARY FOR THE SPECIE AND CHAIN
-        self.mdl = IgorModel.load_default(self.igor_specie, igor_option_path_dict[self.igor_chain], modelpath=self.igor_models_root_path)
+        self.mdl = IgorModel.load_default(self.igor_species, igor_option_path_dict[self.igor_chain], modelpath=self.igor_models_root_path)
         run_command(cmd)
         #run_command_no_output(cmd)
         self.b_infer = True # FIXME: If run_command success then True
@@ -422,10 +424,11 @@ class IgorTask:
         self.igor_db.load_IgorAlignments_FromCSV("J", self.igor_fln_align_J_alignments)
 
     def load_db_from_models(self):
+        self.load_IgorModel()
         try:
             self.igor_db.load_IgorModel(self.mdl)
         except Exception as e:
-            print("Couldnt load model to database.")
+            print("Couldn't load model to database from IgorModel object")
             print(e)
 
     def load_db_from_indexed_cdr3(self):
@@ -434,8 +437,11 @@ class IgorTask:
 
     def load_db_from_bestscenarios(self):
         print(self.igor_fln_output_scenarios)
-        self.igor_db.load_IgorBestScenarios_FromCSV(self.igor_fln_output_scenarios)
+        self.igor_db.load_IgorBestScenarios_FromCSV(self.igor_fln_output_scenarios, self.mdl)
 
+    def load_db_from_pgen(self):
+        print(self.igor_fln_output_pgen)
+        self.igor_db.load_IgorPgen_FromCSV(self.igor_fln_output_pgen)
 
     # FIXME: this method should be deprecated!!!
     def load_VDJ_database(self, flnIgorSQL):
@@ -444,7 +450,7 @@ class IgorTask:
         # FIXME :EVERYTHING
         flnIgorIndexedSeq = self.igor_wd+"/aligns/"+self.igor_batchname+"_indexed_sequences.csv"
         # FIXME PATH AND OPTIONS NEED TO BE CONSISTENT
-        IgorModelPath = self.igor_models_root_path + self.igor_specie + "/" \
+        IgorModelPath = self.igor_models_root_path + self.igor_species + "/" \
                         + igor_option_path_dict[self.igor_chain] + "/"
         IgorRefGenomePath = IgorModelPath + "ref_genome/"
 
@@ -670,7 +676,6 @@ class IgorRefGenome:
         dict_anchor_index['V'] = self.df_V_ref_genome.set_index('name')['anchor_index'].to_dict()
         dict_anchor_index['J'] = self.df_J_ref_genome.set_index('name')['anchor_index'].to_dict()
         return dict_anchor_index
-
 
 class IgorAlignment_data:
     def __init__(self):
@@ -913,6 +918,23 @@ class IgorModel:
 
 
         self.generate_Pmarginals()
+
+    def get_zero_xarray_from_list(self, strEvents_list:list):
+        #strEvents_list = ['v_choice', 'j_choice']
+        strEvents_tuple = tuple(strEvents_list)
+
+        # Use model parms to create xarray with values
+        da_shape_list = [len(self.parms.Event_dict[str_event_nickname]) for str_event_nickname in strEvents_list]
+        da_shape_tuple = tuple(da_shape_list)
+        da = xr.DataArray(np.zeros(da_shape_tuple), dims=strEvents_tuple)
+
+        for event_nickname in strEvents_list:
+            da[event_nickname] = self.parms.Event_dict[event_nickname].index.values
+            labels = self.parms.Event_dict[event_nickname]['name'].values
+            strCoord = 'lbl__' + event_nickname
+            da[strCoord] = (event_nickname, labels)
+
+        return da
 
     def generate_Pmarginals(self):
         # FIXME: GENERALIZE FOR ANY NETWORK NOT ONLY FOR VDJ AND VJ
@@ -2263,6 +2285,14 @@ class IgorScenario:
     def __getitem__(self, key):
         return self.realizations_ids_dict[key]
 
+    def to_dict(self):
+        dictScenario = dict()
+        dictScenario['seq_index'] = self.seq_index
+        dictScenario['scenario_rank'] = self.scenario_rank
+        dictScenario['scenario_proba_cond_seq'] = self.scenario_proba_cond_seq
+        dictScenario.update(self.realizations_ids_dict)
+        return dictScenario
+
     # TODO: This method should return a scenario in a fasta format with corresponding ID and events
     def get_scenario_fasta(self, mdl:IgorModel):
         str_fasta = ""
@@ -2286,7 +2316,7 @@ class IgorScenario:
         events_list = header_fields[3:]
         print("hoajs")
 
-
+    # FIXME:
     @classmethod
     def load_FromLineBestScenario(cls, line, delimiter=";"):
         #seq_index;scenario_rank;scenario_proba_cond_seq;GeneChoice_V_gene_Undefined_side_prio7_size35;GeneChoice_J_gene_Undefined_side_prio7_size14;GeneChoice_D_gene_Undefined_side_prio6_size2;Deletion_V_gene_Three_prime_prio5_size21;Deletion_D_gene_Five_prime_prio5_size21;Deletion_D_gene_Three_prime_prio5_size21;Deletion_J_gene_Five_prime_prio5_size23;Insertion_VD_genes_Undefined_side_prio4_size31;DinucMarkov_VD_genes_Undefined_side_prio3_size16;Insertion_DJ_gene_Undefined_side_prio2_size31;DinucMarkov_DJ_gene_Undefined_side_prio1_size16;Mismatches
@@ -2299,7 +2329,23 @@ class IgorScenario:
             else:
                 linesplit[ii] = linesplit[ii].replace("(", "").replace(")", "")
 
+    @classmethod
+    def load_FromSQLRecord(cls, sqlRecordScenario:list, sql_scenario_name_type_list:list):
+        cls = IgorScenario()
+        for ii, (col_name, tipo) in enumerate(sql_scenario_name_type_list):
+            if col_name == 'seq_index':
+                cls.seq_index = int(sqlRecordScenario[ii])
+            elif col_name == 'scenario_rank':
+                cls.scenario_rank = int(sqlRecordScenario[ii])
+            elif col_name == 'scenario_proba_cond_seq':
+                cls.scenario_proba_cond_seq = float(sqlRecordScenario[ii])
+            else:
+                if tipo == 'integer':
+                    cls.realizations_ids_dict[col_name] = int(sqlRecordScenario[ii])
+                else:
+                    cls.realizations_ids_dict[col_name] = eval(sqlRecordScenario[ii])
 
+        return cls
 
 ### IGOR BEST SCENARIOS VDJ ###
 class IgorBestScenariosVDJ:
