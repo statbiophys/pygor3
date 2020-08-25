@@ -202,7 +202,8 @@ def sqlcmd_ct_Model_Marginals(event_nickname, list_dependencies:list):
 
 def sqlcmd_ct_Model_Marginals_DinucMarkov(event_nickname, list_dependencies:list):
     # from the xarray get the list of events something like:
-    lista = [event_nickname]+list_dependencies
+    # lista = [event_nickname]+list_dependencies
+    lista = list_dependencies
     str_column_ct = "id_{} integer NOT NULL" #.format(event_nickname)
     str_foreign_key_ct = "FOREIGN KEY (id_{}) REFERENCES IgorER_{} (id)" #.format(event_nickname)
 
@@ -287,9 +288,11 @@ def sqlcmd_ct_BestScenarios(nickname_event_type_list:list):
 
     return sqlcmd_ct_aux.format(str_columns, str_foreign_keys)
 
+# usage : sql_cmd_template_qry_cols.format(tablename='IgorMM_d_3_del')
+sqlcmd_template_qry_cols = "SELECT name FROM pragma_table_info('{tablename}');"
 
-
-
+# sqlcmd_qry = dict()
+# sqlcmd_qry['IgorMarginals'] =
 
 # sqlcmd_ct['ER_XXXXXX'] = """
 # -- MP_Event_list table

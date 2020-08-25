@@ -211,7 +211,12 @@ def main():
 
             v_align_data_list = db.get_IgorAlignment_data_list_By_seq_index('V', indexed_sequence.seq_index)
             # print('V', len(v_align_data_list), [ ii.score for ii in v_align_data_list])
-            d_align_data_list = db.get_IgorAlignment_data_list_By_seq_index('D', indexed_sequence.seq_index)
+            try:
+                d_align_data_list = db.get_IgorAlignment_data_list_By_seq_index('D', indexed_sequence.seq_index)
+            except Exception as e:
+                print(e)
+                print("No D sequences alignments found!")
+                pass
             # print('D', len(d_align_data_list), [ ii.score for ii in d_align_data_list])
             j_align_data_list = db.get_IgorAlignment_data_list_By_seq_index('J', indexed_sequence.seq_index)
             # print('J', len(j_align_data_list), [ ii.score for ii in j_align_data_list])

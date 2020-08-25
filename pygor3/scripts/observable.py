@@ -14,6 +14,7 @@ def calc_average(db:p3.IgorSqliteDB, observable_function):
     for sigma in db.fetch_IgorIndexedSeq_indexes():
         print(sigma, len(db.fetch_IgorIndexedSeq_indexes()))
 
+
 # from  optparse import OptionParser
 def main():
     #parser = OptionParser()

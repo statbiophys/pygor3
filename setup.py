@@ -17,12 +17,14 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     entry_points= {
         'console_scripts' : [
+            'pygor3-bs_pairwise_prob=pygor3.scripts.bs_pairwise_prob:main',
             'pygor3-observable=pygor3.scripts.observable:main',
             'pygor3-scriptTest=pygor3.scripts.scriptTest:main',
             'pygor3-scriptTest02=pygor3.scripts.scriptTest02:main',
             'pygor3-stas_from_bs=pygor3.scripts.stas_from_bs:main',
             'pygor3-load_database=pygor3.scripts.load_database:main',
             'pygor3-naive_align=pygor3.scripts.naive_align:main',
+            'pygor3-all_gene_alignments_id=pygor3.scripts.all_gene_alignments_id:main',
             'pygor3-naive_align_id=pygor3.scripts.naive_align_id:main',
             'pygor3-align_export=pygor3.scripts.align_export:main',
             'pygor3-bs_export=pygor3.scripts.bs_export:main',

@@ -38,9 +38,9 @@ def main():
     parser = argparse.ArgumentParser()
     igor_models = parser.add_argument_group('IGoR default models')
 
-    # # Use IGoR default model
-    # igor_models.add_argument("-s", "--species", dest="species", help='Igor species', default="human")
-    # igor_models.add_argument("-c", "--chain", dest="chain", help='Igor chain', default="tcr_beta")  # , type=str, choices=['TRB', 'TRA'])
+    # Use IGoR default model
+    igor_models.add_argument("-s", "--species", dest="species", help='Igor species', default="human")
+    igor_models.add_argument("-c", "--chain", dest="chain", help='Igor chain', default="tcr_beta")  # , type=str, choices=['TRB', 'TRA'])
 
     parser.add_argument("-D", "--database", dest="database", help="Igor database created with database script.", default="Ajam.db")
     parser.add_argument("--event_pair", dest="event_pair", help="Events nickname", nargs=2, default=['v_choice', 'j_choice'])
@@ -55,32 +55,8 @@ def main():
     str_event_nickname2 = args.event_pair[1]
 
     # Create an IgorModel
-    #mdl = p3.IgorModel.load_default(args.species, args.chain)
+    mdl = p3.IgorModel.load_default(args.species, args.chain)
     db = p3.IgorSqliteDB.create_db(args.database)
-    mdl = db.get_IgorModel()
-    print( mdl['j_choice'] )
-    # mdl_parms = db.get_IgorModel_Parms()
-    # mdl_marginals = db.get_IgorModel_Marginals()
-    # print("+"*30)
-    # strEvent = 'd_3_del'
-    # print( mdl_marginals.marginals_dict[strEvent] )
-    # print(mdl_marginals.network_dict[strEvent])
-    # print(mdl_parms.Event_dict)
-    # print("mdl_parms.Event_dict[strEvent] : ", mdl_parms.Event_dict[strEvent])
-    #
-    # mdl_2 = p3.IgorModel.load_from_parms_marginals_object(mdl_parms, mdl_marginals)
-
-    # print(mdl_2['j_choice'])
-    # print("-"*50)
-    # TODO: ahora que tenemos el nombre de
-    #  las columnas debemos hacer que esto vaya a un xarray
-    #  o a por lo menos un numpy array con los datos
-    #  1. Opcion: puede ser pandas luego xarray no se como eso es posible
-
-
-
-    # return 0
-
     fff = get_pairwise_prob(mdl, str_event_nickname1, str_event_nickname2)
     average = db.calc_IgorBestScenarios_average_of(fff)
     print(average)
@@ -115,6 +91,7 @@ def main():
 
     plt.show()
 
+    return 0
 
 if __name__ == "__main__":
     main()

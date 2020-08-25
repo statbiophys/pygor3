@@ -413,15 +413,26 @@ class IgorTask:
 
     def load_db_from_genomes(self):
         self.igor_db.load_IgorGeneTemplate_FromFASTA("V", self.genomes.fln_genomicVs)
-        self.igor_db.load_IgorGeneTemplate_FromFASTA("D", self.genomes.fln_genomicDs)
         self.igor_db.load_IgorGeneTemplate_FromFASTA("J", self.genomes.fln_genomicJs)
+        try:
+            self.igor_db.load_IgorGeneTemplate_FromFASTA("D", self.genomes.fln_genomicDs)
+        except Exception as e:
+            print(e)
+            print("No D gene template found in batch files structure")
+            pass
 
     def load_db_from_alignments(self):
         print(self.igor_fln_align_V_alignments)
         self.igor_db.load_IgorAlignments_FromCSV("V", self.igor_fln_align_V_alignments)
-        print(self.igor_fln_align_D_alignments)
-        self.igor_db.load_IgorAlignments_FromCSV("D", self.igor_fln_align_D_alignments)
         self.igor_db.load_IgorAlignments_FromCSV("J", self.igor_fln_align_J_alignments)
+        try:
+            self.igor_db.load_IgorAlignments_FromCSV("D", self.igor_fln_align_D_alignments)
+        except Exception as e:
+            print(e)
+            print("Couldn't load D gene alignments!")
+            pass
+        print("Alignments loaded in database in "+str(self.igor_fln_db))
+
 
     def load_db_from_models(self):
         self.load_IgorModel()
@@ -842,6 +853,14 @@ class IgorModel:
         cls.specie = IgorSpecie
         cls.chain = IgorChain
 
+        return cls
+
+    @classmethod
+    def load_from_parms_marginals_object(cls, mdl_parms, mdl_marginals):
+        cls = IgorModel()
+        cls.parms = mdl_parms
+        cls.marginals = mdl_marginals
+        cls.generate_xdata()
         return cls
 
     # FIXME:
@@ -1511,6 +1530,10 @@ class IgorModel_Parms:
         # load events from default dictionary.
         #
         return cls
+
+    @classmethod
+    def from_database(cls, db):
+        print("Loading Model Parms from database.")
 
     def load_events_from_dict(self, dicto):
         print(dicto)

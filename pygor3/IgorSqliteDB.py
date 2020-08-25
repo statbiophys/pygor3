@@ -11,7 +11,8 @@ import csv
 from Bio import SeqIO
 #import IgorAlignment_data
 from .IgorSQL import *
-
+import numpy as np
+import pandas as pd
 
 ###################
 # TODO: Generalize to other kinds of database like postgres
@@ -755,10 +756,36 @@ class IgorSqliteDB:
                 lista.remove(dim)
             da = da.drop(lista)
             # Create table of not real marginals
-            # TODO: CONTINUE create tables
             if da.attrs['event_type'] == 'DinucMarkov':
-                # TODO: ADD X AND Y WITH THE CORRESPONDING IDS
                 self.execute_query( sqlcmd_ct_Model_Marginals_DinucMarkov(event_nickname, ['x', 'y']) )
+                cur = self.conn.cursor()
+                try:
+                    cur.execute('BEGIN TRANSACTION')
+                    df = da.to_dataframe(name='P')
+                    df.reset_index(inplace=True)
+                    # Rename names of dataframe
+                    dicto2rename = dict()
+                    for col in df.columns:
+                        if not col == 'P':
+                            dicto2rename[col] = "id_" + col
+                    df.rename(dicto2rename, axis='columns', inplace=True)
+
+                    mm_table = "IgorMM_" + event_nickname
+                    columns_list = list(df.columns)
+                    str_columns = ",".join(columns_list)
+                    placeholders = ':' + ', :'.join(columns_list)
+                    sql = 'INSERT INTO ' + mm_table + ' (%s) VALUES (%s);' % (str_columns, placeholders)
+                    #print("sql : ", sql)
+                    for index, row in df.iterrows():
+                        cur.execute(sql, row.to_dict())
+
+                    cur.execute('COMMIT')
+                except sqlite3.Error as e:
+                    print("-" * 40)
+                    print("ERROR: Can't insert in " + event_nickname + " table")
+                    print(e)
+                    print("-"*40)
+
             else:
                 tmp_list = [event_nickname] + da.attrs['parents']
                 da = da.transpose(*tmp_list)
@@ -774,7 +801,6 @@ class IgorSqliteDB:
                     # Rename names of dataframe
                     dicto2rename = dict()
                     for col in df.columns:
-                        print(col)
                         if not col == 'P':
                             dicto2rename[col] = "id_"+col
                     df.rename(dicto2rename, axis='columns', inplace=True)
@@ -786,13 +812,14 @@ class IgorSqliteDB:
                     sql = 'INSERT INTO ' + mm_table + ' (%s) VALUES (%s)' % (str_columns, placeholders)
 
                     for index, row in df.iterrows():
-                        dicto = row.to_dict()
                         cur.execute(sql, row.to_dict())
                     cur.execute('COMMIT')
                     # self.conn.commit()
                 except sqlite3.Error as e:
-                    print("Can't insert in "+event_nickname+" table")
+                    print("-" * 40)
+                    print("ERROR: Can't insert in "+event_nickname+" table")
                     print(e)
+                    print("-" * 40)
 
     def insert_IgorModel_Marginals_FromDict(self, cur, event_table, event_realization_dict):
         # TODO: IgorEvent_realization
@@ -953,6 +980,111 @@ class IgorSqliteDB:
             print(e)
             pass
 
+    ###### return IGoR Model
+    def get_IgorModel(self):
+        from .IgorIO import IgorModel
+        mdl = IgorModel.load_from_parms_marginals_object( self.get_IgorModel_Parms(), self.get_IgorModel_Marginals() )
+        return mdl
+
+    def get_IgorModel_Marginals(self):
+        print("-"*5, "Marginals", "-"*5)
+        from .IgorIO import IgorModel_Marginals
+        marginals = IgorModel_Marginals()
+
+        # So there are two different ways to implement this.
+        # 1. use a model parms to get all the nicknames and explore the name tables
+        # 2. Check query in db the nicknames
+        # 3. How to get all the tables with the prefix "IgorMM_"
+        # And the best way to do this is to ask the database (2)
+        # Get all the list of nicknames:
+        nickname_list = self.execute_select_query("SELECT nickname FROM IgorMP_Event_list;")
+        nickname_list = [nickname[0] for nickname in nickname_list]
+
+        marginals.network_dict = dict()
+        marginals.marginals_dict = dict()
+
+        for event_nickname in nickname_list:
+            col_names = self.get_table_colsname_list("IgorMM_"+event_nickname)
+            records = self.execute_select_query("SELECT * FROM IgorMM_"+event_nickname+";")
+
+            print(event_nickname) # , records)
+            events_tmp = [x[3:] for x in col_names if x != 'P']
+            marginals.network_dict[event_nickname] = events_tmp
+            df = pd.DataFrame(np.array(records), columns=events_tmp+['P'])
+            dimensions = list()
+            for event_name in events_tmp:
+                dim_ev = len(df[event_name].unique())
+                dimensions.append(dim_ev)
+
+            marginals.marginals_dict[event_nickname] = df['P'].to_numpy().reshape(dimensions)
+
+        return marginals
+
+    def get_table_colsname_list(self, tablename):
+        sqlcmd_qry = sqlcmd_template_qry_cols.format(tablename=tablename)
+        col_names = self.execute_select_query(sqlcmd_qry)
+        return [colname[0] for colname in col_names]
+
+    def get_IgorModel_Parms(self):
+        from .IgorIO import IgorModel_Parms
+        mdl_parms = IgorModel_Parms()
+        # tb_IgorMP_Event_list_columns = self.execute_select_query(
+        #     "SELECT name FROM pragma_table_info('IgorMP_Event_list');")
+        # tb_IgorMP_Event_list_columns = [aa[0] for aa in tb_IgorMP_Event_list_columns]
+        # event_type, seq_type, seq_side, priority, nickname
+
+        mdl_parms.Event_list = self.get_Event_list()
+        dict_nickname_name = mdl_parms.get_event_dict('nickname', 'name')
+        mdl_parms.Edges = list()
+        for edge in self.get_Edges():
+            mdl_parms.Edges.append( [dict_nickname_name[edge[0]], dict_nickname_name[edge[1]] ])
+
+        mdl_parms.ErrorRate_dict = self.get_ErrorRate_dict()
+
+        mdl_parms.get_EventDict_DataFrame()
+        return mdl_parms
+
+    def get_Event_list(self):
+        from .IgorIO import IgorRec_Event
+        from .IgorIO import IgorEvent_realization
+        sql_cmd = "SELECT event_type, seq_type, seq_side, priority, nickname, realizations_table FROM IgorMP_Event_list;"
+        Event_list = list()
+        for rec in self.execute_select_query(sql_cmd):
+            event = IgorRec_Event(*rec[:-1])
+            str_realization_table = rec[-1]
+            realization_dbrecords = self.execute_select_query("SELECT * FROM " + str_realization_table + ";")
+            for realization_dbrec in realization_dbrecords:
+                realization = IgorEvent_realization()
+                if event.event_type == "GeneChoice":
+                    realization.id = int(realization_dbrec[0])
+                    realization.value = realization_dbrec[1]
+                    realization.name = realization_dbrec[2]
+                elif event.event_type == "DinucMarkov":
+                    realization.id = int(realization_dbrec[0])
+                    realization.value = realization_dbrec[1]
+                else:
+                    realization.id = int(realization_dbrec[0])
+                    realization.value = int(realization_dbrec[1])
+                event.add_realization(realization)
+            #print(event)
+            Event_list.append(event)
+
+        return Event_list
+
+    def get_Edges(self):
+        sql_cmd = "SELECT parent_event, child_event FROM IgorMP_Edges;"
+        Edges = self.execute_select_query(sql_cmd)
+        return Edges
+
+    def get_ErrorRate_dict(self):
+        ErrorRate_dict = dict()
+        sql_cmd = "SELECT error_type, error_values FROM IgorMP_ErrorRate;"
+        ErrorRate_record = self.execute_select_query(sql_cmd)[0]
+        print("ErrorRate_record : ", ErrorRate_record)
+        ErrorRate_dict['error_type'] = ErrorRate_record[0]
+        ErrorRate_dict['error_values'] = ErrorRate_record[1]
+        return ErrorRate_dict
+
     #########
     def gen_IgorBestScenarios_cols_list(self):
         self.sql_IgorBestScenarios_cols_name_type_list = self.execute_select_query("SELECT name, type FROM pragma_table_info('IgorBestScenarios');")
@@ -980,6 +1112,26 @@ class IgorSqliteDB:
         cur.execute(sqlSelect)
         records = cur.fetchall()
         return (records)
+
+    def calc_IgorBestScenarios_average_of(self, scenario_function):
+        from .IgorIO import IgorScenario
+        self.gen_IgorBestScenarios_cols_list()
+        indexes_list = self.fetch_IgorIndexedSeq_indexes()
+        print("len: ", len(indexes_list))
+        function_average = 0
+        for indx in indexes_list:
+            # aln_data = db.get_IgorAlignment_data_list_By_seq_index('V', indx)
+            bs_data_list = self.fetch_IgorBestScenarios_By_seq_index(indx)
+            tmp_average = 0
+            scenario_norm_factor = 0
+            for bs_data in bs_data_list:
+                bs = IgorScenario.load_FromSQLRecord(bs_data, self.sql_IgorBestScenarios_cols_name_type_list)
+                tmp_average = tmp_average + bs.scenario_proba_cond_seq * scenario_function(bs)
+                scenario_norm_factor = scenario_norm_factor + bs.scenario_proba_cond_seq
+            tmp_average = tmp_average / scenario_norm_factor
+            function_average = function_average + tmp_average
+
+        return (function_average / len(indexes_list))
 
 
 
