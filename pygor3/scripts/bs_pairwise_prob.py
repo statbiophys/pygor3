@@ -2,17 +2,8 @@
 import pygor3 as p3
 import argparse
 
-def generate_event_delta_Kronecker(event_nickname, event_id):
-    def tmp_funct(bs:p3.IgorScenario):
-        if bs[event_nickname] == event_id:
-            return 1
-        else:
-            return 0
-    return tmp_funct
-
 def get_pairwise_prob(mdl, event_nickname1, event_nickname2):
     # create an xarray matrix with event_nickname1 and event_nickname2
-    # da = xr.
     da = mdl.get_zero_xarray_from_list([event_nickname1, event_nickname2])
 
     def tmp_funct(bs:p3.IgorScenario):
@@ -22,25 +13,13 @@ def get_pairwise_prob(mdl, event_nickname1, event_nickname2):
 
     return tmp_funct
 
-
-def calc_average(db:p3.IgorSqliteDB, observable_function):
-    for sigma in db.fetch_IgorIndexedSeq_indexes():
-        print(sigma, len(db.fetch_IgorIndexedSeq_indexes()))
-
-# from  optparse import OptionParser
 def main():
-    #parser = OptionParser()
-    #parser.add_option("-s", "--species", dest="species", help='Igor species')
-    #parser.add_option("-c", "--chain", dest="chain", help='Igor chain')
-    #parser.add_option("-b", "--batch", dest="batch", help='Batchname to identify run. If not set random name is generated')
-    #parser.add_option("-o", "--output", dest="output", help='filename of csv file to export data')
-
     parser = argparse.ArgumentParser()
     igor_models = parser.add_argument_group('IGoR default models')
 
-    # Use IGoR default model
-    igor_models.add_argument("-s", "--species", dest="species", help='Igor species', default="human")
-    igor_models.add_argument("-c", "--chain", dest="chain", help='Igor chain', default="tcr_beta")  # , type=str, choices=['TRB', 'TRA'])
+    # # Use IGoR default model
+    # igor_models.add_argument("-s", "--species", dest="species", help='Igor species', default="human")
+    # igor_models.add_argument("-c", "--chain", dest="chain", help='Igor chain', default="tcr_beta")  # , type=str, choices=['TRB', 'TRA'])
 
     parser.add_argument("-D", "--database", dest="database", help="Igor database created with database script.", default="Ajam.db")
     parser.add_argument("--event_pair", dest="event_pair", help="Events nickname", nargs=2, default=['v_choice', 'j_choice'])
@@ -55,24 +34,29 @@ def main():
     str_event_nickname2 = args.event_pair[1]
 
     # Create an IgorModel
-    mdl = p3.IgorModel.load_default(args.species, args.chain)
+    # mdl = p3.IgorModel.load_default(args.species, args.chain)
     db = p3.IgorSqliteDB.create_db(args.database)
+    mdl = db.get_IgorModel()
     fff = get_pairwise_prob(mdl, str_event_nickname1, str_event_nickname2)
     average = db.calc_IgorBestScenarios_average_of(fff)
     print(average)
+    print("="*50)
+    print(average[{'v_choice':0}] )
+    print("average[{'v_choice':0}].sum() : ", average[{'v_choice':0}].sum() )
+    print("average.sum() : ", average.sum())
+    print("=" * 50)
 
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots(figsize=(10,15))
     average.plot(ax=ax)
 
     str_title = "$P($" + str_event_nickname1 + ", " + str_event_nickname2+"$)$"
-    #ax.set_title(str_title)
+
     ax.set_ylabel(str_event_nickname1.replace("_", " "))
     ax.set_xlabel(str_event_nickname2.replace("_", " "))
 
-    # plot sutilties
     import numpy as np
-    v_genlabel = np.vectorize(p3.genLabel )
+    v_genlabel = np.vectorize(p3.genLabel)
 
     XX = average[str_event_nickname2].values
     lbl_XX = average['lbl__' + str_event_nickname2].values

@@ -980,6 +980,21 @@ class IgorSqliteDB:
             print(e)
             pass
 
+    def fetch_IgorPgen(self):
+        sqlSelect = "SELECT * FROM IgorPgen;"
+        cur = self.conn.cursor()
+        cur.execute(sqlSelect)
+        records = cur.fetchall()
+        return records
+
+    def fetch_IgorPgen_By_seq_index(self, seq_index):
+        sqlSelect = "SELECT * FROM IgorPgen WHERE seq_index = " + str(seq_index) + ";"
+        cur = self.conn.cursor()
+        cur.execute(sqlSelect)
+        record = cur.fetchone()
+        return record
+
+
     ###### return IGoR Model
     def get_IgorModel(self):
         from .IgorIO import IgorModel
@@ -1119,19 +1134,25 @@ class IgorSqliteDB:
         indexes_list = self.fetch_IgorIndexedSeq_indexes()
         print("len: ", len(indexes_list))
         function_average = 0
-        for indx in indexes_list:
+        seq_pgen_tuple_list = self.fetch_IgorPgen()
+
+        pgen_normalization = 0
+        for indx, pgen in seq_pgen_tuple_list:
+        #for indx in indexes_list:
             # aln_data = db.get_IgorAlignment_data_list_By_seq_index('V', indx)
             bs_data_list = self.fetch_IgorBestScenarios_By_seq_index(indx)
             tmp_average = 0
             scenario_norm_factor = 0
+            pgen_normalization = pgen_normalization + pgen
             for bs_data in bs_data_list:
                 bs = IgorScenario.load_FromSQLRecord(bs_data, self.sql_IgorBestScenarios_cols_name_type_list)
                 tmp_average = tmp_average + bs.scenario_proba_cond_seq * scenario_function(bs)
                 scenario_norm_factor = scenario_norm_factor + bs.scenario_proba_cond_seq
             tmp_average = tmp_average / scenario_norm_factor
-            function_average = function_average + tmp_average
+            function_average = function_average + pgen*tmp_average
+            # function_average = function_average + tmp_average
 
-        return (function_average / len(indexes_list))
+        return (function_average / (pgen_normalization*len(indexes_list)) )
 
 
 

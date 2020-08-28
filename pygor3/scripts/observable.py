@@ -128,31 +128,5 @@ def main():
                 sce.realizations_ids_dict[col_name] = eval(record[ii])
         print(ii, col_name, tipo, record[ii])
 
-    print(sce.to_dict())
-    print(record)
-    print(mdl.xdata)
-    import numpy as np
-    import xarray as xr
-
-
-    nickname_list = list()
-    dims_list = list()
-    for event in mdl.parms.Event_list:
-        print(event.nickname, len(event.realizations) )
-        nickname_list.append(event.nickname)
-        dims_list.append(len(event.realizations))
-
-    aaa = np.array(dims_list)
-    print(aaa.prod())
-    # da_hist = xr.DataArray(np.zeros( tuple(dims_list), dtype=int), dims=dims_list)
-    # print(da_hist)
-
-    # TODO: Calculate the information content matrix, and do
-    # Tr(P^T -log(P)) and this function is actually a matrix.
-
-    # self.xdata[key] = xr.DataArray(self.marginals.marginals_dict[key], \
-    #                                dims=tuple(self.marginals.network_dict[key]))
-
-
 if __name__ == "__main__":
     main()

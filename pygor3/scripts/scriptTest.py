@@ -58,27 +58,11 @@ def main():
     #mdl = p3.IgorModel.load_default(args.species, args.chain)
     db = p3.IgorSqliteDB.create_db(args.database)
     mdl = db.get_IgorModel()
-    print( mdl['j_choice'] )
-    # mdl_parms = db.get_IgorModel_Parms()
-    # mdl_marginals = db.get_IgorModel_Marginals()
-    # print("+"*30)
-    # strEvent = 'd_3_del'
-    # print( mdl_marginals.marginals_dict[strEvent] )
-    # print(mdl_marginals.network_dict[strEvent])
-    # print(mdl_parms.Event_dict)
-    # print("mdl_parms.Event_dict[strEvent] : ", mdl_parms.Event_dict[strEvent])
-    #
-    # mdl_2 = p3.IgorModel.load_from_parms_marginals_object(mdl_parms, mdl_marginals)
-
-    # print(mdl_2['j_choice'])
-    # print("-"*50)
+    print(mdl['j_choice'])
     # TODO: ahora que tenemos el nombre de
     #  las columnas debemos hacer que esto vaya a un xarray
     #  o a por lo menos un numpy array con los datos
     #  1. Opcion: puede ser pandas luego xarray no se como eso es posible
-
-
-
     # return 0
 
     fff = get_pairwise_prob(mdl, str_event_nickname1, str_event_nickname2)
