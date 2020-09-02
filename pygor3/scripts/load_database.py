@@ -9,6 +9,7 @@
 # 3.4. pgen
 # 3.5. coverage
 
+
 import pygor3 as p3
 # from optparse import OptionParser
 import argparse
@@ -92,15 +93,15 @@ def main():
         try:
             task.igor_path_ref_genome = args.path_ref_genome  # "/home/alfaceor/Dropbox/PosDoc/IGoR/dev/MyGithub/pygor3/demo/thi/genomics_repseqio_F"
             task.load_IgorRefGenome()
-            print(task.igor_fln_indexed_sequences)
-            print(task.genomes.df_genomicVs) # is where all this data is collected
-            print(task.genomes.df_genomicDs)
-            print(task.genomes.df_genomicJs)
+            # print(task.igor_fln_indexed_sequences)
+            # print(task.genomes.df_genomicVs) # is where all this data is collected
+            # print(task.genomes.df_genomicDs)
+            # print(task.genomes.df_genomicJs)
 
             task.load_db_from_genomes()
         except Exception as e:
             print("Couldn't load genome templates to database")
-            print(e)
+            print("ERROR: ", e)
 
     task.load_db_from_alignments()
 

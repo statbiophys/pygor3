@@ -101,7 +101,7 @@ class IgorTask:
         self.fln_genomicDs = ""
         self.fln_genomicJs = ""
         self.fln_V_gene_CDR3_anchors = ""
-        self.fln_D_gene_CDR3_anchors = ""
+        #self.fln_D_gene_CDR3_anchors = ""
         self.fln_J_gene_CDR3_anchors = ""
 
         self.igor_wd = ""
@@ -411,7 +411,9 @@ class IgorTask:
     def load_db_from_indexed_sequences(self):
         self.igor_db.load_IgorIndexedSeq_FromCSV(self.igor_fln_indexed_sequences)
 
+    # load genome templates from fasta and csv files.
     def load_db_from_genomes(self):
+        print("Loading Gene templates ...")
         self.igor_db.load_IgorGeneTemplate_FromFASTA("V", self.genomes.fln_genomicVs)
         self.igor_db.load_IgorGeneTemplate_FromFASTA("J", self.genomes.fln_genomicJs)
         try:
@@ -420,6 +422,13 @@ class IgorTask:
             print(e)
             print("No D gene template found in batch files structure")
             pass
+        # load
+        print("loading Anchors data ...")
+        # try:
+        self.igor_db.load_IgorGeneAnchors_FromCSV("V", self.genomes.fln_V_gene_CDR3_anchors)
+        self.igor_db.load_IgorGeneAnchors_FromCSV("J", self.genomes.fln_J_gene_CDR3_anchors)
+        # except Exception as e:
+        #     print("ERROR : ", e)
 
     def load_db_from_alignments(self):
         print(self.igor_fln_align_V_alignments)
@@ -440,7 +449,7 @@ class IgorTask:
             self.igor_db.load_IgorModel(self.mdl)
         except Exception as e:
             print("Couldn't load model to database from IgorModel object")
-            print(e)
+            print("ERROR: ", e)
 
     def load_db_from_indexed_cdr3(self):
         print(self.igor_fln_indexed_CDR3)
@@ -616,6 +625,51 @@ class IgorRefGenome:
         self.df_J_ref_genome = None
 
     @classmethod
+    def load_FromSQLRecord_list(cls, sqlrecords_genomicVs = None, sqlrecords_genomicDs = None, sqlrecords_genomicJs = None,
+        sqlrecords_V_gene_CDR3_anchors = None, sqlrecords_J_gene_CDR3_anchors = None):
+        cls = IgorRefGenome()
+        # TODO: make query to database
+
+        cls.df_genomicVs = pd.DataFrame.from_records(sqlrecords_genomicVs, columns=['id', 'name', 'value']).set_index('id')
+
+        # Fasta to dataframe
+        try:
+            # df_V_anchors = pd.read_csv(self.fln_V_gene_CDR3_anchors, sep=';')
+            df_V_anchors = pd.DataFrame.from_records(sqlrecords_V_gene_CDR3_anchors, columns=['id', 'gene', 'anchor_index']).set_index(('id'))
+
+            cls.df_V_ref_genome = cls.df_genomicVs.set_index('name').join(df_V_anchors.set_index('gene')).reset_index()
+            cls.dict_genomicVs = (cls.df_genomicVs.set_index('name').to_dict())['value']
+        except Exception as e:
+            print('No V genes were found.')
+            print(e)
+            pass
+
+        # J genes
+        cls.df_genomicJs = pd.DataFrame.from_records(sqlrecords_genomicJs, columns=['id', 'name', 'value']).set_index('id')
+        try:
+            df_J_anchors = pd.DataFrame.from_records(sqlrecords_J_gene_CDR3_anchors, columns=['id', 'gene', 'anchor_index']).set_index(('id'))
+            cls.df_J_ref_genome = cls.df_genomicJs.set_index('name').join(df_J_anchors.set_index('gene')).reset_index()
+            cls.dict_genomicJs = (cls.df_genomicJs.set_index('name').to_dict())['value']
+        except Exception as e:
+            print('No J genes were found.')
+            print(e)
+            pass
+
+        # D genes
+        try:
+            cls.df_genomicDs = pd.DataFrame.from_records(sqlrecords_genomicDs,
+                                                         columns=['id', 'name', 'value']).set_index('id')
+            cls.dict_genomicDs = (cls.df_genomicDs.set_index('name').to_dict())['value']
+            # TODO: SHOULD I BE REBUNDANT? or df_genomicDs is rebundant?
+            # self.df_D_ref_genome
+        except Exception as e:
+            print('No D genes were found.')
+            print(e)
+            pass
+
+        return cls
+
+    @classmethod
     def load_from_path(cls, path_ref_genome):
         cls = IgorRefGenome()
         cls.path_ref_genome = path_ref_genome
@@ -705,6 +759,8 @@ class IgorAlignment_data:
         self.strGene_class = ""
         self.strGene_seq   = ""
 
+        self.anchor_in_read = None
+
     def __str__(self):
         return str(self.to_dict())
 
@@ -793,7 +849,7 @@ class IgorModel:
     def __init__(self, model_parms_file=None, model_marginals_file=None):
         self.parms = IgorModel_Parms()
         self.marginals = IgorModel_Marginals()
-        self.anchors = None
+        self.genomic_dataframe_dict = dict()
         self.xdata = dict()
         self.metadata = dict()
         self.specie = ""
@@ -1295,6 +1351,7 @@ class IgorModel:
             print("Event nickname "+event_nickname+" is not present in this model.")
             print("Accepted Events nicknames are : "+str(self.get_events_nicknames_list()))
 
+    # FIXME: CHANGE EVENT MARGINAL!!!
     def get_Event_Marginal(self, event_nickname: str):
         """Returns an xarray with the marginal probability of the event given the nickname"""
         # FIXME: add new way to make the recursion.
@@ -1472,6 +1529,18 @@ class IgorModel:
             #fig.savefig(lbl_file+".png")
             #ax.clear()
         return fig
+
+    def set_genomic_dataframe_dict(self, dataframe_dict):
+        self.genomic_dataframe_dict = dataframe_dict
+
+    def scenario_from_database(self, scenarios_list):
+        scen = scenarios_list[0]
+        scen_dict = scen.realizations_ids_dict
+
+        for event in self.parms.Event_list:
+            if not (event.event_type == 'DinucMarkov'):
+                scen_dict[event.nickname] = scen_dict.pop('id_' + event.nickname)
+
 
 class IgorModel_Parms:
     """
@@ -2304,6 +2373,7 @@ class IgorScenario:
         self.realizations_ids_dict = dict()
         # given a templated list with ids
         self.realizations_ids_list = dict()
+        self.mdl = None
 
     def __getitem__(self, key):
         return self.realizations_ids_dict[key]

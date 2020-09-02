@@ -60,20 +60,20 @@ CREATE TABLE IF NOT EXISTS IgorJGeneTemplate (
 sqlcmd_ct['geneVCDR3Anchors'] = """
 -- IgorVGeneCDR3Anchors table
 CREATE TABLE IF NOT EXISTS IgorVGeneCDR3Anchors (
-    vgene_id integer PRIMARY KEY,
-    gene_name text,
+    vgene_id integer,
     anchor_index integer,
-    function text
+    function text,
+    FOREIGN KEY (vgene_id)  REFERENCES IgorVGeneTemplate(vgene_id)
 );
 """
 
 sqlcmd_ct['geneJCDR3Anchors'] = """
 -- IgorJGeneCDR3Anchors table
 CREATE TABLE IF NOT EXISTS IgorJGeneCDR3Anchors (
-    jgene_id integer PRIMARY KEY,
-    gene_name text,
+    jgene_id integer,
     anchor_index integer,
-    function text
+    function text,
+    FOREIGN KEY (jgene_id)  REFERENCES IgorJGeneTemplate(jgene_id)
 );
 """
 

@@ -108,7 +108,7 @@ class IgorSqliteDB:
             # self.conn.close()
         except sqlite3.Error as e:
             print('str_query : ', str_query)
-            print(e)
+            print("sqlite3.ERROR : ", e)
 
     def execute_select_query(self, str_query):
         """
@@ -125,7 +125,7 @@ class IgorSqliteDB:
             return record
             #self.conn.close()
         except sqlite3.Error as e:
-            print(e)
+            print("sqlite3.ERROR : ", e)
 
     def createSqliteDB_tmp(self):
         # TODO: create database in base of IgorSQL scripts
@@ -337,10 +337,14 @@ class IgorSqliteDB:
         return (record)
 
     def load_IgorGeneAnchors_FromCSV(self, strGene, flnGeneAnchors):
+        # import pdb; pdb.set_trace()
+
         self.execute_query(sqlcmd_ct['gene'+strGene+'CDR3Anchors'])
+        # FIXME: FILENAMES WERE NOT STORED
         filename = {'V': self.flnVAnchors, 'J': self.flnJAnchors}
         filename[strGene] = flnGeneAnchors
 
+        print("Loading Gene Anchors from ", flnGeneAnchors)
         cur = self.conn.cursor()
         try:
             cur.execute('BEGIN TRANSACTION')
@@ -348,33 +352,107 @@ class IgorSqliteDB:
                 csvline = fp.readline()
                 while csvline:
                     csvline = fp.readline()
-                    # print(csvline)
-                    self.insert_IgorIndexedSeq_FromCSVline(cur, csvline)
+                    self.insert_IgorGeneAnchors_FromCSVline(strGene, cur, csvline)
+
             cur.execute('COMMIT')
             # self.conn.commit()
         except sqlite3.Error as e:
-            print(e)
+            print("sqlite3.ERROR : ", e)
 
-    # FIXME: TO COMPLETE
-    def insert_IgorGeneAnchors_FromCSVline(self, cur, csvline):
+    def insert_IgorGeneAnchors_FromCSVline(self, strGene, cur, csvline):
         """
         Insert IGoR indexed_CDR3_sequences in Database flnIgorDB
         :param csvline:
         """
-        sql = ''' INSERT INTO IgorIndexedSeq(seq_index,sequence)
-                  VALUES(?,?) '''
+        sql = "INSERT INTO Igor"+strGene+\
+              "GeneCDR3Anchors("+strGene.lower()+"gene_id, anchor_index, function) VALUES(?,?,?) "
 
         csvline = csvline.replace('\n', '')
-        data = tuple(csvline.split(";"))
-        if len(data) == 2:
-            try:
-                # cur = self.conn.cursor()
+        data = csvline.split(";")
+
+        try:
+            data[0] = self.fetch_IgorGeneTemplate_By_gene_name(strGene, data[0])[0]
+        except Exception as e:
+            print("data : ", data)
+            print("ERROR : ", e)
+            pass
+
+        try:
+            if len(data) == 2:
+                # NO FUNCTION SPECIFIED
+                data = data + [None]
                 cur.execute(sql, data)
-                # self.conn.commit()
-            except sqlite3.Error as e:
+            elif len(data) == 3:
+                cur.execute(sql, data)
+            else:
                 print(data)
-                print(e)
-                pass
+
+        except sqlite3.Error as e:
+            print(len(data), data)
+            print("sqlite3.ERROR : ", e)
+            pass
+
+    # TODO: fetch records from database
+    def fetch_IgorGeneAnchors_By_Gene(self, strGene):
+        sqlSelect = "SELECT * FROM Igor" + strGene.upper() + "GeneCDR3Anchors"
+        cur = self.conn.cursor()
+        cur.execute(sqlSelect)
+        records = cur.fetchall()
+        return (records)
+
+    # def fetch_IgorGeneAnchors_By_Gene_gene_name(self, strGene, gene_name):
+    #     sqlSelect = "SELECT * FROM Igor" + strGene.upper() + "GeneCDR3Anchors"
+    #     cur = self.conn.cursor()
+    #     cur.execute(sqlSelect)
+    #     records = cur.fetchall()
+    #     return (records)
+
+    def fetch_IgorGenomicData_By_Gene(self, strGene):
+        if strGene == 'D':
+            sqlcmd_select_template = """
+                                SELECT gene.{lower}gene_id, gene.gene_name, gene.sequence 
+                                FROM Igor{upper}GeneTemplate gene;
+                                """
+        else:
+            sqlcmd_select_template = """
+                    SELECT gene.{lower}gene_id, gene.gene_name, gene.sequence, 
+                            anch.anchor_index, anch.function 
+                    FROM Igor{upper}GeneTemplate gene 
+                    LEFT JOIN Igor{upper}GeneCDR3Anchors anch 
+                    ON gene.{lower}gene_id = anch.{lower}gene_id;
+                    """
+        sqlSelect = sqlcmd_select_template.format(upper=strGene.upper(), lower=strGene.lower())
+
+        cur = self.conn.cursor()
+        cur.execute(sqlSelect)
+        records = cur.fetchall()
+        return (records)
+
+    def get_IgorGenomicDataFrame_dict(self):
+        import pandas as pd
+        genomic_data_dict = dict()
+        V_records = self.fetch_IgorGenomicData_By_Gene("V")
+        J_records = self.fetch_IgorGenomicData_By_Gene("J")
+
+        columnas = ['id', 'gene_name', 'sequence', 'anchor_index', 'function']
+        df_V = pd.DataFrame.from_records(V_records, columns=columnas)
+        genomic_data_dict["V"] = df_V
+        df_J = pd.DataFrame.from_records(J_records, columns=columnas)
+        genomic_data_dict["J"] = df_J
+
+        try:
+            D_records = self.fetch_IgorGenomicData_By_Gene("D")
+            columnas = ['id', 'gene_name', 'sequence']
+            df_D = pd.DataFrame.from_records(D_records, columns=columnas)
+            genomic_data_dict["D"] = df_D
+        except Exception as e:
+            print("No D genes were found in database ", self.flnIgorDB)
+            print("WARNING: ", e)
+            pass
+
+
+        return genomic_data_dict
+
 
     ###############################################
     ####  IgorXAlignments Tables Methods
@@ -459,6 +537,17 @@ class IgorSqliteDB:
         sqlSelect = "SELECT * FROM Igor"+strGene.upper()+"Alignments WHERE seq_index=="+str(seq_index)+" ORDER BY score DESC"
         if limit is not None:
             sqlSelect = sqlSelect + " LIMIT "+ str(limit)
+        print("sqlSelect: ", sqlSelect)
+        cur = self.conn.cursor()
+        cur.execute(sqlSelect)
+        record = cur.fetchall()
+        return (record)
+
+    def fetch_IgorAlignments_By_seq_index_and_gene_name(self, strGene, seq_index, gene_name, limit=None):
+        sqlSelect = "SELECT * FROM Igor" + strGene.upper() + "Alignments WHERE seq_index==" + str(
+            seq_index) + " ORDER BY score DESC"
+        if limit is not None:
+            sqlSelect = sqlSelect + " LIMIT " + str(limit)
         cur = self.conn.cursor()
         cur.execute(sqlSelect)
         record = cur.fetchall()
@@ -511,7 +600,7 @@ class IgorSqliteDB:
         from .IgorIO import IgorAlignment_data
         align_data_records = self.fetch_IgorAlignments_By_seq_index(strGene, seq_index, limit=limit)
         # best_align_data_record = self.fetch_best_IgorAlignments_By_seq_index(strGene, seq_index)
-        #print("best_align_data_record ", align_data_records)
+        # print("best_align_data_record ", align_data_records)
         align_data_list = list()
         for align_record in align_data_records:
             align_data = IgorAlignment_data.load_FromSQLRecord(align_record)
@@ -522,6 +611,10 @@ class IgorSqliteDB:
             align_data.strGene_seq = gene_record[2]
             align_data_list.append(align_data)
         return align_data_list
+
+    def get_DataFrame_IgorAlignment_By_seq_index(self, strGene, seq_index, limit=None):
+        records = self.fetch_IgorAlignments_By_seq_index(strGene, seq_index, limit=limit)
+        pd.DataFrame.from_records(records)
 
     def appendList_IgorAlignments_data_By_seq_index(self, strGene_class, seq_index, alnDataList=None):
         """
@@ -1127,6 +1220,32 @@ class IgorSqliteDB:
         cur.execute(sqlSelect)
         records = cur.fetchall()
         return (records)
+
+    def get_IgorBestScenarios_By_seq_index(self, seq_index):
+        from .IgorIO import IgorScenario
+        # FIXME: THIS METHOD SHOULD BE EVALUATED ONCE AFTER DATA IS LOADED WITH A TRY IF TABLE EXIST
+        #  TO AVOID THE UNNECESSARY RERUNNING.
+        self.gen_IgorBestScenarios_cols_list()
+        scenarios_list = list()
+        for record in self.fetch_IgorBestScenarios_By_seq_index(seq_index):
+            scenario = IgorScenario.load_FromSQLRecord(record, self.sql_IgorBestScenarios_cols_name_type_list)
+            scenarios_list.append(scenario)
+        return scenarios_list
+
+    # FIXME : FIND A BETTER DESING FOR THIS FUNCTION
+    def get_IgorBestScenarios_By_seq_index_IgorModel(self, seq_index, mdl):
+        scenarios_mdl_list = list()
+        scenarios_list = self.get_IgorBestScenarios_By_seq_index(seq_index)
+        for scen in scenarios_list:
+            scen_dict = scen.realizations_ids_dict
+            for event in mdl.parms.Event_list:
+                if not (event.event_type == 'DinucMarkov'):
+                    scen_dict[event.nickname] = scen_dict.pop('id_' + event.nickname)
+            scen.realizations_ids_dict = scen_dict
+            scenarios_mdl_list.append(scen)
+
+        return scenarios_mdl_list
+
 
     def calc_IgorBestScenarios_average_of(self, scenario_function):
         from .IgorIO import IgorScenario
