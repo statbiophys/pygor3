@@ -66,5 +66,5 @@ stamp-h1
 
 #notebooks/
 pygor3.egg-info/
-pygor3/.ipynb_checkpoints/
+**/.ipynb_checkpoints/
 pygor3/old/
