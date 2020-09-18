@@ -17,61 +17,46 @@ def main():
     args = parser.parse_args()
 
 
+    # Get the CDR3 from scenarios
+    # 1. Load database and model within database
     db = p3.IgorSqliteDB.create_db(args.database)
-    # db.load_Igor
     mdl = db.get_IgorModel()
-    # Prob = mdl.xdata['v_choice']*mdl.xdata['j_choice']
-    # print(Prob)
 
-    print("="*30)
-    #records = db.fetch_IgorGeneAnchors_By_Gene("V")
-    #print(records)
-
+    # 2. load alignment genomic dataframes inside mld instance
     mdl.set_genomic_dataframe_dict(db.get_IgorGenomicDataFrame_dict())
-
-    # Now getting the CDR3 from best scenario
-    print( mdl.genomic_dataframe_dict["V"] )
+    gene_templates_dict = db.get_IgorGenomicDataFrame_dict()
 
     # Get the CDR3 length from a bs
+    # For a particular seq_index
     seq_index = 5
-    scenarios_list = db.get_IgorBestScenarios_By_seq_index(seq_index)
-    print(scenarios_list[0].to_dict())
-
+    # 3. list all calculated scenarios
     scenarios_list = db.get_IgorBestScenarios_By_seq_index_IgorModel(seq_index, mdl)
 
-    # Ahora que tengo los scenarios en el formato del mdl
-    # quiero obtener el cdr3 de un scenario
-    scen = scenarios_list[0]
-    print(scen.to_dict())
-    print(mdl.parms.Event_list[0].to_dict())
-    # mdl.parms.get_event_dict('')
-
-    #lista = db.get_IgorAlignment_data_list_By_seq_index("V", seq_index)
+    # 4. Get the alignments of the sequence
     v_aln_list = db.get_IgorAlignment_data_list_By_seq_index("V", seq_index)
     j_aln_list = db.get_IgorAlignment_data_list_By_seq_index("J", seq_index)
     # str_gene_name = "U66059|TRBV5-1*01|Homo sapiens|F|V-REGION|113806..114091|286 nt|1| | | | |286+0=286| | |"
-    gene_templates_dict = db.get_IgorGenomicDataFrame_dict()
 
-    ### JUST ALIGNMENTS
+
+    # 5. For each sequence get the alignments and calculate the anchor_in_read from the anchor_index and the alignment offset
     for aln in v_aln_list:
         # print(gene_templates_dict["V"])
         anchor_index = gene_templates_dict["V"].loc[aln.gene_id].anchor_index
         aln.anchor_in_read = anchor_index + aln.offset
-        print(" v: ", aln.gene_id, aln.score, aln.anchor_in_read, anchor_index, aln.offset, aln.strGene_name)
+        # print(" v: ", aln.gene_id, aln.score, aln.anchor_in_read, anchor_index, aln.offset, aln.strGene_name)
 
-    # print(gene_templates_dict["J"])
     for aln in j_aln_list:
         # print(gene_templates_dict["V"])
         #print(aln.gene_id,)
         anchor_index = gene_templates_dict["J"].loc[aln.gene_id].anchor_index
         aln.anchor_in_read = anchor_index + aln.offset
-        print(" j: ", aln.gene_id, aln.score, aln.anchor_in_read, anchor_index, aln.offset, aln.strGene_name)
+        # print(" j: ", aln.gene_id, aln.score, aln.anchor_in_read, anchor_index, aln.offset, aln.strGene_name)
 
-    print(v_aln_list[0].anchor_in_read)
-    print(j_aln_list[0].anchor_in_read)
+    # print(v_aln_list[0].anchor_in_read)
+    # print(j_aln_list[0].anchor_in_read)
 
-    # NOW USING THE SCENARIOS
-    scenarios_list = db.get_IgorBestScenarios_By_seq_index_IgorModel(seq_index, mdl)
+    # 6. For each scenario get the CDR3
+    # scenarios_list = db.get_IgorBestScenarios_By_seq_index_IgorModel(seq_index, mdl)
     for scen in scenarios_list:
         # scen = scenarios_list[0]
         print("---> Scenario", scen.scenario_rank)

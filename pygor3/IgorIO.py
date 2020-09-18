@@ -44,6 +44,7 @@ def genLabel(strName):
         return aaa[1]
     else:
         return strName
+v_genLabel = np.vectorize(genLabel)
 
 def command_from_dict_options(dicto:dict):
     """ Return igor options from dictionary"""
@@ -60,6 +61,7 @@ def command_from_dict_options(dicto:dict):
 def run_command(cmd):
     """from http://blog.kagesenshi.org/2008/02/teeing-python-subprocesspopen-output.html
     """
+    # print(cmd)
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     stdout = []
     while True:
@@ -90,10 +92,10 @@ class IgorTask:
 
         # To load default models and genomic templates
         self.igor_models_root_path = "" # igor models paths where all species and chains are stored.
-        self.igor_species = ""
-        self.igor_chain = ""
+        self.igor_species = None
+        self.igor_chain = None
 
-        self.igor_model_dir_path = ""
+        self.igor_model_dir_path = None
 
         # genome references alignments
         self.igor_path_ref_genome = ""
@@ -130,6 +132,11 @@ class IgorTask:
         self.igor_fln_output_pgen = ""
         self.igor_fln_output_scenarios = ""
         self.igor_fln_output_coverage = ""
+
+        # TODO: NO DATABASE FIELDS FOR THIS GUYS
+        self.igor_fln_generated_realizations_werr = ""
+        self.igor_fln_generated_seqs_werr = ""
+        self.igor_fln_generation_info = ""
 
         self.igor_fln_db = ""
 
@@ -184,6 +191,48 @@ class IgorTask:
             print(e)
             raise e
 
+    def to_dict(self):
+        dicto = {
+            "igor_species": self.igor_species,
+            "igor_chain": self.igor_chain,
+            "igor_model_dir_path": self.igor_model_dir_path,
+            "igor_path_ref_genome": self.igor_path_ref_genome,
+            "fln_genomicVs": self.fln_genomicVs,
+            "fln_genomicDs": self.fln_genomicDs,
+            "fln_genomicJs": self.fln_genomicJs,
+            "fln_V_gene_CDR3_anchors": self.fln_V_gene_CDR3_anchors,
+            "igor_wd": self.igor_wd,
+            "igor_batchname": self.igor_batchname,
+            "igor_model_parms_file": self.igor_model_parms_file,
+            "igor_model_marginals_file": self.igor_model_marginals_file,
+            "igor_read_seqs": self.igor_read_seqs,
+            "igor_threads": self.igor_threads,
+            "igor_fln_indexed_sequences": self.igor_fln_indexed_sequences,
+            "igor_fln_indexed_CDR3": self.igor_fln_indexed_CDR3,
+            "igor_fln_align_V_alignments": self.igor_fln_align_V_alignments,
+            "igor_fln_align_J_alignments": self.igor_fln_align_J_alignments,
+            "igor_fln_align_D_alignments": self.igor_fln_align_D_alignments,
+            "igor_fln_infer_final_marginals": self.igor_fln_infer_final_marginals,
+            "igor_fln_infer_final_parms": self.igor_fln_infer_final_parms,
+            "igor_fln_evaluate_final_marginals": self.igor_fln_evaluate_final_marginals,
+            "igor_fln_evaluate_final_parms": self.igor_fln_evaluate_final_parms,
+            "igor_fln_output_pgen": self.igor_fln_output_pgen,
+            "igor_fln_output_scenarios": self.igor_fln_output_scenarios,
+            "igor_fln_output_coverage": self.igor_fln_output_coverage,
+
+            "igor_fln_generated_realizations_werr": self.igor_fln_generated_realizations_werr,
+            "igor_fln_generated_seqs_werr": self.igor_fln_generated_seqs_werr,
+            "igor_fln_generation_info": self.igor_fln_generation_info,
+
+            "igor_fln_db": self.igor_fln_db,
+            "b_read_seqs": self.b_read_seqs,
+            "b_align" : self.b_align,
+            "b_infer": self.b_infer,
+            "b_evaluate": self.b_evaluate,
+            "b_generate": self.b_generate
+        }
+        return dicto
+
     def load_IgorRefGenome(self):
         # FIXME: THERE ARE 2 OPTIONS HERE:
         # 1. From template directory self.igor_path_ref_genome
@@ -202,9 +251,8 @@ class IgorTask:
         # self.genomes.fln_genomicDs = self.fln_genomicDs
         # self.genomes.fln_genomicJs = self.fln_genomicJs
 
-
     def load_IgorModel(self):
-        if (self.igor_species == "" or self.igor_chain == ""):
+        if ( (self.igor_species is None ) or (self.igor_chain is None)):
             self.mdl = IgorModel(model_parms_file = self.igor_model_parms_file, model_marginals_file=self.igor_model_marginals_file)
         else :
             self.mdl = IgorModel.load_default(self.igor_species, igor_option_path_dict[self.igor_chain])
@@ -212,15 +260,23 @@ class IgorTask:
     @classmethod
     def default_model(cls, specie, chain, model_parms_file=None, model_marginals_file=None):
         """Return an IgorTask object"""
+        cls = IgorTask()
         cls.igor_species = specie
         cls.igor_chain = chain
         #cls.igor_modeldirpath =  model_parms_file
         cls.run_datadir()
+        cls.igor_model_dir_path = cls.igor_models_root_path +"/" + cls.igor_species + "/" + igor_option_path_dict[cls.igor_chain]
 
         if model_parms_file is None:
-            cls.igor_model_parms_file = cls.igor_modelspath +"/" + cls.igor_species + "/" + igor_option_path_dict[cls.igor_chain]
+            cls.igor_model_parms_file = cls.igor_model_dir_path+ "/models/model_parms.txt"
+            cls.igor_model_marginals_file = cls.igor_model_dir_path + "/models/model_marginals.txt"
+            cls.mdl = IgorModel(model_parms_file=cls.igor_model_parms_file, model_marginals_file=cls.igor_model_marginals_file)
+        return cls
 
-    def update_model_filenames(self, model_path):
+
+    def update_model_filenames(self, model_path=None):
+        if model_path is None:
+            model_path = "."
         self.igor_model_dir_path = model_path
         self.igor_model_parms_file = self.igor_model_dir_path + "/models/model_parms.txt"
         self.igor_model_marginals_file = self.igor_model_dir_path + "/models/model_marginals.txt"
@@ -313,7 +369,7 @@ class IgorTask:
 
     def run_demo(self):
         cmd = self.igor_exec_path+ " -run_demo"
-        run_command(cmd)
+        return run_command(cmd)
 
     def run_datadir(self):
         cmd = self.igor_exec_path+ " -getdatadir"
@@ -328,8 +384,9 @@ class IgorTask:
         cmd = cmd + " -read_seqs " + self.igor_read_seqs
         # TODO: if self.igor_read_seqs extension fastq then convert to csv and copy and create the file in aligns. Overwrite if necesserasy
         print(cmd)
-        run_command(cmd)
+        cmd_stdout = run_command(cmd)
         self.b_read_seqs = True # FIXME: If run_command success then True
+        return cmd_stdout
 
     def run_align(self):
         #"igor -set_wd ${tmp_dir} -batch ${randomBatch} -species
@@ -346,9 +403,10 @@ class IgorTask:
         cmd = cmd + " -align " + command_from_dict_options(self.igor_align_dict_options)
         #return cmd
         print(cmd)
-        run_command(cmd)
+        cmd_stdout = run_command(cmd)
         #run_command_no_output(cmd)
         self.b_align = True # FIXME: If run_command success then True
+        return cmd_stdout
 
     def run_evaluate(self):
         #"igor -set_wd $WDPATH -batch foo -species human -chain beta
@@ -396,6 +454,27 @@ class IgorTask:
         #run_command_no_output(cmd)
         self.b_infer = True # FIXME: If run_command success then True
 
+    def run_generate(self, N):
+        cmd = self.igor_exec_path
+        cmd = cmd + " -set_wd " + self.igor_wd
+        cmd = cmd + " -batch " + self.igor_batchname
+        cmd = cmd + " -set_custom_model " + self.igor_model_parms_file + " " + self.igor_model_marginals_file
+        cmd = cmd + " -generate " + str(N)
+        print(cmd)
+
+        run_command(cmd)
+        path_generated = self.igor_wd + "/" + self.igor_batchname+"_generated/"
+        self.igor_fln_generated_realizations_werr = path_generated + "generated_realizations_werr.csv"
+        self.igor_fln_generated_seqs_werr = path_generated + "generated_seqs_werr.csv"
+        self.igor_fln_generation_info = path_generated + "generated_seqs_werr.out"
+        self.b_generate = True
+
+        # FIXME: LOAD TO DATABASE CREATE PROPER TABLES FOR THIS
+        # import pandas as pd
+        df = pd.read_csv(self.igor_fln_generated_seqs_werr, delimiter=';').set_index('seq_index')
+        return df
+
+
     def run_clean_batch(self):
         cmd = "rm -r " + self.igor_wd + "/" + self.igor_batchname + "_evaluate"
         run_command_no_output(cmd)
@@ -403,10 +482,11 @@ class IgorTask:
         run_command_no_output(cmd)
         cmd = "rm " + self.igor_wd + "/aligns/" + self.igor_batchname + "*.csv"
         run_command_no_output(cmd)
+        cmd = "rm -r " + self.igor_wd + "/" + self.igor_batchname + "_generated"
+        run_command_no_output(cmd)
 
     def create_db(self):
         self.igor_db = IgorSqliteDB.create_db(self.igor_fln_db)
-
 
     def load_db_from_indexed_sequences(self):
         self.igor_db.load_IgorIndexedSeq_FromCSV(self.igor_fln_indexed_sequences)
@@ -441,7 +521,6 @@ class IgorTask:
             print("Couldn't load D gene alignments!")
             pass
         print("Alignments loaded in database in "+str(self.igor_fln_db))
-
 
     def load_db_from_models(self):
         self.load_IgorModel()
@@ -851,6 +930,7 @@ class IgorModel:
         self.marginals = IgorModel_Marginals()
         self.genomic_dataframe_dict = dict()
         self.xdata = dict()
+        self.factors = list()
         self.metadata = dict()
         self.specie = ""
         self.chain = ""
@@ -890,7 +970,7 @@ class IgorModel:
         #IgorSpecie    = specie #"mouse"
         #IgorChain     = chain #"tcr_beta"
         IgorModelPath = modelpath+"/"+IgorSpecie+"/"+IgorChain+"/"
-
+        print("Loading default IGoR model from path : ", IgorModelPath)
         # FIXME: FIND A WAY TO GENERALIZE THIS WITH SOMEKIND OF STANDARD NAME
         flnModelParms = IgorModelPath + "models/model_parms.txt"
         flnModelMargs = IgorModelPath + "models/model_marginals.txt"
@@ -1011,67 +1091,142 @@ class IgorModel:
 
         return da
 
+    def VE_get_Pmarginals_initial_factors(self):
+        factors = list()
+        for da in self.xdata.values():
+            if da.attrs["event_type"] == 'DinucMarkov':
+                sarray = da.stack(z=('x', 'y'))
+                sarray = sarray.rename({"z": da.attrs["nickname"]})
+                # FIXME: I'm removing DinucMarkov in the factors because
+                #  P(vd_dinucl) = P(y|x) and we don't have P(x)
+                #  So we can't marginalize P(y) neither P(x,y)
+            else:
+                factors.append(da)
+
+        return factors
+
+    # FIXME: Doesn't need to be a self method, but ...
+    def VE_get_factors_by_sum_out_variable(self, var_to_eliminate, factors):
+        #     var_to_eliminate = 'j_choice'
+        factors_to_sum_out = list()
+        _factors = list()
+
+        # separate factors to sum-out
+        for factor in factors:
+            # if factor.attrs["event_type"] == 'DinucMarkov':
+            #     lista = [factor.attrs["nickname"]] + factor.attrs["parents"]
+            #     var_intersection = {var_to_eliminate}.intersection(set(lista))
+            # else:
+            var_intersection = {var_to_eliminate}.intersection(set(factor.dims))
+            # print("var_intersection : ", var_intersection)
+            if len(var_intersection) > 0:
+                # print(var_intersection)
+                factors_to_sum_out.append(factor)
+            else:
+                _factors.append(factor)
+
+        # sum-out-variables
+        da_sum_over_event = 1
+        for factor in factors_to_sum_out:
+            da_sum_over_event = da_sum_over_event * factor
+
+        new_factor = da_sum_over_event.sum(dim=var_to_eliminate)
+        factors = _factors + [new_factor]
+        return factors
+
+    def VE_get_Pmarginal_of_event(self, strEvent):
+        sorted_events = self.parms.get_Event_list_sorted()
+        # FIXME: use xdata instead of self.parms
+        sorted_events_to_marginalize = [event for event in sorted_events if not event.event_type == "DinucMarkov"]
+        sorted_events_to_marginalize_without_VE = [event for event in sorted_events_to_marginalize if
+                                                   not event.nickname == strEvent]
+
+        # Start eliminating events
+        factors = self.VE_get_Pmarginals_initial_factors()
+        for event_to_eliminate_VE in sorted_events_to_marginalize_without_VE:
+            factors = self.VE_get_factors_by_sum_out_variable(event_to_eliminate_VE.nickname, factors)
+
+        # Now multiply the remaining factors to get the marginal.
+        Pmarginal = 1
+        for factor in factors:
+            Pmarginal = Pmarginal * factor
+        return Pmarginal
+
     def generate_Pmarginals(self):
-        # FIXME: GENERALIZE FOR ANY NETWORK NOT ONLY FOR VDJ AND VJ
-        strEvent = 'v_choice'
-        self.Pmarginal[strEvent] = self.xdata[strEvent]
+        # Apply Variable elimination method for this
+        # 1. Get a list of event sorted by high priority and less number of parents
+        self.Pmarginal = dict()
+        # Get the marginal for each event
+        for key, darray in self.xdata.items():
+            # print(key, darray)
+            if darray.attrs["event_type"] == "DinucMarkov":
+                self.Pmarginal[key] = darray
+            else:
+                self.Pmarginal[key] = self.VE_get_Pmarginal_of_event(key)
 
-        strEvent = 'j_choice'
-        strEventParent01 = 'v_choice'
-        self.Pmarginal[strEvent] = self.xdata[strEvent].dot(self.xdata[strEventParent01])
 
-        strEvent = 'v_3_del'
-        strEventParent01 = 'v_choice'
-        Pjoint_aux = self.Pmarginal[strEventParent01]
-        self.Pmarginal[strEvent] = self.xdata[strEvent].dot(Pjoint_aux)
-
-        strEvent = 'j_5_del'
-        strEventParent01 = 'j_choice'
-        Pjoint_aux = self.Pmarginal[strEventParent01]
-        self.Pmarginal[strEvent] = self.xdata[strEvent].dot(Pjoint_aux)
-
-        if 'd_gene' in self.xdata.keys():
-            strEvent = 'd_gene'
-            strEventParent01 = 'v_choice'
-            strEventParent02 = 'j_choice'
-            Pjoint_aux = self.xdata[strEventParent02] * self.Pmarginal[strEventParent01]
-            self.Pmarginal[strEvent] = self.xdata[strEvent].dot(Pjoint_aux)
-
-            strEvent = 'd_gene'
-            strEventParent01 = 'v_choice'
-            strEventParent02 = 'j_choice'
-            Pjoint_aux = self.xdata[strEventParent02] * self.Pmarginal[strEventParent01]
-            self.Pmarginal[strEvent] = self.xdata[strEvent].dot(Pjoint_aux)
-
-            strEvent = 'd_5_del'
-            strEventParent01 = 'd_gene'
-            Pjoint_aux = self.Pmarginal[strEventParent01]
-            self.Pmarginal[strEvent] = self.xdata[strEvent].dot(Pjoint_aux)
-
-            strEvent = 'd_3_del'
-            strEventParent01 = 'd_gene'
-            strEventParent02 = 'd_5_del'
-            Pjoint_aux = self.xdata[strEventParent02] * self.Pmarginal[strEventParent01]
-            self.Pmarginal[strEvent] = self.xdata[strEvent].dot(Pjoint_aux)
-
-            strEvent = 'vd_ins'
-            self.Pmarginal[strEvent] = self.xdata[strEvent]
-
-            strEvent = 'vd_dinucl'
-            self.Pmarginal[strEvent] = self.xdata[strEvent]
-
-            strEvent = 'dj_ins'
-            self.Pmarginal[strEvent] = self.xdata[strEvent]
-
-            strEvent = 'dj_dinucl'
-            self.Pmarginal[strEvent] = self.xdata[strEvent]
-
-        else: # VJ NETWORK
-            strEvent = 'vj_ins'
-            self.Pmarginal[strEvent] = self.xdata[strEvent]
-
-            strEvent = 'vj_dinucl'
-            self.Pmarginal[strEvent] = self.xdata[strEvent]
+    # # FIXME: MAKE IT GENERAL
+    # def generate_Pmarginals(self):
+    #     # FIXME: GENERALIZE FOR ANY NETWORK NOT ONLY FOR VDJ AND VJ
+    #     strEvent = 'v_choice'
+    #     self.Pmarginal[strEvent] = self.xdata[strEvent]
+    #
+    #     strEvent = 'j_choice'
+    #     strEventParent01 = 'v_choice'
+    #     self.Pmarginal[strEvent] = self.xdata[strEvent].dot(self.xdata[strEventParent01])
+    #
+    #     strEvent = 'v_3_del'
+    #     strEventParent01 = 'v_choice'
+    #     Pjoint_aux = self.Pmarginal[strEventParent01]
+    #     self.Pmarginal[strEvent] = self.xdata[strEvent].dot(Pjoint_aux)
+    #
+    #     strEvent = 'j_5_del'
+    #     strEventParent01 = 'j_choice'
+    #     Pjoint_aux = self.Pmarginal[strEventParent01]
+    #     self.Pmarginal[strEvent] = self.xdata[strEvent].dot(Pjoint_aux)
+    #
+    #     if 'd_gene' in self.xdata.keys():
+    #         strEvent = 'd_gene'
+    #         strEventParent01 = 'v_choice'
+    #         strEventParent02 = 'j_choice'
+    #         Pjoint_aux = self.xdata[strEventParent02] * self.Pmarginal[strEventParent01]
+    #         self.Pmarginal[strEvent] = self.xdata[strEvent].dot(Pjoint_aux)
+    #
+    #         strEvent = 'd_gene'
+    #         strEventParent01 = 'v_choice'
+    #         strEventParent02 = 'j_choice'
+    #         Pjoint_aux = self.xdata[strEventParent02] * self.Pmarginal[strEventParent01]
+    #         self.Pmarginal[strEvent] = self.xdata[strEvent].dot(Pjoint_aux)
+    #
+    #         strEvent = 'd_5_del'
+    #         strEventParent01 = 'd_gene'
+    #         Pjoint_aux = self.Pmarginal[strEventParent01]
+    #         self.Pmarginal[strEvent] = self.xdata[strEvent].dot(Pjoint_aux)
+    #
+    #         strEvent = 'd_3_del'
+    #         strEventParent01 = 'd_gene'
+    #         strEventParent02 = 'd_5_del'
+    #         Pjoint_aux = self.xdata[strEventParent02] * self.Pmarginal[strEventParent01]
+    #         self.Pmarginal[strEvent] = self.xdata[strEvent].dot(Pjoint_aux)
+    #
+    #         strEvent = 'vd_ins'
+    #         self.Pmarginal[strEvent] = self.xdata[strEvent]
+    #
+    #         strEvent = 'vd_dinucl'
+    #         self.Pmarginal[strEvent] = self.xdata[strEvent]
+    #
+    #         strEvent = 'dj_ins'
+    #         self.Pmarginal[strEvent] = self.xdata[strEvent]
+    #
+    #         strEvent = 'dj_dinucl'
+    #         self.Pmarginal[strEvent] = self.xdata[strEvent]
+    #
+    #     else: # VJ NETWORK
+    #         strEvent = 'vj_ins'
+    #         self.Pmarginal[strEvent] = self.xdata[strEvent]
+    #
+    #         strEvent = 'vj_dinucl'
+    #         self.Pmarginal[strEvent] = self.xdata[strEvent]
 
     def export_csv(self, fln_prefix, sep=';'):
         # FIXME: TEMPORARY SOLUTION FOR VERY PARTICULAR CASES.
@@ -1395,10 +1550,19 @@ class IgorModel:
 
     def plot_GeneChoice(self, event_nickname:str):
         """ Return """
+        import numpy as np
+        v_genLabel = np.vectorize(genLabel)
+        import matplotlib.pyplot as plt
+        fig, ax = plt.subplots()
+        event_nickname = 'j_choice'
+        da = self.xdata[event_nickname]
+        for parent_nickname in da.dims:  # attrs['parents']
+            da["lbl__" + parent_nickname].values = v_genLabel(da["lbl__" + parent_nickname].values)
+
         # TODO: assuming Genechoice
         self.xdata[event_nickname]
 
-    def plot_Event_Marginal(self, event_nickname:str, ax=None):
+    def plot_Event_Marginal(self, event_nickname:str, ax=None, **kwargs):
         """
         Plot marginals of model events by nickname
         """
@@ -1421,11 +1585,11 @@ class IgorModel:
             XX = da[event_nickname].values
             YY = da.values
 
-            ax.bar(XX, YY)
+            ax.bar(XX, YY, **kwargs)
 
             lbl_XX = da['lbl__' + event_nickname].values
             ax.set_xticks(XX)
-            ax.set_xticklabels(lbl_XX, rotation=90)
+            ax.set_xticklabels(v_genLabel(lbl_XX), rotation=90)
             #return ax
 
         elif event.event_type == 'Insertion':
@@ -1434,7 +1598,7 @@ class IgorModel:
             # FIXME: but if not what to do.
             XX = da['lbl__' + event_nickname].values
             YY = da.values
-            ax.plot(XX, YY)
+            ax.plot(XX, YY, **kwargs)
 
         elif event.event_type == 'Deletion':
             #YY = self.xdata[event_nickname].values
@@ -1442,7 +1606,7 @@ class IgorModel:
             #ax.plot(XX, YY)
             XX = da['lbl__' + event_nickname].values
             YY = da.values
-            ax.plot(XX, YY)
+            ax.plot(XX, YY, **kwargs)
 
         elif event.event_type == 'DinucMarkov':
             XX = da['x'].values
@@ -1453,7 +1617,7 @@ class IgorModel:
 
             ZZ = da.values
 
-            da.plot(ax=ax, x='x', y='y', vmin=0, vmax=1)
+            da.plot(ax=ax, x='x', y='y', vmin=0, vmax=1, cmap='gnuplot2_r', **kwargs)
 
             ax.set_xlabel('From')
             ax.set_xticks(XX)
@@ -1464,6 +1628,10 @@ class IgorModel:
             ax.set_yticklabels(lbl__YY, rotation=0)
 
             ax.set_title(lblEvent)
+            ax.set_aspect('equal')
+            for i, j in zip(*ZZ.nonzero()):
+                ax.text(j, i, ZZ[i, j], color='white', ha='center', va='center')
+
 
         else:
             print("Event nickname "+event_nickname+" is not present in this model.")
@@ -1488,6 +1656,20 @@ class IgorModel:
         for event in self.parms.Event_list:
             events_set.add(event.nickname)
         return list(events_set)
+
+    # PLOTS:
+    def plot_Bayes_network(self):
+        return self.parms.plot_Graph()
+
+    def plot(self, event_nickname:str, ax=None):
+        if ax is None:
+            import matplotlib.pyplot as plt
+            fig, ax = plt.subplots()
+
+        da = self.xdata[event_nickname]
+
+
+        return ax
 
     # def infer(self, batchname=None, iterations=5):
     #     import subprocess
@@ -1540,6 +1722,21 @@ class IgorModel:
         for event in self.parms.Event_list:
             if not (event.event_type == 'DinucMarkov'):
                 scen_dict[event.nickname] = scen_dict.pop('id_' + event.nickname)
+
+    def export_model(self, model_parms_file=None, model_marginals_file=None):
+        self.parms.write_model_parms(filename=model_parms_file)
+        self.marginals
+        self.xdata
+
+        print("Exporting model to ")
+
+    def get_event_realizations_DataFrame(self, event_nickname):
+        return self.parms.Event_dict[event_nickname]
+
+    def set_realization_event_from_DataFrame(self, event_nickname, new_df):
+        self.parms.set_event_realizations_from_DataFrame(event_nickname, new_df)
+        self.marginals.initialize_uniform_from_model_parms(self.parms)
+        self.generate_xdata()
 
 
 class IgorModel_Parms:
@@ -1650,51 +1847,6 @@ class IgorModel_Parms:
                 event_realization.id = index
                 event_realization.value = nt_char
 
-
-    # FIXME: FINISH THIS METHOD
-    def write_model_parms(self, filename="tmp_mdl_parms.txt"):
-        """Writes a model graph structure from a model params object.
-        Note that for now this method does not read the error rate information.
-        """
-        
-        # Sort events in list with the your specific preference.
-        # FIXME: FIND ANOTHER WAY TO WRITE IN A CORRECT ORDER
-        #igor_nickname_list = ["v_choice", "j_choice", "d_gene", "v_3_del"]
-        #self.get_Event(nicknameList)
-        #self.Event_list
-        strSepChar=";"
-        with open(filename, "w") as ofile:
-            #1. Write events
-            ofile.write("@Event_list\n")
-            #for event in self.Event_list:
-            for nickname in Igor_nickname_list: # Igor_nicknameList is in IgorDefaults.py
-                try:
-                    event = self.get_Event(nickname)
-                    strLine = "#" + \
-                    str(event.event_type) + strSepChar + \
-                    str(event.seq_type) + strSepChar + \
-                    str(event.seq_side) + strSepChar + \
-                    str(event.priority) + strSepChar + \
-                    str(event.nickname) + "\n"
-                    ofile.write(strLine)
-                    # WRITE THE LIST OF REALIZATIONS adding character '%'
-                    df = event.get_realization_DataFrame()
-                    str_df = df.to_csv(sep=strSepChar, header=False)
-                    str_realization_list=""
-                    for strLine in str_df.split("\n"):
-                        str_realization_list = str_realization_list + "%"+strLine + "\n"
-                    ofile.write(str_realization_list)
-
-                # FIXME: NOT GOOD TO MAKE A BLIND PASS BUT A TEMPORAL SOLUTION UNTIL I FIND A WAY TO ESTABLISH PRIORITIES ON THE EVENTS
-                except Exception as e:
-                    pass
-
-            #2. Write Edges
-            ofile.write("@Edges\n")
-            
-            #3. Write ErrorRate
-            ofile.write("@ErrorRate\n")
-    
     def read_model_parms(self, filename):
         """Reads a model graph structure from a model params file.
         Note that for now this method does not read the error rate information.
@@ -1722,7 +1874,7 @@ class IgorModel_Parms:
                 self.read_ErrorRate(ofile)
         self.model_parms_file = filename
 
-        self.get_EventDict_DataFrame()
+        self.gen_EventDict_DataFrame()
 
     # save in Event_list
     def read_Event_list(self, ofile):
@@ -1784,6 +1936,43 @@ class IgorModel_Parms:
             strip_line = strip_line.rstrip('\r')  # Remove carriage return character (if needed)
         ofile.seek(lastPos)
 
+    def add_Egde(self, parent_nickname, child_nickname):
+        try:
+            parent_name = self.dictNicknameName[parent_nickname]
+            child_name = self.dictNicknameName[child_nickname]
+            # TODO: CHECK IF EDGE exist!
+            self.Edges.append([parent_name, child_name])
+            self.getBayesGraph()
+            #self.Edges_dict[child_nickname].append(parent_nickname)
+        except Exception as e:
+            print("Edge : ", parent_nickname, child_nickname, " couldn't be added.")
+            print(e)
+            pass
+
+    def remove_Edge(self, parent_nickname, child_nickname):
+        try:
+            parent_name = self.dictNicknameName[parent_nickname]
+            child_name = self.dictNicknameName[child_nickname]
+            # TODO: CHECK IF EDGE exist!
+            new_Edges = [edge for edge in self.Edges if not (parent_name == edge[0] and child_name == edge[1])]
+            self.Edges = new_Edges
+            self.getBayesGraph()
+            #self.Edges_dict[child_nickname].append(parent_nickname)
+        except Exception as e:
+            print("Edge : ", parent_nickname, child_nickname, " couldn't be added.")
+            print(e)
+            pass
+
+    def set_event_realizations_from_DataFrame(self, event_nickname, df):
+        # FIXME: unnecesary copy find a better way.
+        new_Event_list = list()
+        for event in self.Event_list:
+            if event.nickname == event_nickname:
+                event.update_realizations_from_dataframe(df)
+            new_Event_list.append(event)
+        self.Event_list = new_Event_list
+        self.gen_EventDict_DataFrame()
+
     def read_ErrorRate(self, ofile):
         lastPos  = ofile.tell()
         line = ofile.readline()
@@ -1807,6 +1996,85 @@ class IgorModel_Parms:
             #     self.ErrorRate = {"SingleErrorRate" : error }
         ofile.seek(lastPos)
 
+    # FIXME: FINISH THIS METHOD
+    def write_model_parms(self, filename=None):
+        """Writes a model graph structure from a model params object.
+        Note that for now this method does not read the error rate information.
+        """
+        if filename is None:
+            filename = "tmp_mdl_parms.txt"
+        print("Exporting model parms in file ", filename)
+        # Sort events in list with the your specific preference.
+        # FIXME: FIND ANOTHER WAY TO WRITE IN A CORRECT ORDER
+        # igor_nickname_list = ["v_choice", "j_choice", "d_gene", "v_3_del"]
+        # self.get_Event(nicknameList)
+        # self.Event_list
+        strSepChar = ";"
+        with open(filename, "w") as ofile:
+            # 1. Write events
+            self.write_Event_list(ofile, delimiter=strSepChar)
+
+            # 2. Write Edges
+            self.write_Edges(ofile, delimiter=strSepChar)
+
+            # 3. Write ErrorRate
+            self.write_ErrorRate(ofile, delimiter=strSepChar)
+
+    def write_Event_list(self, ofile, delimiter=None):
+        if delimiter is None:
+            strSepChar = ';'
+        else:
+            strSepChar = delimiter
+
+        ofile.write("@Event_list\n")
+        # for event in self.Event_list:
+        # for nickname in Igor_nickname_list: # Igor_nicknameList is in IgorDefaults.py
+        for event in self.Event_list:
+            try:
+                # event = self.get_Event(nickname)
+                strLine = "#" + \
+                          str(event.event_type) + strSepChar + \
+                          str(event.seq_type) + strSepChar + \
+                          str(event.seq_side) + strSepChar + \
+                          str(event.priority) + strSepChar + \
+                          str(event.nickname) + "\n"
+                ofile.write(strLine)
+                # WRITE THE LIST OF REALIZATIONS adding character '%'
+                df = event.get_realization_DataFrame()
+                str_df = df.to_csv(sep=strSepChar, header=False)
+                str_realization_list = ""
+                for strLine in str_df.split("\n"):
+                    str_realization_list = str_realization_list + "%" + strLine + "\n"
+                ofile.write(str_realization_list)
+
+            except Exception as e:
+                print("ERROR: write_Event_list")
+                print(e)
+                pass
+
+    def write_Edges(self, ofile, delimiter=None):
+        if delimiter is None:
+            strSepChar = ';'
+        else:
+            strSepChar = delimiter
+        ofile.write("@Edges\n")
+        try:
+            for edge in self.Edges:
+                ofile.write("%"+edge[0]+strSepChar+edge[1]+"\n")
+        except Exception as e:
+            print("ERROR: write_Edges")
+            print(e)
+            pass
+
+    def write_ErrorRate(self, ofile, delimiter=None):
+        if delimiter is None:
+            strSepChar = ';'
+        else:
+            strSepChar = delimiter
+        ofile.write("@ErrorRate\n")
+        ofile.write("#"+self.ErrorRate_dict['error_type']+"\n")
+        ofile.write("%"+self.ErrorRate_dict['error_values']+"\n")
+
     def get_EventsNickname_list(self):
         return [event.nickname for event in self.Event_list]
 
@@ -1828,7 +2096,7 @@ class IgorModel_Parms:
             raise Exception(
                 'RecEvent with name \"' + event_nickname_or_name + "\" not found.")
 
-    def get_EventDict_DataFrame(self):
+    def gen_EventDict_DataFrame(self):
         self.Event_dict = dict()
         self.dictNameNickname = dict()
         #dictio = dict()
@@ -1930,7 +2198,7 @@ class IgorModel_Parms:
                                
         ofile.close()
 
-    def plot_Graph(self): # FIXME: ALLOW the possibility to pass an ax like ax=None):
+    def plot_Graph(self, ax=None, **kwargs): # FIXME: ALLOW the possibility to pass an ax like ax=None):
         """Return a plot of the bayesian network """
         #if ax is None:
 
@@ -1964,9 +2232,10 @@ class IgorModel_Parms:
 
         except ImportError as e:
             try:
-                print("matplotlib")
-                import matplotlib.pyplot as plt
-                fig, ax = plt.subplots()
+                if ax is None:
+                    #print("matplotlib")
+                    import matplotlib.pyplot as plt
+                    fig, ax = plt.subplots()
                 ax.set_aspect('equal')
                 nx.draw(self.G, pos=pos, ax=ax, with_labels=True, arrows=True, arrowsize=20,
                         node_size=800, font_size=10, font_weight='bold')  # FIXME: make a better plot: cutting edges.
@@ -1983,8 +2252,38 @@ class IgorModel_Parms:
     def get_Event_list_sorted(self):
         # FIXME: GENERALIZE THIS PROCESS with the parents priority
         # Order events by priority.
-        Event_list_prio_sorted = sorted(self.Event_list, key=lambda x: x.priority, reverse=True)
-        return Event_list_prio_sorted
+        events_list_with_parents = list()
+        for event in self.Event_list:
+            events_list_with_parents.append((event, list(self.G.predecessors(event.nickname))))
+        # print(events_list_with_parents)
+        sorted_events_list_with_parents = sorted(events_list_with_parents,
+                                                 key=lambda tupla: (tupla[0].priority, -len(tupla[1])), reverse=True)
+        return [sorted_event_parent[0] for sorted_event_parent in sorted_events_list_with_parents]
+
+    def from_scenario(self, scenario, strEvent):
+        return self.Event_dict[strEvent].loc[scenario[strEvent]]
+
+    # TODO: GIVEN A SCENARIO A DICT WITH REALIZATIONS
+    def realiz_dict_from_scenario(self, scenario): #IgorScenario):
+        realizations_dict = dict()
+        for nickname_key in scenario.realizations_ids_dict:
+            if nickname_key == 'mismatches':
+                realizations_dict[nickname_key] = scenario[nickname_key]
+            elif nickname_key == 'mismatcheslen':
+                realizations_dict[nickname_key] = scenario[nickname_key]
+            else:
+                event = self.get_Event(nickname_key)
+                print(nickname_key, scenario[nickname_key], event.event_type)
+                if event.event_type == 'DinucMarkov':
+                    realizations_dict[nickname_key] = list()
+                    for realiz_id in scenario[nickname_key]:
+                        realizations_dict[nickname_key].append(event.realizations[realiz_id])
+                else:
+                    realizations_dict[nickname_key] =  event.realizations[ scenario[nickname_key] ]
+            # except Exception as e:
+            #     print("ERROR: ", nickname_key, " while parsing to realizations.")
+            #     print(e)
+        return realizations_dict
 
 class IgorRec_Event:
     """Recombination event class containing event's name, type, realizations,
@@ -2003,6 +2302,9 @@ class IgorRec_Event:
 #            self.nickname = nickname
         self.update_name()
 
+    def __getitem__(self, item):
+        return self.realizations[item]
+
     def __str__(self):
         return str(self.to_dict())
 
@@ -2013,6 +2315,10 @@ class IgorRec_Event:
         #            return True
         #        elif ( self.priority == other.priority  ):
         #            # FIXME: less dependencies should be on top
+
+    def __gt__(self, other):
+        # TODO: Less parents bigger event
+        return self.priority > other.priority
 
     def to_dict(self):
         dictIgorRec_Event = {
@@ -2026,6 +2332,10 @@ class IgorRec_Event:
         }
 
         return dictIgorRec_Event
+
+    def add_realization(self):
+        realization = IgorEvent_realization()
+        self.realizations.append(realization)
 
 
     @classmethod
@@ -2085,6 +2395,7 @@ class IgorRec_Event:
         cls = IgorRec_Event.to_dict(IgorRec_Event_default_dict[nickname])
         return cls
 
+    # TODO:
     def add_realization(self, realization):
         """Add a realization to the RecEvent realizations list."""
         self.realizations.append(realization)
@@ -2150,6 +2461,7 @@ class IgorRec_Event:
         """
         return pd.DataFrame.from_records([realiz.to_dict() for realiz in self.realizations], index='id').sort_index()
 
+
 class IgorEvent_realization:
     """A small class storing for each RecEvent realization its name, value and
     corresponding index.
@@ -2180,6 +2492,14 @@ class IgorEvent_realization:
             'value': self.value,
             'name': self.name
             }
+
+    @classmethod
+    def from_tuple(cls, id, value, name=""):
+        cls = IgorEvent_realization()
+        cls.id = id
+        cls.value = value
+        cls.name = name
+        return cls
 
     @classmethod
     def from_dict(self, event_dict:dict):
@@ -2235,7 +2555,6 @@ class IgorModel_Marginals:
 #        self.error_rate = list()
         self.marginals_dict = {}
         self.network_dict = {}
-        #self.G          = nx.DiGraph()
         self.model_marginals_file = ""
         if model_marginals_file is not None:
             self.read_model_marginals(model_marginals_file)
@@ -2352,9 +2671,94 @@ class IgorModel_Marginals:
 
         #return marginals_dict, network_dict
 
-    def write_model_marginals_from_parms(self, filename, model_parms_file=None, model_marginals_file=None):
-        self.marginals_dict = {}
-        self.network_dict = {}
+    def initialize_uniform_event_from_model_parms(self, event_nickname, parms:IgorModel_Parms):
+        event = parms.get_Event(event_nickname)
+        if event.event_type == 'DinucMarkov':
+            # do something
+            dimension = len(parms.get_Event(event.nickname).realizations)
+            narr = np.ones(dimension * dimension) / (dimension * dimension)
+            self.marginals_dict[event.nickname] = narr
+        else:
+            dimensions = [len(parms.get_Event(strEvent).realizations) for strEvent in
+                          self.network_dict[event.nickname]]
+            # print(dimensions[-1])
+            narr = np.ones(dimensions) / dimensions[-1]
+
+            self.marginals_dict[event.nickname] = narr
+
+    def initialize_uniform_from_model_parms(self, parms:IgorModel_Parms):
+        self.network_dict = dict()
+        for key, value in parms.Edges_dict.items():
+            self.network_dict[key] = value + [key]
+
+        # Create a marginal for
+        self.marginals_dict = dict()
+        for event in parms.Event_list:
+            self.initialize_uniform_event_from_model_parms(event.nickname, parms)
+            # if event.event_type == 'DinucMarkov':
+            #     # do something
+            #     dimension = len(parms.get_Event(event.nickname).realizations)
+            #     narr = np.ones(dimension*dimension) / (dimension*dimension)
+            #     self.marginals_dict[event.nickname] = narr
+            # else:
+            #     dimensions = [len(parms.get_Event(strEvent).realizations) for strEvent in
+            #                   self.network_dict[event.nickname]]
+            #     # print(dimensions[-1])
+            #     narr = np.ones(dimensions) / dimensions[-1]
+            #
+            #     self.marginals_dict[event.nickname] = narr
+
+    def write_model_marginals(self, filename, model_parms=None):
+        # self.marginals_dict = {}
+        # self.network_dict = {}
+        if model_parms is None:
+            print("model parms need it")
+            raise
+        parms = model_parms #IgorModel_Parms(model_parms_file=model_parms_file)
+
+        if filename is None:
+            filename = "tmp_mdl_marginals.txt"
+
+        print("Exporting model marginals in file ", filename)
+        with open(filename, "w") as fw:
+            for event in parms.Event_list:
+                strEvent = event.nickname
+                # strEvent = "v_choice"
+                self.write_event_probabilities(fw, strEvent)
+
+    def write_event_probabilities(self, ofile, event_nickname):
+        import itertools
+        np_array = self.marginals_dict[event_nickname]
+        parents_list = self.network_dict[event_nickname]
+        parents_to_write = parents_list[:-1]
+        # dims_list = tuple( map( lambda x: list(range(x)), array_to_write.shape) )
+        dims_list = tuple(map(lambda x: list(range(x)), np_array.shape[:-1]))
+
+        ofile.write("@" + event_nickname + "\n")
+        str_shape = str(list(np_array.shape)).replace(" ", "").replace("[", "").replace("]", "")
+        strDim = "$Dim[" + str_shape + "]\n"
+        ofile.write(strDim)
+        for elem in itertools.product(*dims_list):
+            title = ""
+            #     print(parents_to_write)
+            title = str(list(zip(parents_to_write, elem)))
+            title = title.replace("[", "#")
+            title = title.replace("]", "\n")
+            title = title.replace(" ", "")
+            title = title.replace("(", "[")
+            title = title.replace(")", "]")
+            title = title.replace("\'", "")
+            ofile.write(title)
+            slice_index = tuple(list(elem) + [None])
+            linea = str(list(np_array[slice_index].flat))
+            linea = linea.replace(" ", "")
+            linea = linea.replace(" ", "")
+            linea = linea.replace("[", "%")
+            linea = linea.replace("]", "\n")
+            ofile.write(linea)
+
+        # ofile.write()
+
 
 class IgorAnchors:
     def __init__(self, flnVanchors, flnJanchors):
@@ -2372,8 +2776,8 @@ class IgorScenario:
         #self.events_ordered_list = list()
         self.realizations_ids_dict = dict()
         # given a templated list with ids
-        self.realizations_ids_list = dict()
         self.mdl = None
+        # self.mdl.parms.Event_dict[strEv].loc[self.id_d_gene]['name']
 
     def __getitem__(self, key):
         return self.realizations_ids_dict[key]

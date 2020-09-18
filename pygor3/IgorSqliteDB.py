@@ -1149,7 +1149,7 @@ class IgorSqliteDB:
 
         mdl_parms.ErrorRate_dict = self.get_ErrorRate_dict()
 
-        mdl_parms.get_EventDict_DataFrame()
+        mdl_parms.gen_EventDict_DataFrame()
         return mdl_parms
 
     def get_Event_list(self):
@@ -1221,6 +1221,14 @@ class IgorSqliteDB:
         records = cur.fetchall()
         return (records)
 
+    def get_IgorBestScenariosDataframe_By_seq_index(self, seq_index):
+        bs_records = self.fetch_IgorBestScenarios_By_seq_index(seq_index)
+        import pandas as pd
+        self.gen_IgorBestScenarios_cols_list()
+        columnas = [ item[0] for item in self.sql_IgorBestScenarios_cols_name_type_list]
+        return pd.DataFrame.from_records(bs_records, columns=columnas)
+
+
     def get_IgorBestScenarios_By_seq_index(self, seq_index):
         from .IgorIO import IgorScenario
         # FIXME: THIS METHOD SHOULD BE EVALUATED ONCE AFTER DATA IS LOADED WITH A TRY IF TABLE EXIST
@@ -1246,8 +1254,32 @@ class IgorSqliteDB:
 
         return scenarios_mdl_list
 
+    def calc_IgorBestScenarios_average_of(self, scenario_function, indices_list=None):
+        from .IgorIO import IgorScenario
+        self.gen_IgorBestScenarios_cols_list()
+        if indices_list is None:
+            indices_list = self.fetch_IgorIndexedSeq_indexes()
+        print("len: ", len(indices_list))
+        function_average = 0
+        for indx in indices_list:
+            # for indx in indexes_list:
+            # aln_data = db.get_IgorAlignment_data_list_By_seq_index('V', indx)
+            bs_data_list = self.fetch_IgorBestScenarios_By_seq_index(indx)
+            tmp_average = 0
+            scenario_norm_factor = 0
+            for bs_data in bs_data_list:
+                bs = IgorScenario.load_FromSQLRecord(bs_data, self.sql_IgorBestScenarios_cols_name_type_list)
+                tmp_average = tmp_average + bs.scenario_proba_cond_seq * scenario_function(bs)
+                scenario_norm_factor = scenario_norm_factor + bs.scenario_proba_cond_seq
+            # FIXME: PERFORMANCE WILL INCREASE IF WE MAKE THE NORMALIZATION BEFORE?
+            tmp_average = tmp_average / scenario_norm_factor
+            # print("scenario_norm_factor: ", scenario_norm_factor)
+            function_average = function_average + tmp_average
 
-    def calc_IgorBestScenarios_average_of(self, scenario_function):
+        return (function_average / (len(indices_list)))
+
+    # FIXME: What should be the correct method to calculate the average?
+    def FIXME_calc_IgorBestScenarios_average_of(self, scenario_function):
         from .IgorIO import IgorScenario
         self.gen_IgorBestScenarios_cols_list()
         indexes_list = self.fetch_IgorIndexedSeq_indexes()
@@ -1257,7 +1289,7 @@ class IgorSqliteDB:
 
         pgen_normalization = 0
         for indx, pgen in seq_pgen_tuple_list:
-        #for indx in indexes_list:
+            # for indx in indexes_list:
             # aln_data = db.get_IgorAlignment_data_list_By_seq_index('V', indx)
             bs_data_list = self.fetch_IgorBestScenarios_By_seq_index(indx)
             tmp_average = 0
@@ -1268,11 +1300,27 @@ class IgorSqliteDB:
                 tmp_average = tmp_average + bs.scenario_proba_cond_seq * scenario_function(bs)
                 scenario_norm_factor = scenario_norm_factor + bs.scenario_proba_cond_seq
             tmp_average = tmp_average / scenario_norm_factor
-            function_average = function_average + pgen*tmp_average
+            # function_average = function_average + pgen * tmp_average
+            function_average = function_average + tmp_average
+
+        return (function_average / (pgen_normalization * len(indexes_list)))
+
+    def calc_IgorBestScenarios_sum_of(self, scenario_function):
+        from .IgorIO import IgorScenario
+        self.gen_IgorBestScenarios_cols_list()
+        indexes_list = self.fetch_IgorIndexedSeq_indexes()
+        print("len: ", len(indexes_list))
+        function_sum = 0
+        for indx in indexes_list:
+            bs_data_list = self.fetch_IgorBestScenarios_By_seq_index(indx)
+            tmp_average = 0
+            for bs_data in bs_data_list:
+                bs = IgorScenario.load_FromSQLRecord(bs_data, self.sql_IgorBestScenarios_cols_name_type_list)
+                tmp_average = tmp_average + scenario_function(bs)
+            function_sum = function_sum + tmp_average
             # function_average = function_average + tmp_average
 
-        return (function_average / (pgen_normalization*len(indexes_list)) )
-
+        return (function_sum )
 
 
 

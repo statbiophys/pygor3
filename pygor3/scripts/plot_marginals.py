@@ -41,7 +41,6 @@ def main():
             task.load_IgorModel()
 
             for event_nickname in task.mdl.Pmarginal.keys():
-
                 fig, ax = plt.subplots()
                 # df = task.mdl.Pmarginal[event_nickname].to_dataframe(name=event_nickname)
                 task.mdl.plot_Event_Marginal(event_nickname, ax=ax)

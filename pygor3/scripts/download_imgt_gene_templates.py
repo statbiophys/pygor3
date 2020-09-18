@@ -35,9 +35,6 @@ def main():
 
         # FIXME: ONCE THE GENE TEMPLATES ARE DOWNLOADED CHANGE THE NAME TO
         print(flnVGenome)
-
-
-
         # write anchors
         p3.imgt.download_genes_anchors(options.species, options.chain, flnVGenome, flnJGenome)
 
@@ -86,7 +83,6 @@ def main():
         # Now construct the models from a dictionary.
 
         # TODO EDIT LONG NAMES
-
         urlV_2CYS = p3.imgt.get_genedb_query81_imgtlabel(options.species, options.chain + "V", imgtlabel="2nd-CYS")
         dict2CYS = p3.imgt.genAnchDict(urlV_2CYS)
         list2CYS = list(dict2CYS.keys())

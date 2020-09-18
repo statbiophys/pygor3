@@ -50,7 +50,6 @@ def main():
 
     with open(task.igor_fln_output_scenarios, "r") as ifile:
         inputHeader = ifile.readline()
-
         for line in ifile.readlines():
             # print(line.split(strSepChar), len(line.split(strSepChar)) )
             line = line.replace("\n", "")

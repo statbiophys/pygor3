@@ -223,7 +223,6 @@ def download_Vgene_anchors(specie: str, chain: str, flnVGenome, modelspath=None,
 
     ofileAnch.close()
 
-
 def download_Jgene_anchors(specie: str, chain: str, flnJGenome, modelspath=None, imgt_genedb=imgt_params['url.genedb']):
     # records = get_gene_template(specie, gene, imgt_genedb=imgt_genedb)
     if modelspath is None:
@@ -243,7 +242,8 @@ def download_Jgene_anchors(specie: str, chain: str, flnJGenome, modelspath=None,
     # write the files
     flnAnchors = ref_genes_path + "J_gene_CDR3_anchors.csv"
     ofileAnch = open(flnAnchors, "w")
-    ofileAnch.write("gene;anchor_index" + "\n")
+    # ofileAnch.write("gene;anchor_index" + "\n")
+    ofileAnch.write("gene;anchor_index;function" + "\n")
     CSVDELIM = ";"
     Jrecords = SeqIO.parse(flnJGenome, "fasta")
     for rec in Jrecords:
@@ -254,17 +254,125 @@ def download_Jgene_anchors(specie: str, chain: str, flnJGenome, modelspath=None,
         if key in dictJ_PHE.keys():
             posJ_PHE = dictJ_PHE[key] - getStartPos(rec.description)
             posAnch = posJ_PHE
-            ofileAnch.write(rec.description + CSVDELIM + str(posAnch) + "\n")
+            seqFunc = getFunction(rec.description)
+            ofileAnch.write(rec.description + CSVDELIM + str(posAnch) + CSVDELIM + str(seqFunc) + "\n")
+            # ofileAnch.write(rec.description + CSVDELIM + str(posAnch) + "\n")
 
         # FIXME: this should be elif, but I want to check If the system is consistent
         elif key in dictJ_TRP.keys():
             posJ_TRP = dictJ_TRP[key] - getStartPos(rec.description)
             posAnch = posJ_TRP
-            ofileAnch.write(rec.description + CSVDELIM + str(posAnch) + "\n")
+            seqFunc = getFunction(rec.description)
+            ofileAnch.write(rec.description + CSVDELIM + str(posAnch) + CSVDELIM + str(seqFunc) + "\n")
+            # ofileAnch.write(rec.description + CSVDELIM + str(posAnch) + "\n")
         else:
             print("No anchor is found for : " + rec.description)
 
     ofileAnch.close()
+
+############ Donwload all genetic information if VDJ or VJ
+def download_ref_genome_VDJ(species, chain):
+    flnVGenome = download_gene_template(species, chain + 'V')
+    flnDGenome = download_gene_template(species, chain + 'D')
+    flnJGenome = download_gene_template(species, chain + 'J')
+    print("Genomic VDJ templates in files: ", flnVGenome, flnDGenome, flnJGenome)
+
+    # FIXME: ONCE THE GENE TEMPLATES ARE DOWNLOADED CHANGE THE NAME TO
+    # write anchors
+    download_genes_anchors(species, chain, flnVGenome, flnJGenome)
+
+    # TODO: filter sequences for OLGA compatibility
+    strGene = chain + "V"
+    urlV_2CYS = get_genedb_query81_imgtlabel(species, strGene, imgtlabel="2nd-CYS")
+    dict2CYS = genAnchDict(urlV_2CYS)
+    list2CYS = list(dict2CYS.keys())
+    # print("------------> list2CYS : ", list2CYS)
+
+    v_genomes_list = load_records_from_fasta(flnVGenome)
+    # print("------------D v_genomes_list: ", v_genomes_list)
+    v_genomes_trim_list = list()
+    for v_genome in v_genomes_list:
+        if genKey(v_genome.description) in list2CYS:
+        # if v_genome in list2CYS:
+            v_genomes_trim_list.append(v_genome)
+        else:
+            print(v_genome.description)
+    save_records2fasta(v_genomes_trim_list, flnVGenome + "_trim")
+
+    # J-PHE
+    urlJ_PHE = get_genedb_query81_imgtlabel(species, species + "J", imgtlabel="J-PHE")
+    dictJ_PHE = genAnchDict(urlJ_PHE)
+    listJ_PHE = list(dictJ_PHE.keys())
+
+    # J-TRP
+    urlJ_TRP = get_genedb_query81_imgtlabel(species, species + "J", imgtlabel="J-TRP")
+    dictJ_TRP = genAnchDict(urlJ_TRP)
+    listJ_TRP = list(dictJ_TRP.keys())
+
+    j_genomes_list = load_records_from_fasta(flnJGenome)
+    j_genomes_trim_list = list()
+    for j_genome in j_genomes_list:
+        if genKey(j_genome.description) in listJ_PHE:
+        #if j_genome in listJ_PHE:
+            j_genomes_trim_list.append(j_genome)
+        elif genKey(j_genome.description) in listJ_TRP:
+        # elif j_genome in listJ_TRP:
+            j_genomes_trim_list.append(j_genome)
+        else:
+            print(j_genome.description)
+
+    save_records2fasta(j_genomes_trim_list, flnJGenome + "_trim")
+
+def download_ref_genome_VJ(species, chain):
+    flnVGenome = download_gene_template(species, chain + 'V')
+    flnJGenome = download_gene_template(species, chain + 'J')
+    print("Genomic VDJ templates in files: ", flnVGenome, flnJGenome)
+
+    # FIXME: ONCE THE GENE TEMPLATES ARE DOWNLOADED CHANGE THE NAME TO
+    # write anchors
+    download_genes_anchors(species, chain, flnVGenome, flnJGenome)
+
+    # TODO: filter sequences for OLGA compatibility
+    strGene = chain + "V"
+    urlV_2CYS = get_genedb_query81_imgtlabel(species, strGene, imgtlabel="2nd-CYS")
+    dict2CYS = genAnchDict(urlV_2CYS)
+    list2CYS = list(dict2CYS.keys())
+    # print("------------> list2CYS : ", list2CYS)
+
+    v_genomes_list = load_records_from_fasta(flnVGenome)
+    # print("------------D v_genomes_list: ", v_genomes_list)
+    v_genomes_trim_list = list()
+    for v_genome in v_genomes_list:
+        if genKey(v_genome.description) in list2CYS:
+        # if v_genome in list2CYS:
+            v_genomes_trim_list.append(v_genome)
+        else:
+            print(v_genome)
+    save_records2fasta(v_genomes_trim_list, flnVGenome + "_trim")
+
+    # J-PHE
+    urlJ_PHE = get_genedb_query81_imgtlabel(species, species + "J", imgtlabel="J-PHE")
+    dictJ_PHE = genAnchDict(urlJ_PHE)
+    listJ_PHE = list(dictJ_PHE.keys())
+
+    # J-TRP
+    urlJ_TRP = get_genedb_query81_imgtlabel(species, species + "J", imgtlabel="J-TRP")
+    dictJ_TRP = genAnchDict(urlJ_TRP)
+    listJ_TRP = list(dictJ_TRP.keys())
+
+    j_genomes_list = load_records_from_fasta(flnJGenome)
+    j_genomes_trim_list = list()
+    for j_genome in j_genomes_list:
+        if genKey(j_genome.description) in listJ_PHE:
+        #if j_genome in listJ_PHE:
+            j_genomes_trim_list.append(j_genome)
+        elif genKey(j_genome.description) in listJ_TRP:
+        # elif j_genome in listJ_TRP:
+            j_genomes_trim_list.append(j_genome)
+        else:
+            print(j_genome)
+
+    save_records2fasta(j_genomes_trim_list, flnJGenome + "_trim")
 
 
 """

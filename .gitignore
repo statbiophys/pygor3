@@ -64,7 +64,7 @@ libs/gsl_sub/config.h.in~
 stamp-h1
 
 
-notebooks/
+#notebooks/
 pygor3.egg-info/
 pygor3/.ipynb_checkpoints/
 pygor3/old/

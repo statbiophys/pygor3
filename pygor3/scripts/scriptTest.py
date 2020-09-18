@@ -47,8 +47,108 @@ def main():
 
     igor_models = parser.add_argument_group('IGoR envent_pairdefault models')
 
-    args = parser.parse_args()
 
+    mdl = p3.IgorModel.load_default("mouse", "tcr_beta")
+
+    print( mdl.Pmarginal['vd_ins'] )
+
+    return 0
+
+    # Which variable I want to eliminate
+    strEvent = 'v_3_del'
+    sorted_events = mdl.parms.get_Event_list_sorted()
+    sorted_events_to_marginalize = [event for event in sorted_events if not event.event_type == "DinucMarkov"]
+    sorted_events_to_marginalize_without_VE = [ event for event in sorted_events_to_marginalize if not event.nickname == strEvent]
+
+    # Start eliminating events
+    factors = mdl.VE_get_Pmarginals_initial_factors()
+    for event_to_eliminate_VE in sorted_events_to_marginalize_without_VE:
+        factors = mdl.VE_get_factors_by_sum_out_variable(event_to_eliminate_VE.nickname, factors)
+
+    Pmarginal = 1
+    # Now I want to print each factor
+    for factor in factors:
+        Pmarginal = Pmarginal * factor
+    print(Pmarginal)
+
+    # event_to_eliminate_VE = sorted_events_to_marginalize_without_VE.pop(0)
+    # factors = mdl.VE_get_factors_by_sum_out_variable(event_to_eliminate_VE.nickname, factors)
+    # print(len(factors))
+    #
+    # event_to_eliminate_VE = sorted_events_to_marginalize_without_VE.pop(0)
+    # factors = mdl.VE_get_factors_by_sum_out_variable(event_to_eliminate_VE.nickname, factors)
+    # print(len(factors))
+    #
+    # event_to_eliminate_VE = sorted_events_to_marginalize_without_VE.pop(0)
+    # factors = mdl.VE_get_factors_by_sum_out_variable(event_to_eliminate_VE.nickname, factors)
+    # print(len(factors))
+    # # print(factors[-1])
+    # # print( mdl.xdata['v_choice'] )
+    # #
+    # # print( mdl.xdata['v_choice']*factors[-1] )
+    #
+    # event_to_eliminate_VE = sorted_events_to_marginalize_without_VE.pop(0)
+    # factors = mdl.VE_get_factors_by_sum_out_variable(event_to_eliminate_VE.nickname, factors)
+    # print(len(factors))
+    #
+    # event_to_eliminate_VE = sorted_events_to_marginalize_without_VE.pop(0)
+    # factors = mdl.VE_get_factors_by_sum_out_variable(event_to_eliminate_VE.nickname, factors)
+    # print(len(factors))
+    #
+    # event_to_eliminate_VE = sorted_events_to_marginalize_without_VE.pop(0)
+    # factors = mdl.VE_get_factors_by_sum_out_variable(event_to_eliminate_VE.nickname, factors)
+    # print(len(factors))
+    #
+    # event_to_eliminate_VE = sorted_events_to_marginalize_without_VE.pop(0)
+    # factors = mdl.VE_get_factors_by_sum_out_variable(event_to_eliminate_VE.nickname, factors)
+    # print(len(factors))
+    #
+    # event_to_eliminate_VE = sorted_events_to_marginalize_without_VE.pop(0)
+    # factors = mdl.VE_get_factors_by_sum_out_variable(event_to_eliminate_VE.nickname, factors)
+    # print(len(factors))
+    #
+    # Pmarginal = 1
+    # if len(sorted_events_to_marginalize_without_VE) == 0:
+    #     # Now I want to print each factor
+    #     for factor in factors:
+    #         Pmarginal = Pmarginal*factor
+    #     print(Pmarginal)
+    #
+
+
+
+
+    # print(mdl.Pmarginal['j_choice'])
+    # da = mdl.xdata['j_choice']*mdl.xdata['v_choice']
+    # print(da.sum('v_choice'))
+
+    return 0
+    sorted_events = mdl.parms.get_Event_list_sorted()
+    sorted_events_to_marginalize = [event for event in sorted_events if not event.event_type == "DinucMarkov"]
+    strEvent = 'j_choice'
+    event_to_marginalize = mdl.parms.get_Event(strEvent)
+    event_to_eliminate_ordered_list = [event for event in sorted_events_to_marginalize if not
+                                       event.nickname == event_to_marginalize.nickname]
+    factors = mdl.VE_get_Pmarginals_initial_factors()
+    print("event_to_marginalize.nickname : ", event_to_marginalize.nickname)
+    for event_to_eliminate in event_to_eliminate_ordered_list:
+        print("event_to_eliminate : ", event_to_eliminate.nickname)
+        mdl.VE_get_factors_by_sum_out_variable(event_to_eliminate.nickname)
+        print(mdl.factors)
+
+    # mdl.Pmarginal[event_to_marginalize.nickname] = mdl.factors
+    # print("-------- FACTORS")
+    # print(mdl.factors)
+    # print("====================")
+    # print(mdl.xdata[strEvent])
+    # print("--------------------")
+    # print( mdl.Pmarginal[strEvent] )
+    # print("////////////////////")
+    # # At the end only one factor should survive
+
+    return 0
+
+    args = parser.parse_args()
     print(args)
     print(args.event_pair)
     str_event_nickname1 = args.event_pair[0]

@@ -5,11 +5,14 @@ import argparse
 def get_pairwise_prob(mdl, event_nickname1, event_nickname2):
     # create an xarray matrix with event_nickname1 and event_nickname2
     da = mdl.get_zero_xarray_from_list([event_nickname1, event_nickname2])
+    # print("da = ", da)
+    import xarray as xr
 
     def tmp_funct(bs:p3.IgorScenario):
         ev_dict_ids = {event_nickname1: bs['id_'+event_nickname1], event_nickname2: bs['id_'+event_nickname2]}
-        da.loc[ev_dict_ids] = 1
-        return da
+        darr = xr.zeros_like(da)
+        darr.loc[ev_dict_ids] = 1
+        return darr
 
     return tmp_funct
 
@@ -37,18 +40,30 @@ def main():
     # mdl = p3.IgorModel.load_default(args.species, args.chain)
     db = p3.IgorSqliteDB.create_db(args.database)
     mdl = db.get_IgorModel()
-    fff = get_pairwise_prob(mdl, str_event_nickname1, str_event_nickname2)
-    average = db.calc_IgorBestScenarios_average_of(fff)
-    print(average)
-    print("="*50)
-    print(average[{'v_choice':0}] )
-    print("average[{'v_choice':0}].sum() : ", average[{'v_choice':0}].sum() )
-    print("average.sum() : ", average.sum())
+    func_pairwise = get_pairwise_prob(mdl, str_event_nickname1, str_event_nickname2)
+    seq_index = 3
+    average = db.calc_IgorBestScenarios_average_of(func_pairwise) #, indices_list=[seq_index])
+    bs_list = db.get_IgorBestScenarios_By_seq_index_IgorModel(seq_index, mdl)
+    bs = bs_list[0]
+    bs_realiz = mdl.parms.realiz_dict_from_scenario(bs)
+    print(bs_realiz )
+    # print(bs_realiz['v_choice'].to_dict())
+    print( bs_realiz['mismatches'].value )
+    return 0
+
     print("=" * 50)
+    bs_records = db.fetch_IgorBestScenarios_By_seq_index(seq_index)
+    # import pandas as pd
+    # bs_df = pd.DataFrame.from_records(bs_records)
+    bs_df = db.get_IgorBestScenariosDataframe_By_seq_index(seq_index)
+
+    print(bs_df[bs_df.id_v_choice == 59]['scenario_proba_cond_seq'].sum() )
+    print(bs_df[bs_df.id_v_choice == 60]['scenario_proba_cond_seq'].sum())
 
     import matplotlib.pyplot as plt
-    fig, ax = plt.subplots(figsize=(10,15))
-    average.plot(ax=ax)
+    fig, ax = plt.subplots(figsize=(10, 15))
+    aaa = average.plot(ax=ax, cmap='gnuplot2_r') #, vmin=0, vmax=1.0)
+    print(type(aaa))
 
     str_title = "$P($" + str_event_nickname1 + ", " + str_event_nickname2+"$)$"
 
