@@ -27,6 +27,7 @@ Igor_nickname_list = ["v_choice", "j_choice", "d_gene", "v_3_del",
                      "vd_ins", "vd_dinucl", "dj_ins", "dj_dinucl",
                      "vj_ins", "vj_dinucl"]
 
+
 IgorRec_Event_default_dict = {
     # GeneChoice;V_gene;Undefined_side;7;v_choice
     'v_choice': {
@@ -161,30 +162,40 @@ IgorRec_Event_default_dict = {
 }
 #SingleErrorRate
 
-Igor_vdj_dict_default = {
-    'v_choice' : {},
-    'j_choice' : {'v_choice'},
-    'd_gene' : {'v_choice', 'j_choice'},
-    'v_3_del' : {'v_choice'},
-    'd_5_del' : {'d_gene'},
-    'd_3_del' : {'d_gene', 'd_5_del'},
-    'j_5_del' : {'j_choice'},
-    'vd_ins' : {},
-    'vd_dinucl' : {},
-    'dj_ins' : {},
-    'dj_dinucl' : {}
+
+Igor_VDJ_default_nickname_list = ["v_choice", "j_choice", "d_gene", "v_3_del",
+                     "d_3_del", "d_5_del", "j_5_del",
+                     "vd_ins", "vd_dinucl", "dj_ins", "dj_dinucl"]
+
+Igor_VJ_default_nickname_list = ["v_choice", "j_choice",
+                                 "v_3_del", "j_5_del",
+                                 "vj_ins", "vj_dinucl"]
+
+Igor_VDJ_default_parents_dict = {
+    'v_choice' : [],
+    'j_choice' : ['v_choice'],
+    'd_gene' : ['v_choice', 'j_choice'],
+    'v_3_del' : ['v_choice'],
+    'd_5_del' : ['d_gene'],
+    'd_3_del' : ['d_gene', 'd_5_del'],
+    'j_5_del' : ['j_choice'],
+    'vd_ins' : [],
+    'vd_dinucl' : [],
+    'dj_ins' : [],
+    'dj_dinucl' : []
 }
 
-Igor_vj_dict_default = {
-    'v_choice' : {},
-    'j_choice' : {'v_choice'},
-    'd_gene' : {'v_choice', 'j_choice'},
-    'v_3_del' : {'v_choice'},
-    'd_5_del' : {'d_gene'},
-    'd_3_del' : {'d_gene', 'd_5_del'},
-    'j_5_del' : {'j_choice'},
-    'vd_ins' : {},
-    'vd_dinucl' : {},
-    'dj_ins' : {},
-    'dj_dinucl' : {}
+Igor_VJ_default_parents_dict = {
+    'v_choice' : [],
+    'j_choice' : ['v_choice'],
+    'd_gene' : ['v_choice', 'j_choice'],
+    'v_3_del' : ['v_choice'],
+    'd_5_del' : ['d_gene'],
+    'd_3_del' : ['d_gene', 'd_5_del'],
+    'j_5_del' : ['j_choice'],
+    'vd_ins' : [],
+    'vd_dinucl' : [],
+    'dj_ins' : [],
+    'dj_dinucl' : []
 }
+

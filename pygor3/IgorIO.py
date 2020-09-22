@@ -159,7 +159,10 @@ class IgorTask:
 
         self.igor_align_dict_options = igor_align_dict_options
 
+        self.igor_evaluate_dict_options = igor_evaluate_dict_options
+
         self.igor_output_dict_options = igor_output_dict_options
+
 
         try:
             p = subprocess.Popen("head /dev/urandom | tr -dc A-Za-z0-9 | head -c10", shell=True, stdout=subprocess.PIPE)
@@ -273,7 +276,6 @@ class IgorTask:
             cls.mdl = IgorModel(model_parms_file=cls.igor_model_parms_file, model_marginals_file=cls.igor_model_marginals_file)
         return cls
 
-
     def update_model_filenames(self, model_path=None):
         if model_path is None:
             model_path = "."
@@ -376,7 +378,10 @@ class IgorTask:
         self.igor_datadir = run_command(cmd).replace('\n','')
         self.igor_models_root_path = self.igor_datadir + "/models/"
 
-    def run_read_seqs(self):
+    def run_read_seqs(self, igor_read_seqs=None):
+        if igor_read_seqs is not None:
+            self.igor_read_seqs = igor_read_seqs
+
         "igor -set_wd $WDPATH -batch foo -read_seqs ../demo/murugan_naive1_noncoding_demo_seqs.txt"
         cmd = self.igor_exec_path
         cmd = cmd + " -set_wd " + self.igor_wd
@@ -388,9 +393,12 @@ class IgorTask:
         self.b_read_seqs = True # FIXME: If run_command success then True
         return cmd_stdout
 
-    def run_align(self):
+    def run_align(self, igor_read_seqs=None):
         #"igor -set_wd ${tmp_dir} -batch ${randomBatch} -species
         # ${species} -chain ${chain} -align --all"
+        if igor_read_seqs is not None:
+            self.igor_read_seqs = igor_read_seqs
+
         if self.b_read_seqs is False:
             self.run_read_seqs()
         cmd = self.igor_exec_path
@@ -398,8 +406,16 @@ class IgorTask:
         cmd = cmd + " -batch " + self.igor_batchname
         # TODO: USE COSTUM MODEL OR USE SPECIFIED SPECIES?
         # I think that the safests is to use the
-        cmd = cmd + " -species " + self.igor_species
-        cmd = cmd + " -chain " + self.igor_chain
+        # FIXME: CHANGE TO CUSTOM GENOMICS
+        cmd = cmd + " -set_genomic "
+        import os.path
+        if os.path.isfile(self.genomes.fln_genomicVs):
+            cmd = cmd + " --V " + self.genomes.fln_genomicVs
+        if os.path.isfile(self.genomes.fln_genomicDs):
+            cmd = cmd + " --D " + self.genomes.fln_genomicDs
+        if os.path.isfile(self.genomes.fln_genomicJs):
+            cmd = cmd + " --J " + self.genomes.fln_genomicJs
+
         cmd = cmd + " -align " + command_from_dict_options(self.igor_align_dict_options)
         #return cmd
         print(cmd)
@@ -408,25 +424,31 @@ class IgorTask:
         self.b_align = True # FIXME: If run_command success then True
         return cmd_stdout
 
-    def run_evaluate(self):
+    def run_evaluate(self, igor_read_seqs=None):
         #"igor -set_wd $WDPATH -batch foo -species human -chain beta
         # -evaluate -output --scenarios 10"
+        if igor_read_seqs is not None:
+            self.igor_read_seqs = igor_read_seqs
+
         if self.b_align is False:
-            self.run_align()
+            self.run_align(igor_read_seqs=self.igor_read_seqs)
 
         cmd = self.igor_exec_path
         cmd = cmd + " -set_wd " + self.igor_wd
         cmd = cmd + " -batch " + self.igor_batchname
         # TODO: USE COSTUM MODEL OR USE SPECIFIED SPECIES?
         # I think that the safests is to use the
-        cmd = cmd + " -species " + self.igor_species
-        cmd = cmd + " -chain " + self.igor_chain
+        # cmd = cmd + " -species " + self.igor_species
+        # cmd = cmd + " -chain " + self.igor_chain
+        cmd = cmd + " -set_custom_model " + self.igor_model_parms_file + " " + self.igor_model_marginals_file
+
         # here the evaluation
-        cmd = cmd + " -evaluate -output " + command_from_dict_options(self.igor_output_dict_options)
+        cmd = cmd + " -evaluate " + command_from_dict_options(self.igor_evaluate_dict_options)
+        cmd = cmd + " -output " + command_from_dict_options(self.igor_output_dict_options)
         #return cmd
         print(cmd)
         # FIXME: REALLY BIG FLAW USE DICTIONARY FOR THE SPECIE AND CHAIN
-        self.mdl = IgorModel.load_default(self.igor_species, igor_option_path_dict[self.igor_chain], modelpath=self.igor_models_root_path)
+        # self.mdl = IgorModel.load_default(self.igor_species, igor_option_path_dict[self.igor_chain], modelpath=self.igor_models_root_path)
         run_command(cmd)
         #run_command_no_output(cmd)
         #self.b_evaluate = True # FIXME: If run_command success then Truerun_infer
@@ -473,7 +495,6 @@ class IgorTask:
         # import pandas as pd
         df = pd.read_csv(self.igor_fln_generated_seqs_werr, delimiter=';').set_index('seq_index')
         return df
-
 
     def run_clean_batch(self):
         cmd = "rm -r " + self.igor_wd + "/" + self.igor_batchname + "_evaluate"
@@ -607,7 +628,136 @@ class IgorTask:
         df = df.merge(df_cdr3, left_index=True, right_index=True)
         return df
 
-    ### IGOR INPUT SEQUENCES  ####
+    def from_db_get_naive_align_dict_by_seq_index(self, seq_index):
+        indexed_sequence = self.igor_db.get_IgorIndexedSeq_By_seq_index(seq_index)
+        indexed_sequence.offset = 0
+
+        best_v_align_data = self.igor_db.get_best_IgorAlignment_data_By_seq_index('V', indexed_sequence.seq_index)
+        best_j_align_data = self.igor_db.get_best_IgorAlignment_data_By_seq_index('J', indexed_sequence.seq_index)
+
+        try:
+            best_d_align_data = self.igor_db.get_best_IgorAlignment_data_By_seq_index('D', indexed_sequence.seq_index)
+            vdj_naive_alignment = {'V': best_v_align_data,
+                                   'D': best_d_align_data,
+                                   'J': best_j_align_data}
+            v_align_data_list = self.igor_db.get_IgorAlignment_data_list_By_seq_index('V', indexed_sequence.seq_index)
+            # print('V', len(v_align_data_list), [ii.score for ii in v_align_data_list])
+            d_align_data_list = self.igor_db.get_IgorAlignment_data_list_By_seq_index('D', indexed_sequence.seq_index)
+            # print('D', len(d_align_data_list), [ii.score for ii in d_align_data_list])
+            j_align_data_list = self.igor_db.get_IgorAlignment_data_list_By_seq_index('J', indexed_sequence.seq_index)
+            # print('J', len(j_align_data_list), [ii.score for ii in j_align_data_list])
+            # 1. Choose the highest score then check if this one is the desire range.
+            # if there is an overlap
+            # calculate score without overlap. If overlap
+            # if hightest score
+            for i, d_align_data in enumerate(d_align_data_list):
+                # Check if D is btwn V and J position
+                if (best_v_align_data.offset_3_p <= d_align_data.offset_5_p) and (
+                        d_align_data.offset_3_p <= best_j_align_data.offset_5_p):
+                    # vdj_naive_alignment['D'+str(i)] = d_align_data
+                    vdj_naive_alignment['D'] = d_align_data
+                    break
+
+        except Exception as e:
+            print(e)
+            print("No d gene alignments found!")
+            vdj_naive_alignment = {'V': best_v_align_data,
+                                   'J': best_j_align_data}
+            v_align_data_list = self.igor_db.get_IgorAlignment_data_list_By_seq_index('V', indexed_sequence.seq_index)
+            print('V', len(v_align_data_list), [ii.score for ii in v_align_data_list])
+            j_align_data_list = self.igor_db.get_IgorAlignment_data_list_By_seq_index('J', indexed_sequence.seq_index)
+            print('J', len(j_align_data_list), [ii.score for ii in j_align_data_list])
+            pass
+
+        return indexed_sequence, vdj_naive_alignment
+
+    def from_db_str_fasta_naive_align_by_seq_index(self, seq_index):
+        """ Given an Sequence index and the corresponding alignments vj/ vdj
+            return a string with considering only offset"""
+
+        fasta_list = list()
+        indexed_sequence, vdj_alignments_dict = self.from_db_get_naive_align_dict_by_seq_index(seq_index)
+        indexed_sequence.sequence = indexed_sequence.sequence.lower()
+        # add mismatches in sequence.
+        s = list(indexed_sequence.sequence)
+        for key_align in vdj_alignments_dict.keys():
+            for pos_mis in vdj_alignments_dict[key_align].mismatches:
+                s[pos_mis] = s[pos_mis].upper()
+        indexed_sequence.sequence = "".join(s)
+
+        str_fasta = ""
+        min_offset_key = min(vdj_alignments_dict.keys(), key=lambda x: vdj_alignments_dict[x].offset)  # .offset
+        min_offset = vdj_alignments_dict[min_offset_key].offset
+        min_offset = min(indexed_sequence.offset, min_offset)
+
+        delta_offset = indexed_sequence.offset - min_offset
+        str_prefix = '-' * (delta_offset)
+        str_fasta_sequence = str_prefix + indexed_sequence.sequence
+        # print(str_fasta_sequence)
+        str_fasta = str_fasta + "> " + str(indexed_sequence.seq_index)
+        str_fasta_description = str_fasta
+        str_fasta = str_fasta + "\n"
+        str_fasta = str_fasta + str_fasta_sequence + "\n"
+
+        fasta_list.append([str_fasta_description, str_fasta_sequence])
+
+        for key in vdj_alignments_dict.keys():
+            vdj_alignments_dict[key].strGene_seq = vdj_alignments_dict[key].strGene_seq.lower()
+            delta_offset = vdj_alignments_dict[key].offset - min_offset
+            str_prefix = '-' * (delta_offset)
+            str_fasta_sequence = str_prefix + vdj_alignments_dict[key].strGene_seq
+            # print(str_fasta_sequence)
+            str_fasta_description = "> " + key + ", " + vdj_alignments_dict[key].strGene_name
+            str_fasta = str_fasta + str_fasta_description + "\n"
+            str_fasta = str_fasta + str_fasta_sequence + "\n"
+
+            fasta_list.append([str_fasta_description, str_fasta_sequence])
+
+            offset_5_p = vdj_alignments_dict[key].offset_5_p - min_offset
+            offset_3_p = vdj_alignments_dict[key].offset_3_p - min_offset
+            # print("delta_offset : ", delta_offset)
+            # print("offset_5_p : ", vdj_alignments_dict[key].offset_5_p, offset_5_p)
+            # print("offset_3_p : ", vdj_alignments_dict[key].offset_3_p, offset_3_p)
+            str_prefix_2 = '-' * (offset_5_p + 1)
+            str_fasta_sequence2 = str_prefix_2 + str_fasta_sequence[offset_5_p + 1:offset_3_p + 1]
+            str_fasta_description2 = "> " + vdj_alignments_dict[key].strGene_name + ", score : " + str(vdj_alignments_dict[key].score)
+            str_fasta = str_fasta + str_fasta_description2 + "\n"
+            str_fasta = str_fasta + str_fasta_sequence2 + "\n"
+
+            fasta_list.append([str_fasta_description2, str_fasta_sequence2])
+
+            # TODO ADD MISMATCHES
+            # align = vdj_alignments_dict[key]
+            # align mismatches are in indexed sequence reference I need to convert it to gene reference given the alignment
+            # given the align.offset
+            # pos_in_gene  = pos_in_seq - align.offset
+            # pos_in_gene = cdr3 - align.offset
+
+        # FIXME: make a list of tuples [(description_0, sequence_0), ..., (description_i, sequence_i), ..., (description_N, sequence_N)]
+
+        sequence_len_list = list(map(lambda x: len(x[1]), fasta_list))
+        max_seq_len = max(sequence_len_list)
+        for fasta_rec in fasta_list:
+            len_fasta_rec_seq = len(fasta_rec[1])
+            if len_fasta_rec_seq < max_seq_len:
+                #         print(fasta_rec)
+                ngaps = max_seq_len - len_fasta_rec_seq
+                str_ngaps = str(ngaps * '-')
+                fasta_rec[1] = fasta_rec[1] + str_ngaps
+
+        str_fasta = ""
+        str_fasta = '\n'.join( [fasta_rec[0]+"\n"+fasta_rec[1] for fasta_rec in fasta_list] )
+        return str_fasta #, fasta_list
+
+    def from_db_plot_naive_align_by_seq_index(self, seq_index):
+        import Bio.AlignIO
+        import io
+        aaa = self.from_db_str_fasta_naive_align_by_seq_index(seq_index)
+        aln = Bio.AlignIO.read(io.StringIO(aaa), 'fasta')
+        view_alignment(aln)
+
+
+### IGOR INPUT SEQUENCES  ####
 
 class IgorIndexedSequence:
     """
@@ -1105,7 +1255,7 @@ class IgorModel:
 
         return factors
 
-    # FIXME: Doesn't need to be a self method, but ...
+    # Doesn't need to be a self method, but ...
     def VE_get_factors_by_sum_out_variable(self, var_to_eliminate, factors):
         #     var_to_eliminate = 'j_choice'
         factors_to_sum_out = list()
@@ -1135,8 +1285,8 @@ class IgorModel:
         return factors
 
     def VE_get_Pmarginal_of_event(self, strEvent):
-        sorted_events = self.parms.get_Event_list_sorted()
         # FIXME: use xdata instead of self.parms
+        sorted_events = self.parms.get_Event_list_sorted()
         sorted_events_to_marginalize = [event for event in sorted_events if not event.event_type == "DinucMarkov"]
         sorted_events_to_marginalize_without_VE = [event for event in sorted_events_to_marginalize if
                                                    not event.nickname == strEvent]
@@ -1562,6 +1712,19 @@ class IgorModel:
         # TODO: assuming Genechoice
         self.xdata[event_nickname]
 
+    def export_plot_Pmarginals(self, outfilename_prefix):
+        import matplotlib.pyplot as plt
+        from matplotlib.backends.backend_pdf import PdfPages
+
+        with PdfPages(outfilename_prefix+".pdf") as pdf_file:
+            for event_nickname in self.Pmarginal.keys():
+                fig, ax = plt.subplots()
+                self.plot_Event_Marginal(event_nickname, ax=ax)
+                fig.tight_layout()
+                # flnOutput = flnPrefix + "_" + event_nickname + ".pdf"
+                pdf_file.savefig(fig)
+                # fig.savefig(flnOutput)
+
     def plot_Event_Marginal(self, event_nickname:str, ax=None, **kwargs):
         """
         Plot marginals of model events by nickname
@@ -1738,7 +1901,6 @@ class IgorModel:
         self.marginals.initialize_uniform_from_model_parms(self.parms)
         self.generate_xdata()
 
-
 class IgorModel_Parms:
     """
     Class to get a list of Events directly from the *_parms.txt
@@ -1800,6 +1962,120 @@ class IgorModel_Parms:
     @classmethod
     def from_database(cls, db):
         print("Loading Model Parms from database.")
+
+    @classmethod
+    def make_default_VJ(cls, df_genomicVs, df_genomicJs, lims_deletions=None, lims_insertions=None):
+        """Create a default VJ model from V and J genes dataframes
+            lims_deletions tuple with min and maximum value for deletions, e.g. (-4,20)
+            lims_insertions tuple with min and maximum value for deletions, e.g. (0,30)
+        """
+        cls = IgorModel_Parms()
+
+        if lims_deletions is None:
+            lims_deletions = (-4, 17)
+
+        if lims_insertions is None:
+            lims_insertions = (0, 41)
+
+        # Add events to Event_list
+        for event_nickname in Igor_VJ_default_nickname_list:
+            event_dict = IgorRec_Event_default_dict[event_nickname]
+            event = IgorRec_Event.from_dict(event_dict)
+            cls.Event_list.append(event)
+            if event.event_type == 'DinucMarkov':
+                value_list = ['A', 'C', 'G', 'T']
+                name_list = ['' for val in value_list]
+                event_df = pd.DataFrame.from_dict({'name': name_list, 'value': value_list})
+                event_df.index.name = 'id'
+            elif event.event_type == 'Deletion':
+                value_list = list(range(*lims_deletions))
+                name_list = ['' for val in value_list]
+                event_df = pd.DataFrame.from_dict({'name': name_list, 'value': value_list})
+                event_df.index.name = 'id'
+            elif event.event_type == 'Insertion':
+                value_list = list(range(*lims_insertions))
+                name_list = ['' for val in value_list]
+                event_df = pd.DataFrame.from_dict({'name': name_list, 'value': value_list})
+                event_df.index.name = 'id'
+            elif event.event_type == 'GeneChoice':
+                if event_nickname == 'v_choice':
+                    cls.set_event_realizations_from_DataFrame(event_nickname, df_genomicVs)
+                elif event_nickname == 'j_choice':
+                    event_dict["priority"] = 6
+                    cls.set_event_realizations_from_DataFrame(event_nickname, df_genomicJs)
+            else:
+                print("Unrecognized type of event. There are only 4 types of events:")
+                print(" - GeneChoice")
+                print(" - Deletions")
+                print(" - Insertions")
+                print(" - DinucMarkov")
+
+        # Now edges
+        cls.set_Edges_from_dict(Igor_VJ_default_parents_dict)
+
+        # Error Rate
+        cls.ErrorRate_dict = {'error_type': 'SingleErrorRate', 'error_values': '0.000396072'}
+
+        return cls
+
+    @classmethod
+    def make_default_VDJ(cls, df_genomicVs, df_genomicDs, df_genomicJs, lims_deletions=None, lims_insertions=None):
+        """Create a default VJ model from V and J genes dataframes
+            lims_deletions tuple with min and maximum value for deletions, e.g. (-4,20)
+            lims_insertions tuple with min and maximum value for deletions, e.g. (0,30)
+        """
+        cls = IgorModel_Parms()
+
+        if lims_deletions is None:
+            lims_deletions = (-4, 17)
+
+        if lims_insertions is None:
+            lims_insertions = (0, 41)
+
+        for event_nickname in Igor_VDJ_default_nickname_list:
+            event_dict = IgorRec_Event_default_dict[event_nickname]
+            event = IgorRec_Event.from_dict(event_dict)
+            cls.Event_list.append(event)
+
+            if event.event_type == 'DinucMarkov':
+                value_list = ['A', 'C', 'G', 'T']
+                name_list = ['' for val in value_list]
+                event_df = pd.DataFrame.from_dict({'name': name_list, 'value': value_list})
+                event_df.index.name = 'id'
+            elif event.event_type == 'Deletion':
+                value_list = list(range(*lims_deletions))
+                name_list = ['' for val in value_list]
+                event_df = pd.DataFrame.from_dict({'name': name_list, 'value': value_list})
+                event_df.index.name = 'id'
+            elif event.event_type == 'Insertion':
+                value_list = list(range(*lims_insertions))
+                name_list = ['' for val in value_list]
+                event_df = pd.DataFrame.from_dict({'name': name_list, 'value': value_list})
+                event_df.index.name = 'id'
+            elif event.event_type == 'GeneChoice':
+                if event_nickname == 'v_choice':
+                    cls.set_event_realizations_from_DataFrame(event_nickname, df_genomicVs)
+                elif event_nickname == 'd_gene':
+                    cls.set_event_realizations_from_DataFrame(event_nickname, df_genomicDs)
+                elif event_nickname == 'j_choice':
+                    cls.set_event_realizations_from_DataFrame(event_nickname, df_genomicJs)
+                else:
+                    print("ERROR: GeneChoice event "+event.nickname+" is not a default nickname.")
+
+            else:
+                print("ERROR: Unrecognized type of event. There are only 4 types of events:")
+                print(" - GeneChoice")
+                print(" - Deletions")
+                print(" - Insertions")
+                print(" - DinucMarkov")
+
+        # Now edges
+        cls.set_Edges_from_dict(Igor_VDJ_default_parents_dict)
+
+        # Error Rate
+        cls.ErrorRate_dict = {'error_type': 'SingleErrorRate', 'error_values': '0.000396072'}
+
+        return cls
 
     def load_events_from_dict(self, dicto):
         print(dicto)
@@ -1946,6 +2222,19 @@ class IgorModel_Parms:
             #self.Edges_dict[child_nickname].append(parent_nickname)
         except Exception as e:
             print("Edge : ", parent_nickname, child_nickname, " couldn't be added.")
+            print(e)
+            pass
+
+    def set_Edges_from_dict(self, parents_dict):
+        try:
+            for child_nickname, parents in parents_dict.items():
+                for parent_nickname in parents:
+                    parent_name = self.dictNicknameName[parent_nickname]
+                    child_name = self.dictNicknameName[child_nickname]
+                    self.Edges.append([parent_name, child_name])
+            self.getBayesGraph()
+        except Exception as e:
+            print("set_Edges_from_dict : ", parent_nickname, child_nickname, " couldn't be added.")
             print(e)
             pass
 
@@ -2336,6 +2625,7 @@ class IgorRec_Event:
     def add_realization(self):
         realization = IgorEvent_realization()
         self.realizations.append(realization)
+        self.update_name()
 
 
     @classmethod
@@ -2353,8 +2643,7 @@ class IgorRec_Event:
         #cls.seq_side = dict_IgorRec_Event["seq_side"]
         #cls.priority = dict_IgorRec_Event["priority"]
         cls.realizations = dict_IgorRec_Event["realizations"] # TODO: CREATE FUNCTION TO GENERATE realizations vector
-        #cls.name = dict_IgorRec_Event["name"]
-
+        cls.update_name()
         return cls
 
     def update_realizations_from_fasta(self, flnGenomic):
@@ -2460,7 +2749,6 @@ class IgorRec_Event:
 
         """
         return pd.DataFrame.from_records([realiz.to_dict() for realiz in self.realizations], index='id').sort_index()
-
 
 class IgorEvent_realization:
     """A small class storing for each RecEvent realization its name, value and

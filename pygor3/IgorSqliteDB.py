@@ -537,7 +537,7 @@ class IgorSqliteDB:
         sqlSelect = "SELECT * FROM Igor"+strGene.upper()+"Alignments WHERE seq_index=="+str(seq_index)+" ORDER BY score DESC"
         if limit is not None:
             sqlSelect = sqlSelect + " LIMIT "+ str(limit)
-        print("sqlSelect: ", sqlSelect)
+        # print("sqlSelect: ", sqlSelect)
         cur = self.conn.cursor()
         cur.execute(sqlSelect)
         record = cur.fetchall()

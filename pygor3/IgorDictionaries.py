@@ -40,6 +40,32 @@ igor_align_dict_options = {
 }
 igor_align_dict_options['--V']['dict_options']['---thresh']['value'] = '50'
 
+
+igor_evaluate_dict_options = {
+    '--N_iter':
+        {'active': False, 'value': '5'},
+    '--L_thresh':
+        {'active': False, 'value': ''},
+    '--P_ratio_thresh':
+        {'active': False, 'value': '0.0'}, # Check all possible scenarios
+    '--MLSO':
+        {'active': False, 'value': ''},
+    '--infer_only':
+        {'active': False, 'value': ''},
+    '--not_infer':
+        {'active': False, 'value': ''},
+    '--fix_err':
+        {'active': False, 'value': ''},
+
+}
+# --N_iter N
+# --L_thresh X
+# --P_ratio_thresh X
+# --MLSO
+# --infer_only eventnickname1 eventnickname2
+# --not_infer eventnickname1
+# --fix_err
+
 # Options used to output in  IGoR
 igor_output_dict_options = {
     '--scenarios':

@@ -46,12 +46,13 @@ def main():
     parser.add_argument("--event_pair", dest="event_pair", help="Events nickname", nargs=2, default=['v_choice', 'j_choice'])
 
     igor_models = parser.add_argument_group('IGoR envent_pairdefault models')
-
-
     mdl = p3.IgorModel.load_default("mouse", "tcr_beta")
 
-    print( mdl.Pmarginal['vd_ins'] )
-
+    import matplotlib.pyplot as plt
+    mdl.plot_Bayes_network()
+    print( mdl.Pmarginal['j_choice'] )
+    mdl.plot_Event_Marginal('j_choice')
+    plt.show()
     return 0
 
     # Which variable I want to eliminate

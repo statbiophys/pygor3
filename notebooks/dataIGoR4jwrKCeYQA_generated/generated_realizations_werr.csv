@@ -1,6 +1,0 @@
-seq_index;GeneChoice_V_gene_Undefined_side_prio7_size89;GeneChoice_J_gene_Undefined_side_prio7_size15;GeneChoice_D_gene_Undefined_side_prio6_size3;Deletion_V_gene_Three_prime_prio5_size21;Deletion_D_gene_Five_prime_prio5_size21;Deletion_D_gene_Three_prime_prio5_size21;Deletion_J_gene_Five_prime_prio5_size23;Insertion_VD_genes_Undefined_side_prio4_size31;DinucMarkov_VD_genes_Undefined_side_prio3_size16;Insertion_DJ_gene_Undefined_side_prio2_size31;DinucMarkov_DJ_gene_Undefined_side_prio1_size16;Errors
-0;(46);(10);(0);(2);(8);(7);(2);(2);(1,1);(4);(3,0,3,2);()
-1;(30);(0);(0);(10);(6);(8);(7);(6);(0,3,1,3,0,2);(7);(2,2,2,3,1,1,3);()
-2;(30);(5);(2);(3);(6);(15);(9);(13);(2,0,1,1,3,0,2,3,2,0,0,0,0);(2);(1,0);()
-3;(6);(11);(0);(6);(3);(4);(9);(3);(2,3,1);(6);(1,0,3,1,1,0);()
-4;(26);(5);(0);(12);(5);(9);(14);(11);(0,3,2,0,0,1,2,3,1,2,1);(7);(3,2,3,1,1,3,0);()

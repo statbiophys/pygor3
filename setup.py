@@ -12,11 +12,13 @@ setuptools.setup(
         "numpy",
         "xarray",
         "beautifulsoup4",
-        "biopython"
+        "biopython",
+        "Click"
     ],
     packages=setuptools.find_packages(),
     entry_points= {
         'console_scripts' : [
+            'pygor3-cli=pygor3.scripts.cli:cli',
             'pygor3-bs_pairwise_prob=pygor3.scripts.bs_pairwise_prob:main',
             'pygor3-observable=pygor3.scripts.observable:main',
             'pygor3-scriptTest=pygor3.scripts.scriptTest:main',

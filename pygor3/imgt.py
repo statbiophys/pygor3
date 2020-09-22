@@ -188,6 +188,7 @@ def get_gene_anchors(specie: str, gene: str, imgtlabel: str, modelspath=None, fi
         raise e
 
 def download_genes_anchors(specie: str, chain: str, flnVGenome, flnJGenome, modelspath=None, imgt_genedb=imgt_params['url.genedb']):
+    # For this method anchors will be in the same directory modelspath+"/"+specie+"/"+chain+
     download_Vgene_anchors(specie, chain, flnVGenome, modelspath=modelspath, imgt_genedb=imgt_genedb)
     download_Jgene_anchors(specie, chain, flnJGenome, modelspath=modelspath, imgt_genedb=imgt_genedb)
 
@@ -222,6 +223,10 @@ def download_Vgene_anchors(specie: str, chain: str, flnVGenome, modelspath=None,
             print("No anchor is found for : " + rec.description)
 
     ofileAnch.close()
+    fln_dict = dict()
+    fln_dict['flnVGenome'] = flnVGenome
+    fln_dict['ref_genes_path'] = ref_genes_path
+    return fln_dict
 
 def download_Jgene_anchors(specie: str, chain: str, flnJGenome, modelspath=None, imgt_genedb=imgt_params['url.genedb']):
     # records = get_gene_template(specie, gene, imgt_genedb=imgt_genedb)
@@ -271,15 +276,16 @@ def download_Jgene_anchors(specie: str, chain: str, flnJGenome, modelspath=None,
     ofileAnch.close()
 
 ############ Donwload all genetic information if VDJ or VJ
-def download_ref_genome_VDJ(species, chain):
-    flnVGenome = download_gene_template(species, chain + 'V')
-    flnDGenome = download_gene_template(species, chain + 'D')
-    flnJGenome = download_gene_template(species, chain + 'J')
+def download_ref_genome_VDJ(species: str, chain: str, **kwargs):
+    flnVGenome = download_gene_template(species, chain + 'V', **kwargs)
+    flnDGenome = download_gene_template(species, chain + 'D', **kwargs)
+    flnJGenome = download_gene_template(species, chain + 'J', **kwargs)
     print("Genomic VDJ templates in files: ", flnVGenome, flnDGenome, flnJGenome)
+    print(kwargs)
 
     # FIXME: ONCE THE GENE TEMPLATES ARE DOWNLOADED CHANGE THE NAME TO
     # write anchors
-    download_genes_anchors(species, chain, flnVGenome, flnJGenome)
+    download_genes_anchors(species, chain, flnVGenome, flnJGenome, **kwargs)
 
     # TODO: filter sequences for OLGA compatibility
     strGene = chain + "V"
@@ -323,14 +329,14 @@ def download_ref_genome_VDJ(species, chain):
 
     save_records2fasta(j_genomes_trim_list, flnJGenome + "_trim")
 
-def download_ref_genome_VJ(species, chain):
-    flnVGenome = download_gene_template(species, chain + 'V')
-    flnJGenome = download_gene_template(species, chain + 'J')
+def download_ref_genome_VJ(species: str, chain: str, **kwargs):
+    flnVGenome = download_gene_template(species, chain + 'V', **kwargs)
+    flnJGenome = download_gene_template(species, chain + 'J', **kwargs)
     print("Genomic VDJ templates in files: ", flnVGenome, flnJGenome)
 
     # FIXME: ONCE THE GENE TEMPLATES ARE DOWNLOADED CHANGE THE NAME TO
     # write anchors
-    download_genes_anchors(species, chain, flnVGenome, flnJGenome)
+    download_genes_anchors(species, chain, flnVGenome, flnJGenome, **kwargs)
 
     # TODO: filter sequences for OLGA compatibility
     strGene = chain + "V"
@@ -374,100 +380,6 @@ def download_ref_genome_VJ(species, chain):
 
     save_records2fasta(j_genomes_trim_list, flnJGenome + "_trim")
 
-
-"""
-def write_D_TemplateFiles(gene, specie):
-    records = get_records_list(urlDgene)
-
-def write_V_TemplateFiles(gene, specie, ):
-    DIR_REF_GENOME = specie + "/" + gene + "/ref_genome/"
-    gene = gene + "V"
-    print("DIR_REF_GENOME = ", DIR_REF_GENOME)
-    # 1. Get the Alleles/Gene sequences from the IMGT website (IMGT/GENE-DB)
-    URL_IMGT_GENEDB = "http://www.imgt.org/genedb/GENElect?"
-    QUERY_GENE = "query=7.2+" + gene + "&species=" + specie
-    QUERY_V_2CYS = "query=8.1+" + gene + "&species=" + specie + "&IMGTlabel=2nd-CYS"
-    urlVgene = URL_IMGT_GENEDB + QUERY_GENE
-    urlV_2CYS = URL_IMGT_GENEDB + QUERY_V_2CYS
-
-    urlVgene = get_genedb_query72(specie, gene, imgt_genedb=imgt_params['url.genedb'])
-
-    # 2. load data from IMGT url
-    records = get_records_list(urlVgene)
-    #records = genSeqRecords(urlVgene)
-    records = map(lambda x: x.upper(), records)
-
-    # 3. Write it in a fasta file.
-    flnGenomicVs = DIR_REF_GENOME + "genomicVs.fasta"
-    with open(flnGenomicVs, "w") as ofile:
-        SeqIO.write(records, ofile, "fasta")
-
-    # generate dictionaries with the anchors
-    dictV_2CYS = genAnchDict(urlV_2CYS)
-    # print( len(dictV_2CYS), len(records) )
-    # write the files
-    flnAnchors = DIR_REF_GENOME + "V_gene_CDR3_anchors.csv"
-    ofileAnch = open(flnAnchors, "w")
-    ofileAnch.write("gene;anchor_index" + "\n")
-    CSVDELIM = ";"
-    for rec in records:
-        key = genKey(rec.description)
-        # Initiate to avoid bad designation.
-        posV_2CYS = -1
-        if key in dictV_2CYS.keys():
-            posV_2CYS = dictV_2CYS[key] - getStartPos(rec.description)
-            posAnch = posV_2CYS
-            ofileAnch.write(rec.description + CSVDELIM + str(posAnch) + "\n")
-
-        else:
-            print("No anchor is found for : " + rec.description)
-
-    ofileAnch.close()
-
-def download_gene_anchors(specie: str, gene: str, imgt_genedb=imgt_params['url.genedb'], modelpath=".", filename=None):
-    url_query = get_genedb_query81_imgtlabel(specie, gene, imgt_genedb=imgt_genedb)
-
-def write_V_TemplateFiles(gene, specie ):
-    DIR_REF_GENOME = specie + "/" + gene + "/ref_genome/"
-    gene = gene + "V"
-    print("DIR_REF_GENOME = ", DIR_REF_GENOME)
-    # 1. Get the Alleles/Gene sequences from the IMGT website (IMGT/GENE-DB)
-    URL_IMGT_GENEDB = "http://www.imgt.org/genedb/GENElect?"
-    QUERY_GENE = "query=7.2+" + gene + "&species=" + specie
-    QUERY_V_2CYS = "query=8.1+" + gene + "&species=" + specie + "&IMGTlabel=2nd-CYS"
-    urlVgene = URL_IMGT_GENEDB + QUERY_GENE
-    urlV_2CYS = URL_IMGT_GENEDB + QUERY_V_2CYS
-
-    # 2. load data from IMGT url
-    records = get_records_list(urlVgene)
-    records = map(lambda x: x.upper(), records)
-
-    # 3. Write it in a fasta file.
-    flnGenomicVs = DIR_REF_GENOME + "genomicVs.fasta"
-    with open(flnGenomicVs, "w") as ofile:
-        SeqIO.write(records, ofile, "fasta")
-
-    # generate dictionaries with the anchors
-    dictV_2CYS = genAnchDict(urlV_2CYS)
-    # print( len(dictV_2CYS), len(records) )
-    # write the files
-    flnAnchors = DIR_REF_GENOME + "V_gene_CDR3_anchors.csv"
-    ofileAnch = open(flnAnchors, "w")
-    ofileAnch.write("gene;anchor_index" + "\n")
-    CSVDELIM = ";"
-    for rec in records:
-        key = genKey(rec.description)
-        # Initiate to avoid bad designation.
-        posV_2CYS = -1
-        if key in dictV_2CYS.keys():
-            posV_2CYS = dictV_2CYS[key] - getStartPos(rec.description)
-            posAnch = posV_2CYS
-            ofileAnch.write(rec.description + CSVDELIM + str(posAnch) + "\n")
-
-        else:
-            print("No anchor is found for : " + rec.description)
-
-    ofileAnch.close()
-
-
-"""
+    def make_VDJ_model():
+        from .IgorIO import IgorModel_Parms
+        mdl_parms = IgorModel_Parms
