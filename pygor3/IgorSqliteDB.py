@@ -802,7 +802,7 @@ class IgorSqliteDB:
             placeholders = ':' + ', :'.join(mdl_parms.ErrorRate_dict.keys())
             sql = 'INSERT INTO IgorMP_ErrorRate (%s) VALUES (%s)' % (columns, placeholders)
             cur.execute('BEGIN TRANSACTION')
-            print(mdl_parms.ErrorRate_dict)
+            # print(mdl_parms.ErrorRate_dict)
             cur.execute(sql, mdl_parms.ErrorRate_dict)
             cur.execute('COMMIT')
         except Exception as e:

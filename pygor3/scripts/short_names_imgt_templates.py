@@ -23,11 +23,14 @@ def main():
         new_records.append(record)
     p3.imgt.save_records2fasta(new_records, flnGenome+"_short")
 
-    df = pd.read_csv(flnAnchors, sep=';')
-    print(df['gene'])
-    df['gene'] = df['gene'].map(p3.genLabel)
-    print(df['gene'])
-    df.to_csv(flnAnchors+"_short", sep=';', index=False)
+    try:
+        df = pd.read_csv(flnAnchors, sep=';')
+        print(df['gene'])
+        df['gene'] = df['gene'].map(p3.genLabel)
+        print(df['gene'])
+        df.to_csv(flnAnchors+"_short", sep=';', index=False)
+    except Exception as e:
+        print(e)
 
 
 if __name__ == "__main__":

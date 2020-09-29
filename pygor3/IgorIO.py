@@ -85,32 +85,38 @@ class IgorTask:
     This class should encapsulate all
     the input parameters and output files when IGoR run.
     """
-    def __init__(self):
+    def __init__(self, igor_exec_path=None, igor_datadir=None,
+                 igor_models_root_path=None, igor_species=None, igor_chain=None,
+                 igor_model_dir_path=None,
+                 igor_path_ref_genome=None, fln_genomicVs=None, fln_genomicDs=None, fln_genomicJs=None, fln_V_gene_CDR3_anchors=None, fln_J_gene_CDR3_anchors=None,
+                 igor_wd=None, igor_batchname=None,
+                 igor_model_parms_file=None, igor_model_marginals_file=None,
+                 igor_read_seqs=None,
+                 ):
         # To execute IGoR externally
-        self.igor_exec_path = ""
-        self.igor_datadir = ""
+        self.igor_exec_path = igor_exec_path
+        self.igor_datadir = igor_datadir
 
         # To load default models and genomic templates
-        self.igor_models_root_path = "" # igor models paths where all species and chains are stored.
-        self.igor_species = None
-        self.igor_chain = None
+        self.igor_models_root_path = igor_models_root_path # igor models paths where all species and chains are stored.
+        self.igor_species = igor_species
+        self.igor_chain = igor_chain
 
-        self.igor_model_dir_path = None
+        self.igor_model_dir_path = igor_model_dir_path
 
         # genome references alignments
-        self.igor_path_ref_genome = ""
-        self.fln_genomicVs = ""
-        self.fln_genomicDs = ""
-        self.fln_genomicJs = ""
-        self.fln_V_gene_CDR3_anchors = ""
-        #self.fln_D_gene_CDR3_anchors = ""
-        self.fln_J_gene_CDR3_anchors = ""
+        self.igor_path_ref_genome = igor_path_ref_genome
+        self.fln_genomicVs = fln_genomicVs
+        self.fln_genomicDs = fln_genomicDs
+        self.fln_genomicJs = fln_genomicJs
+        self.fln_V_gene_CDR3_anchors = fln_V_gene_CDR3_anchors
+        self.fln_J_gene_CDR3_anchors = fln_J_gene_CDR3_anchors
 
-        self.igor_wd = ""
-        self.igor_batchname = ""
+        self.igor_wd = igor_wd
+        self.igor_batchname = igor_batchname
 
-        self.igor_model_parms_file = ""
-        self.igor_model_marginals_file = ""
+        self.igor_model_parms_file = igor_model_parms_file
+        self.igor_model_marginals_file = igor_model_marginals_file
 
         self.igor_read_seqs = ""
         self.igor_threads = ""
@@ -165,34 +171,40 @@ class IgorTask:
 
 
         try:
-            p = subprocess.Popen("head /dev/urandom | tr -dc A-Za-z0-9 | head -c10", shell=True, stdout=subprocess.PIPE)
-            line = p.stdout.readline()
-            self.igor_batchname = "dataIGoR"+line.decode("utf-8").replace('\n', '')
+            if self.igor_batchname is None:
+                self.gen_random_batchname()
         except Exception as e:
             print(e)
             raise e
 
         try:
-            p = subprocess.Popen("pwd", shell=True, stdout=subprocess.PIPE)
-            line = p.stdout.readline()
-            self.igor_wd = line.decode("utf-8").replace('\n', '')
+            if self.igor_wd is None:
+                self.gen_igor_wd()
         except Exception as e:
             print(e)
             raise e
 
         try:
-            p = subprocess.Popen("which igor", shell=True, stdout=subprocess.PIPE)
-            line = p.stdout.readline()
-            self.igor_exec_path = line.decode("utf-8").replace('\n', '')
+            if self.igor_exec_path is None:
+                p = subprocess.Popen("which igor", shell=True, stdout=subprocess.PIPE)
+                line = p.stdout.readline()
+                self.igor_exec_path = line.decode("utf-8").replace('\n', '')
         except Exception as e:
             print(e)
             raise e
 
         try:
-            self.run_datadir()
+            if self.igor_datadir is None:
+                self.run_datadir()
         except Exception as e:
             print(e)
             raise e
+
+    def __repr__(self):
+        str_repr = ""
+        for key, value in self.to_dict().items():
+            str_repr = str_repr + str(key) +" = "+ str(value) + "\n"
+        return str_repr
 
     def to_dict(self):
         dicto = {
@@ -236,9 +248,11 @@ class IgorTask:
         }
         return dicto
 
-    def load_IgorRefGenome(self):
+    def load_IgorRefGenome(self, igor_path_ref_genome=None):
         # FIXME: THERE ARE 2 OPTIONS HERE:
         # 1. From template directory self.igor_path_ref_genome
+        if igor_path_ref_genome is not None:
+            self.igor_path_ref_genome = igor_path_ref_genome
         self.genomes = IgorRefGenome.load_from_path(self.igor_path_ref_genome)
         # TODO: FIND A BETTER WAY TO SYNCHRONIZE NAMES (FORWARD AND BACKWARD)
         self.fln_genomicVs = self.genomes.fln_genomicVs
@@ -254,11 +268,36 @@ class IgorTask:
         # self.genomes.fln_genomicDs = self.fln_genomicDs
         # self.genomes.fln_genomicJs = self.fln_genomicJs
 
+    def make_model_default_VJ_from_genomes(self, igor_path_ref_genome=None):
+        try:
+            self.load_IgorRefGenome(igor_path_ref_genome=igor_path_ref_genome)
+            mdl_parms = IgorModel_Parms.make_default_VJ(self.genomes.df_genomicVs, self.genomes.df_genomicJs)
+            mdl_marginals = IgorModel_Marginals.make_uniform_from_parms(mdl_parms)
+            self.mdl = IgorModel.load_from_parms_marginals_object(mdl_parms, mdl_marginals)
+        except Exception as e:
+            print("ERROR: ", e)
+
+    def make_model_default_VDJ_from_genomes(self, igor_path_ref_genome=None):
+        try:
+            self.load_IgorRefGenome(igor_path_ref_genome=igor_path_ref_genome)
+            mdl_parms = IgorModel_Parms.make_default_VDJ(self.genomes.df_genomicVs, self.genomes.df_genomicDs, self.genomes.df_genomicJs)
+            mdl_marginals = IgorModel_Marginals.make_uniform_from_parms(mdl_parms)
+            self.mdl = IgorModel.load_from_parms_marginals_object(mdl_parms, mdl_marginals)
+        except Exception as e:
+            print("ERROR: ", e)
+
     def load_IgorModel(self):
         if ( (self.igor_species is None ) or (self.igor_chain is None)):
             self.mdl = IgorModel(model_parms_file = self.igor_model_parms_file, model_marginals_file=self.igor_model_marginals_file)
         else :
             self.mdl = IgorModel.load_default(self.igor_species, igor_option_path_dict[self.igor_chain])
+
+    def load_IgorModel_from_infer_files(self):
+        try:
+            self.mdl = IgorModel(model_parms_file = self.igor_fln_infer_final_parms, model_marginals_file=self.igor_fln_infer_final_marginals)
+        except Exception as e:
+            print("ERROR: IgorTask.load_IgorModel_inferred:")
+            print(e)
 
     @classmethod
     def default_model(cls, specie, chain, model_parms_file=None, model_marginals_file=None):
@@ -276,16 +315,39 @@ class IgorTask:
             cls.mdl = IgorModel(model_parms_file=cls.igor_model_parms_file, model_marginals_file=cls.igor_model_marginals_file)
         return cls
 
+    def gen_igor_wd(self):
+        p = subprocess.Popen("pwd", shell=True, stdout=subprocess.PIPE)
+        line = p.stdout.readline()
+        self.igor_wd = line.decode("utf-8").replace('\n', '')
+
+    def gen_random_batchname(self):
+        p = subprocess.Popen("head /dev/urandom | tr -dc A-Za-z0-9 | head -c10", shell=True, stdout=subprocess.PIPE)
+        line = p.stdout.readline()
+        self.igor_batchname = "dataIGoR" + line.decode("utf-8").replace('\n', '')
+
     def update_model_filenames(self, model_path=None):
+
+        # if model_path is None use the self.igor_model_dir_path
         if model_path is None:
-            model_path = "."
-        self.igor_model_dir_path = model_path
+            # use previously defined igor_model_dir_path
+            if self.igor_model_dir_path is None:
+                # if wasn't defined use the current directory
+                model_path = "."
+        else:
+            # if a model_path is provided then override it
+            self.igor_model_dir_path = model_path
+
         self.igor_model_parms_file = self.igor_model_dir_path + "/models/model_parms.txt"
         self.igor_model_marginals_file = self.igor_model_dir_path + "/models/model_marginals.txt"
         self.igor_path_ref_genome = self.igor_model_dir_path + "/ref_genome/"
 
     def update_batch_filenames(self):
         # reads
+        if self.igor_wd is None:
+            self.gen_igor_wd()
+        if self.igor_batchname is None:
+            self.gen_random_batchname()
+
         self.igor_fln_indexed_sequences = self.igor_wd + "/aligns/" + self.igor_batchname + "_indexed_sequences.csv"
 
         # aligns
@@ -396,11 +458,13 @@ class IgorTask:
     def run_align(self, igor_read_seqs=None):
         #"igor -set_wd ${tmp_dir} -batch ${randomBatch} -species
         # ${species} -chain ${chain} -align --all"
+        import os.path
+
         if igor_read_seqs is not None:
             self.igor_read_seqs = igor_read_seqs
 
         if self.b_read_seqs is False:
-            self.run_read_seqs()
+            self.run_read_seqs(igor_read_seqs=igor_read_seqs)
         cmd = self.igor_exec_path
         cmd = cmd + " -set_wd " + self.igor_wd
         cmd = cmd + " -batch " + self.igor_batchname
@@ -408,13 +472,20 @@ class IgorTask:
         # I think that the safests is to use the
         # FIXME: CHANGE TO CUSTOM GENOMICS
         cmd = cmd + " -set_genomic "
-        import os.path
+
         if os.path.isfile(self.genomes.fln_genomicVs):
             cmd = cmd + " --V " + self.genomes.fln_genomicVs
         if os.path.isfile(self.genomes.fln_genomicDs):
             cmd = cmd + " --D " + self.genomes.fln_genomicDs
         if os.path.isfile(self.genomes.fln_genomicJs):
             cmd = cmd + " --J " + self.genomes.fln_genomicJs
+
+        cmd = cmd + " -set_CDR3_anchors "
+
+        if os.path.isfile(self.genomes.fln_V_gene_CDR3_anchors):
+            cmd = cmd + " --V " + self.genomes.fln_V_gene_CDR3_anchors
+        if os.path.isfile(self.genomes.fln_J_gene_CDR3_anchors):
+            cmd = cmd + " --J " + self.genomes.fln_J_gene_CDR3_anchors
 
         cmd = cmd + " -align " + command_from_dict_options(self.igor_align_dict_options)
         #return cmd
@@ -427,6 +498,7 @@ class IgorTask:
     def run_evaluate(self, igor_read_seqs=None):
         #"igor -set_wd $WDPATH -batch foo -species human -chain beta
         # -evaluate -output --scenarios 10"
+        import os.path
         if igor_read_seqs is not None:
             self.igor_read_seqs = igor_read_seqs
 
@@ -453,28 +525,36 @@ class IgorTask:
         #run_command_no_output(cmd)
         #self.b_evaluate = True # FIXME: If run_command success then Truerun_infer
 
-    def run_infer(self):
+    def run_infer(self, igor_read_seqs=None):
         #"igor -set_wd $WDPATH -batch foo -species human -chain beta
         # -evaluate -output --scenarios 10"
+
+        if igor_read_seqs is not None:
+            self.igor_read_seqs = igor_read_seqs
+
         if self.b_align is False:
-            self.run_align()
+            self.run_align(igor_read_seqs=igor_read_seqs)
+            print("Alignment finished!")
 
         cmd = self.igor_exec_path
         cmd = cmd + " -set_wd " + self.igor_wd
         cmd = cmd + " -batch " + self.igor_batchname
         # TODO: USE COSTUM MODEL OR USE SPECIFIED SPECIES?
         # I think that the safests is to use the
-        cmd = cmd + " -species " + self.igor_species
-        cmd = cmd + " -chain " + self.igor_chain
+        # cmd = cmd + " -species " + self.igor_species
+        # cmd = cmd + " -chain " + self.igor_chain
+        cmd = cmd + " -set_custom_model " + self.igor_model_parms_file + " " + self.igor_model_marginals_file
         # here the evaluation
-        cmd = cmd + " -infer " + command_from_dict_options(self.igor_output_dict_options)
+        cmd = cmd + " -infer " #+ command_from_dict_options(self.igor_output_dict_options)
         #return cmd
         print(cmd)
         # FIXME: REALLY BIG FLAW USE DICTIONARY FOR THE SPECIE AND CHAIN
-        self.mdl = IgorModel.load_default(self.igor_species, igor_option_path_dict[self.igor_chain], modelpath=self.igor_models_root_path)
-        run_command(cmd)
+        # self.mdl = IgorModel.load_default(self.igor_species, igor_option_path_dict[self.igor_chain], modelpath=self.igor_models_root_path)
+        self.mdl = IgorModel(model_parms_file=self.igor_model_parms_file, model_marginals_file=self.igor_model_marginals_file)
+        output = run_command(cmd)
         #run_command_no_output(cmd)
         self.b_infer = True # FIXME: If run_command success then True
+        return output
 
     def run_generate(self, N):
         cmd = self.igor_exec_path
@@ -551,6 +631,14 @@ class IgorTask:
             print("Couldn't load model to database from IgorModel object")
             print("ERROR: ", e)
 
+    def load_db_from_inferred_model(self):
+        self.load_IgorModel_from_infer_files()
+        try:
+            self.igor_db.load_IgorModel(self.mdl)
+        except Exception as e:
+            print("Couldn't load model to database from IgorModel object")
+            print("ERROR: ", e)
+
     def load_db_from_indexed_cdr3(self):
         print(self.igor_fln_indexed_CDR3)
         self.igor_db.load_IgorIndexedCDR3_FromCSV(self.igor_fln_indexed_CDR3)
@@ -562,6 +650,18 @@ class IgorTask:
     def load_db_from_pgen(self):
         print(self.igor_fln_output_pgen)
         self.igor_db.load_IgorPgen_FromCSV(self.igor_fln_output_pgen)
+
+    def load_mdl_from_db(self):
+        try:
+            self.mdl = self.igor_db.get_IgorModel()
+        except Exception as e:
+            print("WARNING: Igor Model was not found in ", self.igor_fln_db)
+            pass
+        # return self.mdl
+
+    # def get_IgorModel_from_db(self):
+    #     self.mdl = self.igor_db.get_IgorModel()
+    #     return self.mdl
 
     # FIXME: this method should be deprecated!!!
     def load_VDJ_database(self, flnIgorSQL):
@@ -1886,6 +1986,7 @@ class IgorModel:
             if not (event.event_type == 'DinucMarkov'):
                 scen_dict[event.nickname] = scen_dict.pop('id_' + event.nickname)
 
+    # FIXME:
     def export_model(self, model_parms_file=None, model_marginals_file=None):
         self.parms.write_model_parms(filename=model_parms_file)
         self.marginals
@@ -1987,16 +2088,19 @@ class IgorModel_Parms:
                 name_list = ['' for val in value_list]
                 event_df = pd.DataFrame.from_dict({'name': name_list, 'value': value_list})
                 event_df.index.name = 'id'
+                cls.set_event_realizations_from_DataFrame(event_nickname, event_df)
             elif event.event_type == 'Deletion':
                 value_list = list(range(*lims_deletions))
                 name_list = ['' for val in value_list]
                 event_df = pd.DataFrame.from_dict({'name': name_list, 'value': value_list})
                 event_df.index.name = 'id'
+                cls.set_event_realizations_from_DataFrame(event_nickname, event_df)
             elif event.event_type == 'Insertion':
                 value_list = list(range(*lims_insertions))
                 name_list = ['' for val in value_list]
                 event_df = pd.DataFrame.from_dict({'name': name_list, 'value': value_list})
                 event_df.index.name = 'id'
+                cls.set_event_realizations_from_DataFrame(event_nickname, event_df)
             elif event.event_type == 'GeneChoice':
                 if event_nickname == 'v_choice':
                     cls.set_event_realizations_from_DataFrame(event_nickname, df_genomicVs)
@@ -2010,6 +2114,9 @@ class IgorModel_Parms:
                 print(" - Insertions")
                 print(" - DinucMarkov")
 
+        # Update names
+        # for event in self.Event_list:
+        #     event.name ="jodete"
         # Now edges
         cls.set_Edges_from_dict(Igor_VJ_default_parents_dict)
 
@@ -2042,16 +2149,19 @@ class IgorModel_Parms:
                 name_list = ['' for val in value_list]
                 event_df = pd.DataFrame.from_dict({'name': name_list, 'value': value_list})
                 event_df.index.name = 'id'
+                cls.set_event_realizations_from_DataFrame(event_nickname, event_df)
             elif event.event_type == 'Deletion':
                 value_list = list(range(*lims_deletions))
                 name_list = ['' for val in value_list]
                 event_df = pd.DataFrame.from_dict({'name': name_list, 'value': value_list})
                 event_df.index.name = 'id'
+                cls.set_event_realizations_from_DataFrame(event_nickname, event_df)
             elif event.event_type == 'Insertion':
                 value_list = list(range(*lims_insertions))
                 name_list = ['' for val in value_list]
                 event_df = pd.DataFrame.from_dict({'name': name_list, 'value': value_list})
                 event_df.index.name = 'id'
+                cls.set_event_realizations_from_DataFrame(event_nickname, event_df)
             elif event.event_type == 'GeneChoice':
                 if event_nickname == 'v_choice':
                     cls.set_event_realizations_from_DataFrame(event_nickname, df_genomicVs)
@@ -2068,6 +2178,8 @@ class IgorModel_Parms:
                 print(" - Deletions")
                 print(" - Insertions")
                 print(" - DinucMarkov")
+
+        cls.update_events_name()
 
         # Now edges
         cls.set_Edges_from_dict(Igor_VDJ_default_parents_dict)
@@ -2320,6 +2432,7 @@ class IgorModel_Parms:
         # for nickname in Igor_nickname_list: # Igor_nicknameList is in IgorDefaults.py
         for event in self.Event_list:
             try:
+                ## self.write_event(ofile, event:IgorRec_Event)
                 # event = self.get_Event(nickname)
                 strLine = "#" + \
                           str(event.event_type) + strSepChar + \
@@ -2333,11 +2446,27 @@ class IgorModel_Parms:
                 str_df = df.to_csv(sep=strSepChar, header=False)
                 str_realization_list = ""
                 for strLine in str_df.split("\n"):
-                    str_realization_list = str_realization_list + "%" + strLine + "\n"
+                    # Asi se tiene = ['id', 'value', 'name']
+                    strLine_list = strLine.split(strSepChar)
+                    # print(strLine, strLine_list)
+                    if len(strLine_list) > 1:
+                        if event.event_type == "GeneChoice":
+                            str_id = strLine_list[0]
+                            str_value = strLine_list[1]
+                            str_name = strLine_list[2]
+                            # Asi se quiere = ['name', 'value', 'id']
+                            str_realization = str_name + strSepChar + str_value + strSepChar + str_id
+                        else:
+                            str_id = strLine_list[0]
+                            str_value = strLine_list[1]
+                            # Asi se quiere = ['value', 'id']
+                            str_realization = str_value + strSepChar + str_id
+
+                        str_realization_list = str_realization_list + "%" + str_realization + "\n"
                 ofile.write(str_realization_list)
 
             except Exception as e:
-                print("ERROR: write_Event_list")
+                print("ERROR: write_Event_list, ", event.nickname)
                 print(e)
                 pass
 
@@ -2362,7 +2491,7 @@ class IgorModel_Parms:
             strSepChar = delimiter
         ofile.write("@ErrorRate\n")
         ofile.write("#"+self.ErrorRate_dict['error_type']+"\n")
-        ofile.write("%"+self.ErrorRate_dict['error_values']+"\n")
+        ofile.write(self.ErrorRate_dict['error_values']+"\n")
 
     def get_EventsNickname_list(self):
         return [event.nickname for event in self.Event_list]
@@ -2387,15 +2516,21 @@ class IgorModel_Parms:
 
     def gen_EventDict_DataFrame(self):
         self.Event_dict = dict()
-        self.dictNameNickname = dict()
         #dictio = dict()
         for event in self.Event_list:
             #dictio[event.nickname] = event.get_realization_DataFrame()
             self.Event_dict[event.nickname] = event.get_realization_DataFrame()
-            self.dictNameNickname[event.name] = event.nickname
-        #return dictio
-        self.dictNicknameName = {v: k for k, v in self.dictNameNickname.items()}
+
+        self.gen_NameNickname_dict()
         self.getBayesGraph()
+
+    def gen_NameNickname_dict(self):
+        self.dictNameNickname = dict()
+        for event in self.Event_list:
+            event.update_name()
+            self.dictNameNickname[event.name] = event.nickname
+        # return dictio
+        self.dictNicknameName = {v: k for k, v in self.dictNameNickname.items()}
 
     def get_event_dict(self, str_key, str_value):
         """
@@ -2574,6 +2709,11 @@ class IgorModel_Parms:
             #     print(e)
         return realizations_dict
 
+    def update_events_name(self):
+        for event in self.Event_list:
+            event.update_name()
+        self.gen_NameNickname_dict()
+
 class IgorRec_Event:
     """Recombination event class containing event's name, type, realizations,
     etc... Similar to IGoR's C++ RecEvent class.
@@ -2627,7 +2767,6 @@ class IgorRec_Event:
         self.realizations.append(realization)
         self.update_name()
 
-
     @classmethod
     def from_dict(cls, dict_IgorRec_Event:dict):
         """Returns a IgorRec_Event based on dictionary
@@ -2656,7 +2795,6 @@ class IgorRec_Event:
                 event_realization.name = record.description
                 self.add_realization(event_realization)
 
-
     def export_realizations_to_fasta(self, flnGenomic):
         from Bio.SeqRecord import SeqRecord
         from Bio.Seq import Seq
@@ -2678,6 +2816,7 @@ class IgorRec_Event:
             dict_realiz['index'] = index
             realiz = IgorEvent_realization.from_dict(dict_realiz)
             self.realizations.append(realiz)
+        self.update_name()
 
     @classmethod
     def from_default_nickname(cls, nickname:str):
@@ -2853,6 +2992,12 @@ class IgorModel_Marginals:
     #  %0,0,0,1.6468e-08,0.00482319,1.08101e-09,0.0195311,0.0210679,0.0359338,0.0328678,2.25686e-05,4.97463e-07,0,9.31048e-08,1.01642e-05,0.000536761,0.0260845,0.0391021,0.319224,0.289631,0.211165
     #  #[d_gene,0],[d_5_del,1]
     #  %0,0,6.86291e-08,2.00464e-09,0.00163832,2.02919e-06,0.0306066,0.0126832,0.000872623,0.016518,0.00495292,0.000776747,4.45576e-05,0.000667902,0.00274004,0.00435049,0.300943,0.182499,0.13817,0.302534,0
+
+    @classmethod
+    def make_uniform_from_parms(cls, parms:IgorModel_Parms):
+        cls = IgorModel_Marginals()
+        cls.initialize_uniform_from_model_parms(parms)
+        return cls
 
     def read_model_marginals(self, filename, dim_names=False):
         """Reads a model marginals file. Returns a tuple containing a dict

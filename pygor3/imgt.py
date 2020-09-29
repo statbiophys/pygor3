@@ -79,6 +79,8 @@ def save_records2fasta(records, filename:str):
     with open(filename, "w") as ofile:
         SeqIO.write(records, ofile, "fasta")
 
+    return filename
+
 def load_records_from_fasta(filename:str):
     # flnGenomicJs = DIR_REF_GENOME + "genomicJs.fasta"
     return list(SeqIO.parse(filename, "fasta"))
@@ -132,8 +134,12 @@ def download_gene_template(specie: str, gene: str, modelspath=None, filename=Non
             filename = ref_genes_path + "genomic" + gene[-1] + "s__imgt.fasta"
             #filename = modelspath + "genomic__" + specie + "_" + gene + ".fasta"
     #flnGenomicJs = DIR_REF_GENOME + "genomicJs.fasta"
-    save_records2fasta(records, filename)
-    return filename
+    flnGenome = save_records2fasta(records, filename)
+    fln_dict = dict()
+    fln_dict["fln"+gene[-1]+"Genome"] = flnGenome
+    fln_dict['ref_genes_path'] = ref_genes_path
+    fln_dict['modelspath'] = modelspath
+    return fln_dict
 
 def genKey(seqDescription):
     """
@@ -189,8 +195,10 @@ def get_gene_anchors(specie: str, gene: str, imgtlabel: str, modelspath=None, fi
 
 def download_genes_anchors(specie: str, chain: str, flnVGenome, flnJGenome, modelspath=None, imgt_genedb=imgt_params['url.genedb']):
     # For this method anchors will be in the same directory modelspath+"/"+specie+"/"+chain+
-    download_Vgene_anchors(specie, chain, flnVGenome, modelspath=modelspath, imgt_genedb=imgt_genedb)
-    download_Jgene_anchors(specie, chain, flnJGenome, modelspath=modelspath, imgt_genedb=imgt_genedb)
+    V_dict = download_Vgene_anchors(specie, chain, flnVGenome, modelspath=modelspath, imgt_genedb=imgt_genedb)
+    J_dict = download_Jgene_anchors(specie, chain, flnJGenome, modelspath=modelspath, imgt_genedb=imgt_genedb)
+    Anchors_dict = {**V_dict, **J_dict}
+    return Anchors_dict
 
 def download_Vgene_anchors(specie: str, chain: str, flnVGenome, modelspath=None, imgt_genedb=imgt_params['url.genedb']):
     #records = get_gene_template(specie, gene, imgt_genedb=imgt_genedb)
@@ -225,7 +233,9 @@ def download_Vgene_anchors(specie: str, chain: str, flnVGenome, modelspath=None,
     ofileAnch.close()
     fln_dict = dict()
     fln_dict['flnVGenome'] = flnVGenome
+    fln_dict['flnVAnchors'] = flnAnchors
     fln_dict['ref_genes_path'] = ref_genes_path
+    fln_dict['modelspath'] = modelspath
     return fln_dict
 
 def download_Jgene_anchors(specie: str, chain: str, flnJGenome, modelspath=None, imgt_genedb=imgt_params['url.genedb']):
@@ -245,7 +255,7 @@ def download_Jgene_anchors(specie: str, chain: str, flnJGenome, modelspath=None,
     dictJ_TRP = genAnchDict(urlJ_TRP)
 
     # write the files
-    flnAnchors = ref_genes_path + "J_gene_CDR3_anchors.csv"
+    flnAnchors = ref_genes_path + "J_gene_CDR3_anchors__imgt.csv"
     ofileAnch = open(flnAnchors, "w")
     # ofileAnch.write("gene;anchor_index" + "\n")
     ofileAnch.write("gene;anchor_index;function" + "\n")
@@ -274,18 +284,26 @@ def download_Jgene_anchors(specie: str, chain: str, flnJGenome, modelspath=None,
             print("No anchor is found for : " + rec.description)
 
     ofileAnch.close()
+    fln_dict = dict()
+    fln_dict['flnJGenome'] = flnJGenome
+    fln_dict['flnJAnchors'] = flnAnchors
+    fln_dict['ref_genes_path'] = ref_genes_path
+    fln_dict['modelspath'] = modelspath
+    return fln_dict
 
 ############ Donwload all genetic information if VDJ or VJ
 def download_ref_genome_VDJ(species: str, chain: str, **kwargs):
-    flnVGenome = download_gene_template(species, chain + 'V', **kwargs)
-    flnDGenome = download_gene_template(species, chain + 'D', **kwargs)
-    flnJGenome = download_gene_template(species, chain + 'J', **kwargs)
-    print("Genomic VDJ templates in files: ", flnVGenome, flnDGenome, flnJGenome)
-    print(kwargs)
+    dictVGenome = download_gene_template(species, chain + 'V', **kwargs)
+    dictDGenome = download_gene_template(species, chain + 'D', **kwargs)
+    dictJGenome = download_gene_template(species, chain + 'J', **kwargs)
+
+    flnVGenome = dictVGenome["flnVGenome"]
+    flnDGenome = dictDGenome["flnDGenome"]
+    flnJGenome = dictJGenome["flnJGenome"]
 
     # FIXME: ONCE THE GENE TEMPLATES ARE DOWNLOADED CHANGE THE NAME TO
     # write anchors
-    download_genes_anchors(species, chain, flnVGenome, flnJGenome, **kwargs)
+    Anchors_dict = download_genes_anchors(species, chain, flnVGenome, flnJGenome, **kwargs)
 
     # TODO: filter sequences for OLGA compatibility
     strGene = chain + "V"
@@ -328,15 +346,35 @@ def download_ref_genome_VDJ(species: str, chain: str, **kwargs):
             print(j_genome.description)
 
     save_records2fasta(j_genomes_trim_list, flnJGenome + "_trim")
+    print("----------------------")
+    print("Genomic VDJ templates in files: ")
+    print(flnVGenome, flnDGenome, flnJGenome)
+    dict_V = gen_short_names(flnVGenome, flnAnchors=Anchors_dict["flnVAnchors"])
+    dict_J = gen_short_names(flnJGenome, flnAnchors=Anchors_dict["flnJAnchors"])
+    dict_D = gen_short_names(flnDGenome)
+
+    import os.path
+    V_path = os.path.dirname(dict_V["genomics"])
+    J_path = os.path.dirname(dict_J["genomics"])
+    D_path = os.path.dirname(dict_D["genomics"])
+    import shutil
+    shutil.copy(dict_V["genomics"], V_path + "/genomicVs.fasta")
+    shutil.copy(dict_J["genomics"], J_path + "/genomicJs.fasta")
+    shutil.copy(dict_D["genomics"], D_path + "/genomicDs.fasta")
+    shutil.copy(dict_V["anchors"], V_path + "/V_gene_CDR3_anchors.csv")
+    shutil.copy(dict_J["anchors"], J_path + "/J_gene_CDR3_anchors.csv")
+    # print(kwargs)
 
 def download_ref_genome_VJ(species: str, chain: str, **kwargs):
-    flnVGenome = download_gene_template(species, chain + 'V', **kwargs)
-    flnJGenome = download_gene_template(species, chain + 'J', **kwargs)
-    print("Genomic VDJ templates in files: ", flnVGenome, flnJGenome)
+    dictVGenome = download_gene_template(species, chain + 'V', **kwargs)
+    dictJGenome = download_gene_template(species, chain + 'J', **kwargs)
+
+    flnVGenome = dictVGenome["flnVGenome"]
+    flnJGenome = dictJGenome["flnJGenome"]
 
     # FIXME: ONCE THE GENE TEMPLATES ARE DOWNLOADED CHANGE THE NAME TO
     # write anchors
-    download_genes_anchors(species, chain, flnVGenome, flnJGenome, **kwargs)
+    Anchors_dict = download_genes_anchors(species, chain, flnVGenome, flnJGenome, **kwargs)
 
     # TODO: filter sequences for OLGA compatibility
     strGene = chain + "V"
@@ -380,6 +418,56 @@ def download_ref_genome_VJ(species: str, chain: str, **kwargs):
 
     save_records2fasta(j_genomes_trim_list, flnJGenome + "_trim")
 
-    def make_VDJ_model():
-        from .IgorIO import IgorModel_Parms
-        mdl_parms = IgorModel_Parms
+    print("----------------------")
+    print("Genomic VJ templates in files: ")
+    print(flnVGenome, flnJGenome)
+    dict_V = gen_short_names(flnVGenome, flnAnchors=Anchors_dict["flnVAnchors"])
+    dict_J = gen_short_names(flnJGenome, flnAnchors=Anchors_dict["flnJAnchors"])
+
+    import os.path
+    V_path = os.path.dirname(dict_V["genomics"])
+    J_path = os.path.dirname(dict_J["genomics"])
+    import shutil
+    shutil.copy(dict_V["genomics"], V_path + "/genomicVs.fasta")
+    shutil.copy(dict_J["genomics"], J_path + "/genomicJs.fasta")
+    shutil.copy(dict_V["anchors"], V_path + "/V_gene_CDR3_anchors.csv")
+    shutil.copy(dict_J["anchors"], J_path + "/J_gene_CDR3_anchors.csv")
+
+
+def make_VDJ_model():
+    from .IgorIO import IgorModel_Parms
+    mdl_parms = IgorModel_Parms
+
+def gen_short_names(flnGenome, flnAnchors=None):
+    import pandas as pd
+    from .IgorIO import genLabel
+    # flnGenome = options.gene_template
+    # flnAnchors = options.gene_anchors
+
+    records = load_records_from_fasta(flnGenome)
+    new_records = list()
+    for record in records:
+        record.description = genLabel(record.description)
+        record.id = record.description
+        new_records.append(record)
+    flnGenome_short = flnGenome + "_short"
+    save_records2fasta(new_records, flnGenome_short)
+
+    gene_dict = dict()
+    gene_dict["genomics"] = flnGenome_short
+
+    try:
+        if flnAnchors is not None:
+            df = pd.read_csv(flnAnchors, sep=';')
+            #print(df['gene'])
+            df['gene'] = df['gene'].map(genLabel)
+            # print(df['gene'])
+            flnAnchors_short = flnAnchors + "_short"
+            df.to_csv(flnAnchors_short, sep=';', index=False)
+            gene_dict["anchors"] = flnAnchors_short
+    except Exception as e:
+        print(e)
+
+
+    return gene_dict
+

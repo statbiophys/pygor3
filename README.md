@@ -17,6 +17,25 @@ $ pip3 install -r requirements.txt
 $ pip3 install -e .
 
 # simple usage.
+
+1. Download new gene templates from IGMT website:
+$ pygor3-cli imgt get-ref-genome -t VDJ --imgt-species Homo+sapiens --imgt-chain TRB
+
+2. Make a new model from a ref_genome directory
+
+$ pygor3-cli -M models/Homo+sapiens/TRB/ model create -t VDJ
+
+3. Explore default model
+
+$ pygor3-cli -M models/Homo+sapiens/TRB/ model plot
+
+4. Infer model
+
+
+
+
+
+
 ## pygor3-load_database 
 
 Script to load genomes references and alignments in a single file

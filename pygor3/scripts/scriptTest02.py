@@ -76,6 +76,7 @@ def main():
     # print(gene_templates_dict["V"])
 
 
+
     # print(list( map(lambda x: (x.strGene_name, x.score, x.offset, x.anchor_in_read), lista)) )
 
     return 0
