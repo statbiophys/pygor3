@@ -30,6 +30,24 @@ $ pygor3-cli -M models/Homo+sapiens/TRB/ model create -t VDJ
 $ pygor3-cli -M models/Homo+sapiens/TRB/ model plot
 
 4. Infer model
+$ pygor3-cli -M HumanTRB/ igor-infer -i test_seqs.csv -o myfile.db
+
+5. Evaluate model
+$ pygor3-cli -D myfile.db igor-evaluate -i test_seqs.csv -o mewdatabase.db
+
+# if -o option is None then use the same myfile.db, so the sequences to use should be 
+
+Show the tables in database:
+$ pygor3-cli db-ls -D myfile.db
+
+Delete elements in database:
+$ pygor3-cli db-rm -D myfile.db --sequences --model --alignments
+
+Extract elements in database:
+$ pygor3-cli db-extract -D myfile.db --sequences --model --alignments -o newfile.db
+
+Attach elements in database:
+$ pygor3-cli db-attacht -D myfile.db --sequences --model --alignments -i another.db
 
 
 

@@ -45,28 +45,30 @@ def cli(igortask, igor_species, igor_chain, igor_model, igor_model_path, igor_pa
     elif Q_model_files:
         igortask.igor_model_parms_file = igor_model_parms
         igortask.igor_model_marginals_file = igor_model_marginals
+    elif igor_fln_db is not None:
+        igortask.create_db()
     else:
         print("WARNING: No model provided!")
     click.echo("--------------------------------")
 
 
-    pass
-
 
 ########### IGoR's run commands ###########
-@click.group("igor_read_seqs")
+@click.group("igor-read-seqs")
+@click.option("-i", "--input-sequences", "igor_read_seqs", default=None, help="Input sequences in FASTA, TXT or CSV formats.")
 @pass_igortask
-def run_read_seqs(igortask):
+def run_read_seqs(igortask, igor_read_seqs):
     """IGoR's call to read_seqs"""
-    igortask.run_read_seqs()
+    igortask.run_read_seqs(igor_read_seqs=igor_read_seqs)
 
-@click.group("igor_align")
+@click.group("igor-align")
+@click.option("-i", "--input-sequences", "igor_read_seqs", default=None, help="Input sequences in FASTA, TXT or CSV formats.")
 @pass_igortask
-def run_align(igortask):
+def run_align(igortask, igor_read_seqs):
     """IGoR's call to aligns"""
-    igortask.run_align()
+    igortask.run_align(igor_read_seqs=igor_read_seqs)
 
-@click.command("igor_infer")
+@click.command("igor-infer")
 @click.option("-i", "--input-sequences", "igor_read_seqs", default=None, help="Input sequences in FASTA, TXT or CSV formats.")
 @click.option("-o", "--output-db", "output_db", default=None, help="Output database file.")
 @pass_igortask
@@ -90,6 +92,7 @@ def run_infer(igortask, igor_read_seqs, output_db):
     igortask.load_db_from_genomes()
     igortask.load_db_from_alignments()
     igortask.load_IgorModel_from_infer_files()
+    igortask.load_db_from_models()
 
     # if inference succesfull add files to db
 
@@ -102,13 +105,54 @@ def run_infer(igortask, igor_read_seqs, output_db):
         # mv
 
 
-@click.group("igor_evaluate")
+@click.command("igor-evaluate")
+@click.option("-i", "--input-sequences", "igor_read_seqs", default=None, help="Input sequences in FASTA, TXT or CSV formats.")
+@click.option("-o", "--output-db", "output_db", default=None, help="Output database file.")
 @pass_igortask
-def run_evaluate(igortask):
+def run_evaluate(igortask, igor_read_seqs, output_db):
     """IGoR's call to infer"""
-    igortask.run_evaluate()
+    click.echo("Running IGoR evaluation process...")
+    igortask.update_batch_filenames()
+    igortask.update_model_filenames()
 
-@click.group("igor_generate")
+    igortask.load_IgorRefGenome()
+    igortask.load_IgorModel()
+    # batchname_model/
+    # batchname_model/models
+    # batchname_model/ref_genome
+    output = igortask.run_evaluate(igor_read_seqs=igor_read_seqs)
+    print(output)
+
+    print("===== Saving files in database : =====")
+    igortask.create_db()
+    igortask.load_db_from_indexed_sequences()
+    igortask.load_db_from_indexed_cdr3()
+    igortask.load_db_from_genomes()
+    igortask.load_db_from_alignments()
+    igortask.load_IgorModel()
+    igortask.load_db_from_models()
+    igortask.load_db_from_bestscenarios()
+    igortask.load_db_from_pgen()
+
+@click.command("igor-scenarios")
+@click.option("-i", "--input-sequences", "igor_read_seqs", default=None, help="Input sequences in FASTA, TXT or CSV formats.")
+@click.option("-o", "--output-db", "output_db", default=None, help="Output database file.")
+@pass_igortask
+def run_get_scenarios(igortask, igor_read_seqs, output_db):
+    """IGoR's call to infer"""
+    click.echo("Running IGoR scenarios process...")
+    igortask.run_evaluate(igor_read_seqs=igor_read_seqs)
+
+@click.command("igor-pgen")
+@click.option("-i", "--input-sequences", "igor_read_seqs", default=None, help="Input sequences in FASTA, TXT or CSV formats.")
+@click.option("-o", "--output-db", "output_db", default=None, help="Output database file.")
+@pass_igortask
+def run_get_pgen(igortask, igor_read_seqs, output_db):
+    """IGoR's call to infer"""
+    click.echo("Get IGoR pgen process...")
+    igortask.run_evaluate(igor_read_seqs=igor_read_seqs)
+
+@click.command("igor-generate")
 @pass_igortask
 def run_generate(igortask):
     """IGoR's call to infer"""
@@ -119,6 +163,8 @@ cli.add_command(run_read_seqs)
 cli.add_command(run_align)
 cli.add_command(run_infer)
 cli.add_command(run_evaluate)
+cli.add_command(run_get_scenarios)
+cli.add_command(run_get_pgen)
 cli.add_command(run_generate)
 
 
@@ -181,15 +227,97 @@ cli.add_command(imgt)
 #     pass
 
 @click.command("model-export")
+@click.option("--from-txt", "fln_from_txt", nargs=2, default=[None, None],
+              help="Igor recombination type.")
+@click.option("--from-db", "fln_from_db", nargs=1, default=None,
+              help="Igor recombination type.")
+@click.option("--to-txt", "fln_to_txt", nargs=2, default=[None, None],
+              help="Igor recombination type.")
+@click.option("--to-db", "fln_to_db", nargs=1, default=None,
+              help="Igor recombination type.")
 @pass_igortask
-def model_export(igortask):
-    pass
+def model_export(igortask, fln_from_txt, fln_from_db, fln_to_txt, fln_to_db):
+    """
+    Export IGoR's models from txt (model_parms.txt, model_marginals.txt) files to db viceversa
+    """
+    b_from_db = False
+    b_from_txt = False
+    b_to_db = False
+    b_to_txt = False
+    if (fln_from_db is not None) : b_from_db = True
+    if (fln_to_db is not None): b_to_db = True
+    if (fln_from_txt[0] is not None ): b_from_txt = True
+    if (fln_to_txt[0] is not None ): b_to_txt = True
+
+    # print(fln_from_txt, fln_from_db, fln_to_txt, fln_to_db)
+    # print(b_from_db, b_from_txt, b_to_db, b_to_txt)
+
+    if b_from_db and b_from_txt:
+        print("ERROR: --from-txt and --from-db are excludent")
+        return 0
+
+    if b_to_db and b_to_txt :
+        print("ERROR: --to-txt and --to-db are excludent")
+        return 0
+
+    import pygor3 as p3
+    mdl_from = p3.IgorModel()
+    mdl_to = p3.IgorModel()
+    if b_from_txt:
+        try:
+            mdl_from = p3.IgorModel(fln_from_txt[0], fln_from_txt[1])
+            print(mdl_from)
+        except Exception as e:
+            print("ERROR: ", fln_from_txt)
+            print(e)
+    elif b_from_db:
+        try:
+            igor_db = p3.IgorSqliteDB.create_db(fln_from_db)
+            mdl_from = igor_db.get_IgorModel()
+            print(mdl_from)
+        except Exception as e:
+            print("ERROR: ", fln_from_db)
+            print(e)
+    else:
+        print("A file is need it!")
+        return 0
+
+    if b_to_txt:
+        try:
+            if fln_to_txt[1] is not None:
+                mdl_to = mdl_from
+                mdl_to.parms.write_model_parms(fln_to_txt[0])
+                mdl_to.marginals.write_model_marginals(fln_to_txt[1])
+            else:
+                mdl_to = mdl_from
+                mdl_to.parms.write_model_parms(fln_to_txt[0])
+                # TODO: MAKE A UNIFORM MARGINALS DISTRIBUTION
+                mdl_to.marginals.initialize_uniform_event_from_model_parms(mdl_to.parms)
+                fln_to_txt[1] = fln_to_txt[0]+"_marginals.txt"
+                mdl_to.marginals.write_model_marginals(fln_to_txt[1])
+                print("WARNING: No marginals file was specified, a uniform distribution was set and save in file ", fln_to_txt[1])
+            print(mdl_to)
+        except Exception as e:
+            print("ERROR: ", fln_to_txt)
+            print(e)
+    elif b_to_db:
+        try:
+            mdl_to = mdl_from
+            igor_db = p3.IgorSqliteDB.create_db(fln_to_db)
+            # mdl_to = igor_db.get_IgorModel()
+            igor_db.delete_IgorModel_Tables()
+            igor_db.load_IgorModel(mdl_to)
+        except Exception as e:
+            print("ERROR: ", fln_to_db)
+            print(e)
+
 
 @click.command("model-create")
 @click.option("-t", "--recombination_type", "rec_type", type=click.Choice(['VJ', 'VDJ']),
               help="Igor recombination type.")
+# @click.option("-o", "--output-prefix", "fln_output_prefix", default=None, help="Prefix for models files.")
 @pass_igortask
-def model_create(igortask, rec_type):
+def model_create(igortask, rec_type, fln_output_prefix):
     """Make a new default model VJ or VDJ with uniform probability distribution"""
     # click.echo( "igor_model_dir_path: "+igortask.igor_model_dir_path )
     import pygor3 as p3
@@ -216,33 +344,22 @@ def model_create(igortask, rec_type):
 
     print("igortask.igor_model_dir_path: ", igortask.igor_model_dir_path)
 
-    pass
 
 @click.command("model-plot")
 @click.option("-o", "--output-prefix", "fln_output_prefix", default=None, help="Prefix to pdf files with model plots.")
 @pass_igortask
 def model_plot(igortask, fln_output_prefix):
+    """Plot real marginals of the bayesian network events """
     if igortask.igor_fln_db is not None:
-
-        igortask.create_db()
+        igortask.create_db(igortask.igor_fln_db)
         igortask.load_mdl_from_db()
         print("Model loaded from ", igortask.igor_fln_db)
     else:
         igortask.update_model_filenames()
         igortask.load_IgorModel()
 
+    igortask.mdl.export_plot_Pmarginals(fln_output_prefix)
 
-    import matplotlib.pyplot as plt
-
-    for event_nickname in igortask.mdl.Pmarginal.keys():
-        fig, ax = plt.subplots()
-        # df = task.mdl.Pmarginal[event_nickname].to_dataframe(name=event_nickname)
-        igortask.mdl.plot_Event_Marginal(event_nickname, ax=ax)
-        fig.tight_layout()
-        flnOutput = fln_output_prefix + "_" + event_nickname + ".pdf"
-        fig.savefig(flnOutput)
-        print("***** Marginal plot of ", event_nickname, " in ", flnOutput)
-    pass
 
 cli.add_command(model_export)
 cli.add_command(model_create)
@@ -252,20 +369,250 @@ cli.add_command(model_plot)
 
 # pygor3-cli [GENERAL_OPTIONS] database export all
 ########### database commands ###########
-@click.group() #invoke_without_command=True)
+@click.command("database") #invoke_without_command=True)
 @pass_igortask
 def database(igortask):
     """Manipulations of models"""
-    pass
+    import pygor3 as p3
+    print("=== Sequences table: ")
+    for tabla in p3.sql_tablename_patterns_dict['read_seqs']:
+        tables_list = igortask.igor_db.get_list_of_tables_with_name(tabla)
+        for tablename in tables_list:
+            counts = igortask.igor_db.execute_select_query("SELECT COUNT(*) FROM {tablename};".format(tablename=tablename))
+            print(tablename, " : ", counts[0][0])
 
-@click.command("export")
+    print("=== Genomes tables: ")
+    for tabla in p3.sql_tablename_patterns_dict['ref_genome']:
+        tables_list = igortask.igor_db.get_list_of_tables_with_name(tabla)
+        for tablename in tables_list:
+            counts = igortask.igor_db.execute_select_query(
+                "SELECT COUNT(*) FROM {tablename};".format(tablename=tablename))
+            print(tablename, " : ", counts[0][0])
+
+    print("=== Alignment tables: ")
+    for tabla in p3.sql_tablename_patterns_dict['align']:
+        tables_list = igortask.igor_db.get_list_of_tables_with_name(tabla)
+        for tablename in tables_list:
+            counts = igortask.igor_db.execute_select_query(
+                "SELECT COUNT(*) FROM {tablename};".format(tablename=tablename))
+            print(tablename, " : ", counts[0][0])
+
+
+    print("=== Model tables: ")
+    for tabla in p3.sql_tablename_patterns_dict['model']:
+        tables_list = igortask.igor_db.get_list_of_tables_with_name(tabla)
+        for tablename in tables_list:
+            counts = igortask.igor_db.execute_select_query(
+                "SELECT COUNT(*) FROM {tablename};".format(tablename=tablename))
+            print(tablename, " : ", counts[0][0])
+
+    print("=== Output tables: ")
+    for tabla in p3.sql_tablename_patterns_dict['output']:
+        tables_list = igortask.igor_db.get_list_of_tables_with_name(tabla)
+        for tablename in tables_list:
+            counts = igortask.igor_db.execute_select_query(
+                "SELECT COUNT(*) FROM {tablename};".format(tablename=tablename))
+            print(tablename, " : ", counts[0][0])
+
+    # TODO: IF TABLE EXITS THEN EXPORT IT.
+    igortask.igor_db.write_IgorIndexedSeq_to_CSV("putz_indexed_seqs.csv")
+    igortask.igor_db.write_IgorGeneTemplate_to_fasta("J", "putzJ.fasta")
+    igortask.igor_db.write_IgorGeneAnchors_to_CSV("J", "putzJ_anchors.csv")
+    # TODO: FINISH IT
+
+    igortask.igor_db.write_IgorAlignments_to_CSV("J", "putzJ_aligns.csv")
+    # print(igortask.igor_db.get_columns_type_of_tables('IgorBestScenarios'))
+    igortask.igor_db.write_IgorBestScenarios_to_CSV('shit.csv')
+    igortask.igor_db.write_IgorPgen_to_CSV('putz_pgen.csv')
+
+
+    # cur = igortask.igor_db.conn.cursor()
+    # cur.executescript(str_query)
+    # self.conn.commit()
+    # cur.close()
+
+    # igortask.igor_db.
+
+
+
+@click.command("db-ls")
 @pass_igortask
-def database_export(igortask):
-    pass
+def database_ls(igortask):
+    """
+    List tables in database by groups and show the number of entries.
+    """
+    igortask.create_db()
+    igortask.igor_db.list_from_db()
 
-database.add_command(database_export)
+    Q_seqs = igortask.igor_db.Q_output_in_db()
+    print(Q_seqs)
+    # igortask.igor_db.write_IgorIndexedSeq_to_CSV("jojo.csv")
+
+
+@click.command("db-attach")
+@click.option("--from-db", "fln_from_db", default=None, help="Database copy source filename.")
+@click.option("--from-batch", "fln_from_db", default=None, help="Database copy source filename.")
+@click.option("--from-genome-dir", "fln_from_db", default=None, help="Database copy source filename.")
+@click.option("--from-model-path", "fln_from_db", default=None, help="Database copy source filename.")
+
+@click.option("--igor-model-dir", "igor_model_db", default=None,
+              metavar="<model.db>",
+              help='IGoR model database file.')
+@click.option("--igor-model-parms", "igor_model_parms", default=None,
+              metavar="<model_parms.txt>",
+              help='IGoR model parms (or params) file.')
+@click.option("--igor-model-marginals", "igor_model_marginals", default=None,
+              metavar="<model_marginals.txt>",
+              help='IGoR model marginals file.')
+@click.option("--scenarios", "scenarios", default=None,
+              help='If --from-db no need to add filename')
+@click.option("--pgen", "pgen", default=None,
+              help='If --from-db no need to add filename')
+@click.option("--genomes", "genomes", default=None,
+              help='Copy V, (D) and J genetic data to database')
+@click.option("--genomesV", "genomesV", default=None,
+              help='Copy just V genomes tables to database.')
+@click.option("--genomesD", "genomesD", default=None,
+              help='Copy just D genomes tables to database.')
+@click.option("--genomesJ", "genomesJ", default=None,
+              help='Copy just J genomes tables to database.')
+@click.option("--genomesCDR3", "genomesCDR3", default=None,
+              help='Copy just CDR3 anchors tables to database.')
+@click.option("--alignments", "alignments", default=None,
+              help='Copy all available alignments tables to database.')
+@click.option("--alignmentsV", "alignmentsV", default=None,
+              help='Copy V alignments tables to database.')
+@click.option("--alignmentsD", "alignmentsD", default=None,
+              help='Copy D alignments tables to database.')
+@click.option("--alignmentsJ", "alignmentsJ", default=None,
+              help='Copy J alignments tables to database.')
+@click.option("--alignmentsCDR3", "alignmentsCDR3", default=None,
+              help='Copy indexed cdr3 table to database.')
+
+# @click.option("-i", "--input-sequences", "igor_read_seqs", default=None, help="Input sequences in FASTA, TXT or CSV formats.")
+# @click.option("-o", "--output-prefix", "output_prefix", default=None, help="Filename output prefix.")
+@pass_igortask
+def database_attach(igortask, fln_from_db):
+    """
+    List tables in database by groups and show the number of entries.
+    """
+    igortask.create_db()
+    from pygor3 import IgorSqliteDB
+    other_igor_db = IgorSqliteDB.create_db(fln_from_db)
+    dicto = other_igor_db.get_dict_of_Igortablename_sql()
+    print(dicto.keys())
+    import pygor3 as p3
+    print("sql_tablename_patterns_dict : ", p3.sql_tablename_patterns_dict)
+    other_igor_db.close_db()
+    # igortask.igor_db.attach_table_from_db("ddd")
+    # igortask.igor_db.write_IgorIndexedSeq_to_CSV("jojo.csv")
+
+
+
+@click.command("db-rm")
+@click.option("--igor-reads", "b_igor_reads", is_flag=True,
+              help='Delete sequences reads in database.')
+@click.option("--igor-model", "b_igor_model", is_flag=True,
+              help='IGoR model database file.')
+@click.option("--igor-model-parms", "b_igor_model_parms", is_flag=True,
+              help='IGoR model parms (or params) file.')
+@click.option("--igor-model-marginals", "b_igor_model_marginals", is_flag=True,
+              help='IGoR model marginals file.')
+
+@click.option("--igor-scenarios", "b_igor_scenarios", is_flag=True,
+              help='If --from-db no need to add filename')
+@click.option("--igor-pgen", "b_igor_pgen", is_flag=True,
+              help='If --from-db no need to add filename')
+@click.option("--igor-genomes", "b_igor_genomes", is_flag=True,
+              help='Copy V, (D) and J genetic data to database')
+@click.option("--igor-genomesV", "b_igor_genomesV", is_flag=True,
+              help='Copy just V genomes tables to database.')
+@click.option("--igor-genomesD", "b_igor_genomesD", is_flag=True,
+              help='Copy just D genomes tables to database.')
+@click.option("--igor-genomesJ", "b_igor_genomesJ", is_flag=True,
+              help='Copy just J genomes tables to database.')
+@click.option("--igor-genomesCDR3", "b_igor_genomesCDR3", is_flag=True,
+              help='Copy just CDR3 anchors tables to database.')
+@click.option("--igor-alignments", "b_igor_alignments", is_flag=True,
+              help='Copy all available alignments tables to database.')
+@click.option("--igor-alignmentsV", "b_igor_alignmentsV", is_flag=True,
+              help='Copy V alignments tables to database.')
+@click.option("--igor-alignmentsD", "b_igor_alignmentsD", is_flag=True,
+              help='Copy D alignments tables to database.')
+@click.option("--igor-alignmentsJ", "b_igor_alignmentsJ", is_flag=True,
+              help='Copy J alignments tables to database.')
+@click.option("--igor-alignmentsCDR3", "b_igor_alignmentsCDR3", is_flag=True,
+              help='Copy indexed cdr3 table to database.')
+
+# @click.option("-i", "--input-sequences", "igor_read_seqs", default=None, help="Input sequences in FASTA, TXT or CSV formats.")
+# @click.option("-o", "--output-prefix", "output_prefix", default=None, help="Filename output prefix.")
+@pass_igortask
+def database_rm(igortask, b_igor_reads, b_igor_model,
+                b_igor_model_parms, b_igor_model_marginals,
+                b_igor_scenarios, b_igor_pgen,
+                b_igor_genomes,
+                b_igor_genomesV, b_igor_genomesD, b_igor_genomesJ, b_igor_genomesCDR3,
+                b_igor_alignments,
+                b_igor_alignmentsV, b_igor_alignmentsD, b_igor_alignmentsJ,
+                b_igor_alignmentsCDR3):
+    """
+    List tables in database by groups and show the number of entries.
+    """
+    igortask.create_db()
+    # from pygor3.IgorSqliteDB import *
+    if b_igor_reads:
+        try:
+            igortask.igor_db.delete_IgorIndexedSeq_Tables()
+        except Exception as e:
+            print("ERROR: igor-reads")
+            print(e)
+
+    if b_igor_genomes:
+        try:
+            igortask.igor_db.delete_IgorGeneTemplate_Tables()
+            print("999999999999999")
+            igortask.igor_db.delete_IgorGeneAnchors_Tables()
+        except Exception as e:
+            print("ERROR: igor-genomes")
+            print(e)
+
+
+    if b_igor_alignments:
+        try:
+            igortask.igor_db.delete_IgorAlignments_Tables()
+            igortask.igor_db.delete_IgorIndexedCDR3_Tables()
+        except Exception as e:
+            print("ERROR: igor-alignments")
+            print(e)
+
+    if b_igor_model:
+        try:
+            igortask.igor_db.delete_IgorModel_Tables()
+        except Exception as e:
+            print("ERROR: igor-model")
+            print(e)
+
+    if b_igor_pgen:
+        try:
+            igortask.igor_db.delete_IgorPgen_Tables()
+        except Exception as e:
+            print("ERROR: igor-pgen")
+            print(e)
+    if b_igor_scenarios:
+        try:
+            igortask.igor_db.delete_IgorBestScenarios_Tables()
+        except Exception as e:
+            print("ERROR: igor-scenarios")
+            print(e)
+
+
+# database.add_command(database_export)
 # database.add_command(database_create)
 cli.add_command(database)
+cli.add_command(database_ls)
+cli.add_command(database_attach)
+cli.add_command(database_rm)
+
 
 
 

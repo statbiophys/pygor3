@@ -137,7 +137,7 @@ CREATE TABLE IF NOT EXISTS IgorJAlignments (
 
 ############# IGOR MODEL TABLES #############
 sqlcmd_ct['MP_Event_list'] = """
--- MP_Event_list table
+-- IgorMP_Event_list table
 --     event_id integer,
 CREATE TABLE IF NOT EXISTS IgorMP_Event_list (
     nickname text NOT NULL PRIMARY KEY,
@@ -160,7 +160,7 @@ CREATE TABLE IF NOT EXISTS {} (
 """
 
 sqlcmd_ct['MP_Edges'] = """
--- MP_Event_list table
+-- IgorMP_Edges table
 CREATE TABLE IF NOT EXISTS IgorMP_Edges (
     parent_event text NOT NULL,
     child_event text NOT NULL,
@@ -170,7 +170,7 @@ CREATE TABLE IF NOT EXISTS IgorMP_Edges (
 """
 
 sqlcmd_ct['MP_ErrorRate'] = """
--- MP_Event_list table
+-- IgorMP_ErrorRate table
 CREATE TABLE IF NOT EXISTS IgorMP_ErrorRate (
     error_type text NOT NULL,
     error_values text NOT NULL
@@ -226,7 +226,7 @@ def sqlcmd_ct_Model_Marginals_DinucMarkov(event_nickname, list_dependencies:list
 
 ############## IGOR BEST SCENARIOS ##############
 sqlcmd_ct['Pgen'] = """
--- IgorIndexedSeq table
+-- IgorPgen table
 CREATE TABLE IF NOT EXISTS IgorPgen (
     seq_index integer PRIMARY KEY,
     Pgen_estimate real NOT NULL
@@ -235,7 +235,7 @@ CREATE TABLE IF NOT EXISTS IgorPgen (
 
 
 sqlcmd_ct['BestScenario_template'] = """
--- Best_scenarios table
+-- IgorBestScenarios table
 CREATE TABLE IF NOT EXISTS IgorBestScenarios (
     seq_index integer NOT NULL,
     scenario_rank integer NOT NULL,
@@ -326,3 +326,25 @@ sqlcmd_template_qry_cols = "SELECT name FROM pragma_table_info('{tablename}');"
 #     FOREIGN KEY (XXXXX_id) REFERENCES ER_XXXXXX (id),
 # );
 # """
+
+# --------------------------- SQL TABLENAME PATTERNS --------------------------- #
+
+sql_tablename_patterns = ['IgorIndexedSeq',
+                          'IgorIndexedCDR3', 'Igor%GeneTemplate', 'Igor%GeneCDR3Anchors', 'Igor%Alignments',
+                          'IgorMP_%', 'IgorER_%', 'IgorMM_%',
+                          'IgorPgen', 'IgorBestScenarios']
+
+sql_tablename_patterns_dict = dict()
+sql_tablename_patterns_read_seqs = ['IgorIndexedSeq']
+sql_tablename_patterns_ref_genome = ['Igor%GeneTemplate', 'Igor%GeneCDR3Anchors']
+sql_tablename_patterns_align = ['IgorIndexedCDR3', 'Igor%Alignments']
+sql_tablename_patterns_model = ['IgorMP_%', 'IgorER_%', 'IgorMM_%']
+sql_tablename_patterns_output = ['IgorPgen', 'IgorBestScenarios']
+sql_tablename_patterns_dict['read_seqs'] = sql_tablename_patterns_read_seqs
+sql_tablename_patterns_dict['ref_genome'] = sql_tablename_patterns_ref_genome
+sql_tablename_patterns_dict['align'] = sql_tablename_patterns_align
+sql_tablename_patterns_dict['model'] = sql_tablename_patterns_model
+sql_tablename_patterns_dict['output'] = sql_tablename_patterns_output
+# ----------------------------------------------------------------------------- #
+
+

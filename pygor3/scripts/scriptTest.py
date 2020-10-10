@@ -47,12 +47,17 @@ def main():
 
     igor_models = parser.add_argument_group('IGoR envent_pairdefault models')
     mdl = p3.IgorModel.load_default("mouse", "tcr_beta")
+    args = parser.parse_args()
 
-    import matplotlib.pyplot as plt
-    mdl.plot_Bayes_network()
-    print( mdl.Pmarginal['j_choice'] )
-    mdl.plot_Event_Marginal('j_choice')
-    plt.show()
+    fln_database = args.database
+    db = p3.IgorSqliteDB.create_db(fln_database)
+    records = db.get_list_of_tables_with_name('Igor%')
+    print(records)
+    db.delete_IgorModel_Tables()
+    records = db.get_list_of_tables_with_name('Igor%')
+    print(records)
+
+
     return 0
 
     # Which variable I want to eliminate

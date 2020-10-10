@@ -498,6 +498,7 @@ class IgorTask:
     def run_evaluate(self, igor_read_seqs=None):
         #"igor -set_wd $WDPATH -batch foo -species human -chain beta
         # -evaluate -output --scenarios 10"
+        print(self.to_dict())
         import os.path
         if igor_read_seqs is not None:
             self.igor_read_seqs = igor_read_seqs
@@ -586,7 +587,9 @@ class IgorTask:
         cmd = "rm -r " + self.igor_wd + "/" + self.igor_batchname + "_generated"
         run_command_no_output(cmd)
 
-    def create_db(self):
+    def create_db(self, igor_fln_db=None):
+        if igor_fln_db is not None:
+            self.igor_fln_db = igor_fln_db
         self.igor_db = IgorSqliteDB.create_db(self.igor_fln_db)
 
     def load_db_from_indexed_sequences(self):
@@ -624,7 +627,7 @@ class IgorTask:
         print("Alignments loaded in database in "+str(self.igor_fln_db))
 
     def load_db_from_models(self):
-        self.load_IgorModel()
+        # self.load_IgorModel()
         try:
             self.igor_db.load_IgorModel(self.mdl)
         except Exception as e:

@@ -86,11 +86,16 @@ class IgorSqliteDB:
         cls.connect_db()
         return cls
 
-    def connect_db(self):
+    def connect_db(self, flnIgorDB=None):
         """
         Connect (or create if not exits) to database
         """
+        if flnIgorDB is not None:
+            self.flnIgorDB = flnIgorDB
         self.conn = sqlite3.connect(self.flnIgorDB)
+
+    def close_db(self):
+        self.conn.close()
 
     def executescript(self, cur, str_query):
         cur.executescript(str_query)
@@ -118,8 +123,25 @@ class IgorSqliteDB:
             self.conn = sqlite3.connect(self.flnIgorDB)
             cur = self.conn.cursor()
             cur.execute(str_query)
-            #self.conn.commit()
+            # self.conn.commit()
             record = cur.fetchall()
+            # print(record)
+            # cur.close()
+            return record
+            # self.conn.close()
+        except sqlite3.Error as e:
+            print("sqlite3.ERROR : ", e)
+
+    def execute_select_query_fetchone(self, str_query):
+        """
+        Execute sql script in the SQLite database .
+        """
+        try:
+            self.conn = sqlite3.connect(self.flnIgorDB)
+            cur = self.conn.cursor()
+            cur.execute(str_query)
+            #self.conn.commit()
+            record = cur.fetchone()
             # print(record)
             # cur.close()
             return record
@@ -146,7 +168,6 @@ class IgorSqliteDB:
         """
         Return a parameter
         """
-
         for key in kwargs.keys():
             # Create a database.
             print( sqlcmd_ct[key] )
@@ -272,6 +293,30 @@ class IgorSqliteDB:
         seq_indexes_list = list( map(lambda x: x[0], seq_indexes_list) )
         return seq_indexes_list
 
+    def write_IgorIndexedSeq_to_CSV(self, flnIgorIndexedSeq, sep=";"):
+        print("Exporting indexed_sequences to file: ", flnIgorIndexedSeq)
+        # print(gene_name)
+        sqlSelect = "SELECT * FROM IgorIndexedSeq;"
+        # print(sqlSelect)
+        cur = self.conn.cursor()
+        cur.execute(sqlSelect)
+        # if strGene == 'D':
+        #    print(sqlSelect)
+        records = cur.fetchall()
+        with open(flnIgorIndexedSeq, "w") as ofile:
+            ofile.write("seq_index" + sep + "sequence" + "\n")
+            for record in records:
+                ofile.write(str(record[0])+sep+str(record[1])+"\n")
+
+    def delete_IgorIndexedSeq_Tables(self):
+        """
+        Method to delete IgorIndexedSeq table.
+        """
+        tables_list = self.get_list_of_tables_with_name('IgorIndexedSeq')
+        for tablename in tables_list:
+            sql_cmd_drop = "DROP TABLE IF EXISTS {tablename};".format(tablename=tablename)
+            self.execute_query(sql_cmd_drop)
+
     ###############################################
     ####  IgorXGeneTemplate Tables Methods
     ###############################################
@@ -335,6 +380,29 @@ class IgorSqliteDB:
         cur.execute(sqlSelect)
         record = cur.fetchone()
         return (record)
+
+    def write_IgorGeneTemplate_to_fasta(self, strGene, flnGeneTemplate, sep=";"):
+        print("Exporting gene templates to file: ", flnGeneTemplate)
+        sqlSelect = "SELECT * FROM Igor"+strGene.upper()+"GeneTemplate;"
+        cur = self.conn.cursor()
+        cur.execute(sqlSelect)
+        records = cur.fetchall()
+        # str_file_header = "seq_index" + sep + "sequence" + "\n"
+        with open(flnGeneTemplate, "w") as ofile:
+            # ofile.write(str_file_header)
+            for record in records:
+                ofile.write(">" + str(record[1]) + "\n")
+                ofile.write(str(record[2]) + "\n")
+
+    def delete_IgorGeneTemplate_Tables(self):
+        """
+        Method to delete IgorIndexedSeq table.
+        """
+        tables_list = self.get_list_of_tables_with_name('Igor%GeneTemplate')
+        for tablename in tables_list:
+            sql_cmd_drop = "DROP TABLE IF EXISTS {tablename};".format(tablename=tablename)
+            self.execute_query(sql_cmd_drop)
+
 
     def load_IgorGeneAnchors_FromCSV(self, strGene, flnGeneAnchors):
         # import pdb; pdb.set_trace()
@@ -400,12 +468,39 @@ class IgorSqliteDB:
         records = cur.fetchall()
         return (records)
 
-    # def fetch_IgorGeneAnchors_By_Gene_gene_name(self, strGene, gene_name):
-    #     sqlSelect = "SELECT * FROM Igor" + strGene.upper() + "GeneCDR3Anchors"
-    #     cur = self.conn.cursor()
-    #     cur.execute(sqlSelect)
-    #     records = cur.fetchall()
-    #     return (records)
+    def write_IgorGeneAnchors_to_CSV(self, strGene, flnGeneAnchors, sep=';'):
+        sqlcmd_select_template = """
+                    SELECT gene.gene_name,
+                            anch.anchor_index, anch.function 
+                    FROM Igor{upper}GeneTemplate gene 
+                    LEFT JOIN Igor{upper}GeneCDR3Anchors anch 
+                    ON gene.{lower}gene_id = anch.{lower}gene_id;
+                    """
+
+        sqlSelect = sqlcmd_select_template.format(upper=strGene.upper(), lower=strGene.lower())
+
+        cur = self.conn.cursor()
+        cur.execute(sqlSelect)
+        records = cur.fetchall()
+        str_file_header = "gene;anchor_index;function\n"
+        with open(flnGeneAnchors, "w") as ofile:
+            ofile.write(str_file_header)
+            for record in records:
+                ofile.write(str(record[0]) + sep)
+                ofile.write(str(record[1]) + sep)
+                ofile.write(str(record[2]) + '\n')
+
+    def delete_IgorGeneAnchors_Tables(self):
+        """
+        Method to delete IgorIndexedSeq table.
+        """
+        tables_list = self.get_list_of_tables_with_name('Igor%GeneCDR3Anchors')
+        print(tables_list)
+        for tablename in tables_list:
+            sql_cmd_drop = "DROP TABLE IF EXISTS {tablename};".format(tablename=tablename)
+            print(sql_cmd_drop)
+            self.execute_query(sql_cmd_drop)
+
 
     def fetch_IgorGenomicData_By_Gene(self, strGene):
         if strGene == 'D':
@@ -528,16 +623,13 @@ class IgorSqliteDB:
         else:
             print(csvlist)
 
-    def fetch_IgorAlignments_By_seq_index(self, strGene, seq_index, limit=None):
+    def fetch_IgorAlignments_By_seq_index(self, strGene, limit=None):
         """
         Fetch IgorAlignments from database by seq_index.
         :param strGene: string to specify the type of gene V, D or J
         :param seq_index: IgorIndexedSequences index
         """
-        sqlSelect = "SELECT * FROM Igor"+strGene.upper()+"Alignments WHERE seq_index=="+str(seq_index)+" ORDER BY score DESC"
-        if limit is not None:
-            sqlSelect = sqlSelect + " LIMIT "+ str(limit)
-        # print("sqlSelect: ", sqlSelect)
+        sqlSelect = "SELECT * FROM Igor"+strGene.upper()+"Alignments;"
         cur = self.conn.cursor()
         cur.execute(sqlSelect)
         record = cur.fetchall()
@@ -666,6 +758,38 @@ class IgorSqliteDB:
 
         return ""
 
+    def write_IgorAlignments_to_CSV(self, strGene, flnGeneTemplate, sep=";"):
+        print("Exporting alignments to file: ", flnGeneTemplate)
+
+        sqlcmd_select_template = """
+            SELECT aln.seq_index, t_gene.gene_name, aln.score, aln.offset, aln.insertions, aln.deletions, 
+            aln.mismatches, aln.length, aln.offset_5_p_align, aln.offset_3_p_align
+            FROM Igor{upper}Alignments aln 
+            LEFT JOIN Igor{upper}GeneTemplate t_gene 
+            ON aln.{lower}gene_id = aln.{lower}gene_id;
+            """
+
+        sqlSelect = sqlcmd_select_template.format(upper=strGene.upper(), lower=strGene.lower())
+        cur = self.conn.cursor()
+        cur.execute(sqlSelect)
+        records = cur.fetchall()
+
+        str_file_header = "seq_index;gene_name;score;offset;insertions;deletions;mismatches;length;5_p_align_offset;3_p_align_offset" + "\n"
+        with open(flnGeneTemplate, "w") as ofile:
+            ofile.write(str_file_header)
+            for record in records:
+                csvline = sep.join(map(str, record)).replace("[", "{").replace("]", "}")
+                ofile.write(csvline + "\n")
+
+    def delete_IgorAlignments_Tables(self):
+        """
+        Method to delete IgorAlignments table.
+        """
+        tables_list = self.get_list_of_tables_with_name('Igor%Alignments')
+        for tablename in tables_list:
+            sql_cmd_drop = "DROP TABLE IF EXISTS {tablename};".format(tablename=tablename)
+            self.execute_query(sql_cmd_drop)
+
     # def get_naive_alignment(self, seq_index):
     #     alnDataListV = db.fetch_IgorAlignments_By_seq_index('V', seq_index)
     #     v_align_data = p3.IgorAlignment_data.load_FromSQLRecord(alnDataListV[0])
@@ -731,6 +855,26 @@ class IgorSqliteDB:
         #    print(sqlSelect)
         record = cur.fetchone()
         return (record)
+
+    def write_IgorIndexedCDR3_to_CSV(self, flnIgorIndexedCDR3):
+        print("Writting indexed CDR3 to file : ", flnIgorIndexedCDR3)
+        sqlSelect = "SELECT * FROM IgorIndexedCDR3;"
+        # print(sqlSelect)
+        cur = self.conn.cursor()
+        cur.execute(sqlSelect)
+        # if strGene == 'D':
+        #    print(sqlSelect)
+        record = cur.fetchone()
+        return (record)
+
+    def delete_IgorIndexedCDR3_Tables(self):
+        """
+        Method to delete IgorAlignments table.
+        """
+        tables_list = self.get_list_of_tables_with_name('IgorIndexedCDR3')
+        for tablename in tables_list:
+            sql_cmd_drop = "DROP TABLE IF EXISTS {tablename};".format(tablename=tablename)
+            self.execute_query(sql_cmd_drop)
 
     # def get_IgorIndexedCDR3_By_seq_index(self, seq_index):
     #     record = self.fetch_IgorIndexedCDR3_By_seq_index(seq_index)
@@ -943,7 +1087,32 @@ class IgorSqliteDB:
         print("Loading marginals to database")
         self.load_IgorModel_Marginals(mdl.xdata)
 
-    def load_IgorBestScenarios_FromCSV(self, flnIgorBestScenarios, mdl):
+    def delete_IgorModel_Tables(self):
+        for tabla in sql_tablename_patterns_dict['model']:
+            tables_list = self.get_list_of_tables_with_name(tabla)
+            for tablename in tables_list:
+                sql_cmd_drop = "DROP TABLE IF EXISTS {tablename};".format(tablename=tablename)
+                counts = self.execute_query(sql_cmd_drop)
+
+    def delete_IgorModel_Parms_Tables(self):
+        for tabla in ['IgorMP_%', 'IgorER_%']:
+            tables_list = self.get_list_of_tables_with_name(tabla)
+            for tablename in tables_list:
+                sql_cmd_drop = "DROP TABLE IF EXISTS {tablename};".format(tablename=tablename)
+                counts = self.execute_query(sql_cmd_drop)
+
+    def delete_IgorModel_Marginals_Tables(self):
+        for tabla in ['IgorMM_%']:
+            tables_list = self.get_list_of_tables_with_name(tabla)
+            for tablename in tables_list:
+                sql_cmd_drop = "DROP TABLE IF EXISTS {tablename};".format(tablename=tablename)
+                counts = self.execute_query(sql_cmd_drop)
+
+
+    def load_IgorBestScenarios_FromCSV(self, flnIgorBestScenarios, mdl=None):
+        if mdl is None:
+            mdl = self.get_IgorModel()
+
         self.flnIgorBestScenarios = flnIgorBestScenarios
         with open(self.flnIgorBestScenarios, "r") as fp:
             #### CREATE DATABASE
@@ -1043,6 +1212,60 @@ class IgorSqliteDB:
             print(e)
             pass
 
+    def write_IgorBestScenarios_to_CSV(self, flnIgorBestScenarios, mdl=None, sep=';'):
+        """
+        seq_index;scenario_rank;scenario_proba_cond_seq;GeneChoice_V_gene_Undefined_side_prio7_size168;GeneChoice_J_gene_Undefined_side_prio7_size16;GeneChoice_D_gene_Undefined_side_prio6_size3;Deletion_V_gene_Three_prime_prio5_size21;Deletion_D_gene_Five_prime_prio5_size21;Deletion_D_gene_Three_prime_prio5_size21;Deletion_J_gene_Five_prime_prio5_size21;Insertion_VD_genes_Undefined_side_prio4_size41;DinucMarkov_VD_genes_Undefined_side_prio3_size16;Insertion_DJ_gene_Undefined_side_prio2_size41;DinucMarkov_DJ_gene_Undefined_side_prio1_size16;Mismatches
+        99;1;0.0401246;(109);(12);(2);(9);(16);(4);(7);(5);(2,2,0,3,0);(5);(0,2,0,3,3);()
+        99;2;0.0401246;(109);(12);(0);(9);(9);(7);(7);(5);(2,2,0,3,0);(5);(0,2,0,3,3);()
+        99;3;0.0100351;(109);(12);(2);(10);(13);(7);(7);(0);();(11);(0,2,0,3,3,2,2,2,0,0,3);()
+        99;4;0.0100351;(109);(12);(2);(9);(14);(7);(7);(0);();(11);(0,2,0,3,3,2,2,2,0,0,3);()
+        """
+        print("Exporting alignments to file: ", flnIgorBestScenarios)
+        if mdl is None:
+            mdl = self.get_IgorModel()
+
+        ### MAKE THE HEADER with name using nicknames
+        # Transform the nicknames with id
+        db_events_nickname_name_dict = dict()
+        for event in mdl.parms.Event_list:
+            if event.event_type == 'DinucMarkov':
+                db_events_nickname_name_dict[event.nickname] = event.name
+            else:
+                db_events_nickname_name_dict["id_"+event.nickname] = event.name
+        db_events_nickname_name_dict['mismatches'] = 'Mismatches'
+        print(db_events_nickname_name_dict)
+
+        list_bs_columns_db = [el[0] for el in self.get_columns_type_of_tables('IgorBestScenarios')[:-1]]
+        tmp_list = list()
+        for aaa in list_bs_columns_db:
+            if aaa in db_events_nickname_name_dict.keys():
+                tmp_list.append(db_events_nickname_name_dict[aaa])
+            else:
+                tmp_list.append(aaa)
+        # str_file_header
+        # str_file_header = sep.join(list_bs_columns_db)
+        str_file_header = sep.join(tmp_list)+"\n"
+
+        str_sql_columns_to_query = ",".join(list_bs_columns_db)
+        sqlSelect = "SELECT " + str_sql_columns_to_query + " FROM IgorBestScenarios;"
+        cur = self.conn.cursor()
+        cur.execute(sqlSelect)
+        records = cur.fetchall()
+
+        # str_file_header = "seq_index;gene_name;score;offset;insertions;deletions;mismatches;length;5_p_align_offset;3_p_align_offset" + "\n"
+        with open(flnIgorBestScenarios, "w") as ofile:
+            ofile.write(str_file_header)
+            for record in records:
+                csvline = sep.join(map(str, record)).replace("[", "{").replace("]", "}")
+                ofile.write(csvline + "\n")
+
+    def delete_IgorBestScenarios_Tables(self):
+        tablenames_list = self.get_list_of_tables_with_name('IgorBestScenarios')
+        for tablename in tablenames_list:
+            sql_cmd_drop = "DROP TABLE IF EXISTS {tablename};".format(tablename=tablename)
+            self.execute_query(sql_cmd_drop)
+
+    ###### PGEN
     def load_IgorPgen_FromCSV(self, flnIgorPgen):
         print(flnIgorPgen)
         self.execute_query(sqlcmd_ct['Pgen'])
@@ -1086,6 +1309,24 @@ class IgorSqliteDB:
         cur.execute(sqlSelect)
         record = cur.fetchone()
         return record
+
+    def write_IgorPgen_to_CSV(self, flnIgorPgen, sep=';'):
+        print("Writing Pgen to file: ", flnIgorPgen)
+        str_header = "seq_index"+sep+"Pgen_estimate\n"
+        with open(flnIgorPgen, "w") as ofile:
+            # seq_index,Pgen_estimate
+            ofile.write(str_header)
+            for record in self.fetch_IgorPgen():
+                try:
+                    ofile.write(str(record[0])+sep+str(record[1])+"\n" )
+                except Exception as e:
+                    print("ERROR: write_IgorPgen_to_CSV ", e)
+
+    def delete_IgorPgen_Tables(self):
+        tablenames_list = self.get_list_of_tables_with_name('IgorPgen')
+        for tablename in tablenames_list:
+            sql_cmd_drop = "DROP TABLE IF EXISTS {tablename};".format(tablename=tablename)
+            self.execute_query(sql_cmd_drop)
 
 
     ###### return IGoR Model
@@ -1193,7 +1434,41 @@ class IgorSqliteDB:
         ErrorRate_dict['error_values'] = ErrorRate_record[1]
         return ErrorRate_dict
 
+    def get_list_of_tables_with_name(self, table_name_pattern):
+        cmd_qry = """
+        SELECT name FROM sqlite_master WHERE type ='table' AND name NOT LIKE 'sqlite_%'
+	    AND name LIKE '{tablename}';
+        """
+        sql_cmd_qry = cmd_qry.format(tablename=table_name_pattern)
+        records = self.execute_select_query(sql_cmd_qry)
+        tables_list = [record[0] for record in records]
+        return tables_list
+
+    def get_dict_of_Igortablename_sql(self):
+        cmd_qry = """
+        SELECT name, sql FROM sqlite_master WHERE type ='table' AND name NOT LIKE 'sqlite_%'
+        AND name LIKE 'Igor%';
+        """
+        records = self.execute_select_query(cmd_qry)
+        tablename_sql_dict = dict()
+        for record in records:
+            tablename_sql_dict[record[0]] = record[1]
+
+        return tablename_sql_dict
+
+    def delete_IgorModel_Tables(self):
+        tablepatterns_list = ["IgorER_%", "IgorMM_%", "IgorMP_%"]
+        for tablepattern in tablepatterns_list:
+            tablenames_list = self.get_list_of_tables_with_name(tablepattern)
+            for tablename in tablenames_list:
+                sql_cmd_drop = "DROP TABLE IF EXISTS {tablename};".format(tablename=tablename)
+                self.execute_query(sql_cmd_drop)
+
     #########
+    def get_columns_type_of_tables(self, tablename):
+        select_qry = "SELECT name, type FROM pragma_table_info('{tablename}');".format(tablename=tablename)
+        return self.execute_select_query(select_qry)
+
     def gen_IgorBestScenarios_cols_list(self):
         self.sql_IgorBestScenarios_cols_name_type_list = self.execute_select_query("SELECT name, type FROM pragma_table_info('IgorBestScenarios');")
 
@@ -1321,6 +1596,162 @@ class IgorSqliteDB:
             # function_average = function_average + tmp_average
 
         return (function_sum )
+
+
+    ################## DATABASE UTILITIES ##################
+    def Q_sequences_in_db(self):
+        flag_db = False
+        for tabla in sql_tablename_patterns_dict['read_seqs']:
+            tables_list = self.get_list_of_tables_with_name(tabla)
+            # print(tables_list)
+            if len(tables_list) > 0: flag_db = True
+
+        return flag_db
+
+    def Q_ref_genome_in_db(self):
+        flag_db = False
+        for tabla in sql_tablename_patterns_dict['ref_genome']:
+            tables_list = self.get_list_of_tables_with_name(tabla)
+            # print(tables_list)
+            if len(tables_list) > 0: flag_db = True
+
+        return flag_db
+
+    def Q_align_in_db(self):
+        flag_db = False
+        for tabla in sql_tablename_patterns_dict['align']:
+            tables_list = self.get_list_of_tables_with_name(tabla)
+            # print(tables_list)
+            if len(tables_list) > 0: flag_db = True
+
+        return flag_db
+
+    def Q_model_in_db(self):
+        flag_db = False
+        for tabla in sql_tablename_patterns_dict['model']:
+            tables_list = self.get_list_of_tables_with_name(tabla)
+            # print(tables_list)
+            if len(tables_list) > 0: flag_db = True
+
+        return flag_db
+
+    def Q_output_in_db(self):
+        flag_db = False
+        for tabla in sql_tablename_patterns_dict['output']:
+            tables_list = self.get_list_of_tables_with_name(tabla)
+            # print(tables_list)
+            if len(tables_list) > 0: flag_db = True
+
+        return flag_db
+
+    def Q_IgorPgen_in_db(self):
+        flag_db = False
+        for tabla in ['IgorPgen']:
+            tables_list = self.get_list_of_tables_with_name(tabla)
+            # print(tables_list)
+            if len(tables_list) > 0: flag_db = True
+        return flag_db
+
+    def Q_IgorBestScenarios_in_db(self):
+        flag_db = False
+        for tabla in ['IgorBestScenarios']:
+            tables_list = self.get_list_of_tables_with_name(tabla)
+            # print(tables_list)
+            if len(tables_list) > 0: flag_db = True
+        return flag_db
+
+    def list_from_db(self):
+        print("=== Sequences tables: ")
+        for tabla in sql_tablename_patterns_dict['read_seqs']:
+            tables_list = self.get_list_of_tables_with_name(tabla)
+            for tablename in tables_list:
+                counts = self.execute_select_query(
+                    "SELECT COUNT(*) FROM {tablename};".format(tablename=tablename))
+                print(tablename, " : ", counts[0][0])
+
+        print("=== Genomes References tables: ")
+        for tabla in sql_tablename_patterns_dict['ref_genome']:
+            tables_list = self.get_list_of_tables_with_name(tabla)
+            for tablename in tables_list:
+                counts = self.execute_select_query(
+                    "SELECT COUNT(*) FROM {tablename};".format(tablename=tablename))
+                print(tablename, " : ", counts[0][0])
+
+        print("=== Alignments tables: ")
+        for tabla in sql_tablename_patterns_dict['align']:
+            tables_list = self.get_list_of_tables_with_name(tabla)
+            for tablename in tables_list:
+                counts = self.execute_select_query(
+                    "SELECT COUNT(*) FROM {tablename};".format(tablename=tablename))
+                print(tablename, " : ", counts[0][0])
+
+        print("=== Model tables: ")
+        for tabla in sql_tablename_patterns_dict['model']:
+            tables_list = self.get_list_of_tables_with_name(tabla)
+            for tablename in tables_list:
+                counts = self.execute_select_query(
+                    "SELECT COUNT(*) FROM {tablename};".format(tablename=tablename))
+                print(tablename, " : ", counts[0][0])
+
+        print("=== Output tables: ")
+        for tabla in sql_tablename_patterns_dict['output']:
+            tables_list = self.get_list_of_tables_with_name(tabla)
+            for tablename in tables_list:
+                counts = self.execute_select_query(
+                    "SELECT COUNT(*) FROM {tablename};".format(tablename=tablename))
+                print(tablename, " : ", counts[0][0])
+
+
+    # FIXME: FINISH IT I'M HERE
+    def attach_table_from_db(self, flnIgorPgen_to_attach):
+        # 1. Attach database flnIgorPgen_to_attach to current connection
+        # 2. Create table in flnIgorPgen_to_attach
+        # 3. Make a select in base table and insert to new table in flnIgorPgen_to_attach
+        # 4. Dettach database flnIgorPgen_to_attach
+        """
+        ATTACH 'ahorasi.db' as otherdb;
+        DETACH otherdb;
+        """
+        tablename_sql_dict = dict()
+        sqlcmd_ct_from_otherdb_template = """
+                    SELECT name, sql FROM otherdb.sqlite_master
+                    WHERE type ='table' AND name NOT LIKE 'sqlite_%'
+                    AND name = '{tablename}';
+                    """
+        sqlcmd_ct_from_otherdb_template = """
+                    SELECT name, sql FROM sqlite_master
+                    WHERE type ='table' AND name NOT LIKE 'sqlite_%'
+                    AND name = '{tablename}';
+                    """
+
+
+        category = 'sequences'
+        if category == 'sequences':
+            sql_tablename_patterns_dict['read_seqs']
+        if category == 'ref_genome':
+            sql_tablename_patterns_dict['ref_genome']
+        if category == 'align':
+            sql_tablename_patterns_dict['align']
+        if category == 'model':
+            sql_tablename_patterns_dict['model']
+
+        print( sql_tablename_patterns_dict.keys())
+        self.get_dict_of_Igortablename_sql()
+        sqlcmd = sqlcmd_ct_from_otherdb_template.format(tablename='IgorPgen')
+        record = self.execute_select_query_fetchone(sqlcmd)
+        print(record[0])
+        print(record[1])
+
+
+    # def rm_sequences_from_db(self):
+    #     for tabla in sql_tablename_patterns_dict['read_seqs']:
+    #         tables_list = self.get_list_of_tables_with_name(tabla)
+    #         for tablename in tables_list:
+    #             sql_cmd_drop = "DROP TABLE IF EXISTS {tablename};".format(tablename=tablename)
+    #             self.execute_query(sql_cmd_drop)
+
+
+
 
 
 
