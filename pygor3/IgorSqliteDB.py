@@ -399,6 +399,7 @@ class IgorSqliteDB:
         Method to delete IgorIndexedSeq table.
         """
         tables_list = self.get_list_of_tables_with_name('Igor%GeneTemplate')
+        print("Tables to delete : ", tables_list)
         for tablename in tables_list:
             sql_cmd_drop = "DROP TABLE IF EXISTS {tablename};".format(tablename=tablename)
             self.execute_query(sql_cmd_drop)
@@ -495,10 +496,9 @@ class IgorSqliteDB:
         Method to delete IgorIndexedSeq table.
         """
         tables_list = self.get_list_of_tables_with_name('Igor%GeneCDR3Anchors')
-        print(tables_list)
+        print("Tables to delete : ", tables_list)
         for tablename in tables_list:
             sql_cmd_drop = "DROP TABLE IF EXISTS {tablename};".format(tablename=tablename)
-            print(sql_cmd_drop)
             self.execute_query(sql_cmd_drop)
 
 
@@ -1661,7 +1661,7 @@ class IgorSqliteDB:
         return flag_db
 
     def list_from_db(self):
-        print("=== Sequences tables: ")
+        print("=== Sequences tables igor-reads: ")
         for tabla in sql_tablename_patterns_dict['read_seqs']:
             tables_list = self.get_list_of_tables_with_name(tabla)
             for tablename in tables_list:
@@ -1669,7 +1669,7 @@ class IgorSqliteDB:
                     "SELECT COUNT(*) FROM {tablename};".format(tablename=tablename))
                 print(tablename, " : ", counts[0][0])
 
-        print("=== Genomes References tables: ")
+        print("=== Genomes References tables igor-genomes: ")
         for tabla in sql_tablename_patterns_dict['ref_genome']:
             tables_list = self.get_list_of_tables_with_name(tabla)
             for tablename in tables_list:
@@ -1677,7 +1677,7 @@ class IgorSqliteDB:
                     "SELECT COUNT(*) FROM {tablename};".format(tablename=tablename))
                 print(tablename, " : ", counts[0][0])
 
-        print("=== Alignments tables: ")
+        print("=== Alignments tables igor-alignments: ")
         for tabla in sql_tablename_patterns_dict['align']:
             tables_list = self.get_list_of_tables_with_name(tabla)
             for tablename in tables_list:
@@ -1685,7 +1685,7 @@ class IgorSqliteDB:
                     "SELECT COUNT(*) FROM {tablename};".format(tablename=tablename))
                 print(tablename, " : ", counts[0][0])
 
-        print("=== Model tables: ")
+        print("=== Model tables igor-model: ")
         for tabla in sql_tablename_patterns_dict['model']:
             tables_list = self.get_list_of_tables_with_name(tabla)
             for tablename in tables_list:
@@ -1693,7 +1693,7 @@ class IgorSqliteDB:
                     "SELECT COUNT(*) FROM {tablename};".format(tablename=tablename))
                 print(tablename, " : ", counts[0][0])
 
-        print("=== Output tables: ")
+        print("=== Output tables igor-pgen and igor-scenarios: ")
         for tabla in sql_tablename_patterns_dict['output']:
             tables_list = self.get_list_of_tables_with_name(tabla)
             for tablename in tables_list:
@@ -1701,6 +1701,16 @@ class IgorSqliteDB:
                     "SELECT COUNT(*) FROM {tablename};".format(tablename=tablename))
                 print(tablename, " : ", counts[0][0])
 
+
+    def copytable_from_source(self, tablename_to_copy, fln_source_db):
+        #fln_source_db = igortask.igor_db.flnIgorDB
+        sql_ct_from_source_db = """
+                        ATTACH '{fln_source_db}' AS sourcedb;
+                        INSERT INTO {tablename_to_copy} SELECT * FROM sourcedb.{tablename_to_copy};
+                        DETACH sourcedb
+                        """
+        sql_cmd = sql_ct_from_source_db.format(fln_source_db=fln_source_db, tablename_to_copy=tablename_to_copy)
+        self.execute_query(sql_cmd)
 
     # FIXME: FINISH IT I'M HERE
     def attach_table_from_db(self, flnIgorPgen_to_attach):

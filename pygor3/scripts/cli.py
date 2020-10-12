@@ -17,7 +17,7 @@ pass_igortask = click.make_pass_decorator(IgorTask, ensure=True)
               help='IGoR model directory path, this path include ref_genomes and model_parms')
 @click.option("-g", "--set_path_ref_genome", "igor_path_ref_genome", default=None,
                     help='Directory where genome references are stored: genomicDs.fasta,  genomicJs.fasta,  genomicVs.fasta,  J_gene_CDR3_anchors.csv,  V_gene_CDR3_anchors.csv')  # , default='./ref_genome')
-@click.option("-w", "--set_wd", "igor_wd", help="Sets the working directory to path", default='./')
+@click.option("-w", "--set_wd", "igor_wd", help="Sets the working directory to path", default='./', show_default=True)
 # To load all data files use batchname
 @click.option("-b", "--set_batch", "igor_batch", default=None,
                     help='Sets batchname to identify run. If not set random name is generated') #, required=True)
@@ -70,10 +70,10 @@ def run_align(igortask, igor_read_seqs):
 
 @click.command("igor-infer")
 @click.option("-i", "--input-sequences", "igor_read_seqs", default=None, help="Input sequences in FASTA, TXT or CSV formats.")
-@click.option("-o", "--output-db", "output_db", default=None, help="Output database file.")
+@click.option("-o", "--output-prefix", "output_fln_prefix", default=None, help="Output database file.")
 @pass_igortask
-def run_infer(igortask, igor_read_seqs, output_db):
-    """IGoR's call to infer"""
+def run_infer(igortask, igor_read_seqs, output_fln_prefix):
+    """IGoR's call to infer model from input sequences and model"""
     print("===== Running inference =====")
     igortask.update_batch_filenames()
     igortask.update_model_filenames()
@@ -96,10 +96,16 @@ def run_infer(igortask, igor_read_seqs, output_db):
 
     # if inference succesfull add files to db
 
-    if output_db is not None:
+    if output_fln_prefix is not None:
         import os
-        os.rename(igortask.igor_fln_db, output_db)
-        print("Database file : ", output_db)
+        output_fln_db = output_fln_prefix+".db"
+        output_fln_parms = output_fln_prefix + "_parms.txt"
+        output_fln_marginals = output_fln_prefix + "_marginals.txt"
+
+        os.rename(igortask.igor_fln_db, output_fln_db)
+        igortask.mdl.write_model(output_fln_parms, output_fln_marginals)
+        # copy files
+        print("Database file : ", output_fln_prefix)
     else:
         print("Database file : ", igortask.igor_fln_db)
         # mv
@@ -110,7 +116,7 @@ def run_infer(igortask, igor_read_seqs, output_db):
 @click.option("-o", "--output-db", "output_db", default=None, help="Output database file.")
 @pass_igortask
 def run_evaluate(igortask, igor_read_seqs, output_db):
-    """IGoR's call to infer"""
+    """IGoR's call to evaluate input sequences"""
     click.echo("Running IGoR evaluation process...")
     igortask.update_batch_filenames()
     igortask.update_model_filenames()
@@ -139,23 +145,24 @@ def run_evaluate(igortask, igor_read_seqs, output_db):
 @click.option("-o", "--output-db", "output_db", default=None, help="Output database file.")
 @pass_igortask
 def run_get_scenarios(igortask, igor_read_seqs, output_db):
-    """IGoR's call to infer"""
+    """IGoR's call to get best scenarios."""
     click.echo("Running IGoR scenarios process...")
     igortask.run_evaluate(igor_read_seqs=igor_read_seqs)
 
 @click.command("igor-pgen")
-@click.option("-i", "--input-sequences", "igor_read_seqs", default=None, help="Input sequences in FASTA, TXT or CSV formats.")
+@click.option("-i", "--input-sequences", "igor_read_seqs", default=None,
+              help="Input sequences in FASTA, TXT or CSV formats.")
 @click.option("-o", "--output-db", "output_db", default=None, help="Output database file.")
 @pass_igortask
 def run_get_pgen(igortask, igor_read_seqs, output_db):
-    """IGoR's call to infer"""
+    """IGoR's call to calculate pgen of input sequences"""
     click.echo("Get IGoR pgen process...")
     igortask.run_evaluate(igor_read_seqs=igor_read_seqs)
 
 @click.command("igor-generate")
 @pass_igortask
 def run_generate(igortask):
-    """IGoR's call to infer"""
+    """IGoR's call to generate sequences"""
     igortask.run_generate()
 
 # run_read_seqs.add_command(get_ref_genome)
@@ -187,7 +194,8 @@ def imgt(igortask, info): #igor_species, igor_chain, igor_model):
         print("For more details access:")
         print(p3imgt.imgt_params['url.genelist'])
 
-@click.command()
+@click.command("imgt-get-genomes")
+@click.option("--info", "info", help="List species and chain avialable in imgt website.", is_flag=True, default=False)
 @click.option("-t", "--recombination_type", "rec_type", type=click.Choice(['VJ', 'VDJ']),
               help="Igor recombination type.")
 @click.option("--imgt-species", "imgt_species", #type=click.Choice(get_species_list()),
@@ -195,29 +203,46 @@ def imgt(igortask, info): #igor_species, igor_chain, igor_model):
 @click.option("--imgt-chain", "imgt_chain", #type=click.Choice(['VJ', 'VDJ']),
               help="IMGT chain name e.g. TRA, TRB.")
 @pass_igortask
-def get_ref_genome(igortask, rec_type, imgt_species, imgt_chain):
-    print("get_ref_genome")
-    # print(igortask.to_dict())
-    try:
-        import pygor3.imgt as p3imgt
-        if (rec_type == 'VDJ'):
-            if igortask.igor_path_ref_genome is None:
-                p3imgt.download_ref_genome_VDJ(imgt_species, imgt_chain)
-            else:
-                p3imgt.download_ref_genome_VDJ(imgt_species, imgt_chain, modelspath=None)
-        elif (rec_type == 'VJ'):
-            if igortask.igor_path_ref_genome is None:
-                p3imgt.download_ref_genome_VJ(imgt_species, imgt_chain)
-            else:
-                p3imgt.download_ref_genome_VJ(imgt_species, imgt_chain, modelspath=None)
-        else:
-            click.echo("ERROR: Type " + str(rec_type) + " not valid, please choose between VDJ or VJ.")
-    except Exception as e:
-        print("ERROR: get_ref_genome ")
-        print(e)
+def get_ref_genome(igortask, info, rec_type, imgt_species, imgt_chain):
+    """
+    Get genomes from imgt website of specifing species and chain in imgt format.
+    """
 
-imgt.add_command(get_ref_genome)
-cli.add_command(imgt)
+    import pygor3.imgt as p3imgt
+    print(p3imgt.imgt_params['url.home'])
+    species_list = p3imgt.get_species_list()
+
+    if info:
+        click.echo("Downloading data from ... ")
+        print("List of IMGT available species:")
+        print("\n".join(species_list))
+        print("For more details access:")
+        print(p3imgt.imgt_params['url.genelist'])
+    else:
+        print("get_ref_genome")
+        # print(igortask.to_dict())
+        try:
+            import pygor3.imgt as p3imgt
+            if (rec_type == 'VDJ'):
+                if igortask.igor_path_ref_genome is None:
+                    p3imgt.download_ref_genome_VDJ(imgt_species, imgt_chain)
+                else:
+                    p3imgt.download_ref_genome_VDJ(imgt_species, imgt_chain, modelspath=None)
+            elif (rec_type == 'VJ'):
+                if igortask.igor_path_ref_genome is None:
+                    p3imgt.download_ref_genome_VJ(imgt_species, imgt_chain)
+                else:
+                    p3imgt.download_ref_genome_VJ(imgt_species, imgt_chain, modelspath=None)
+            else:
+                click.echo("ERROR: Type " + str(rec_type) + " not valid, please choose between VDJ or VJ.")
+        except Exception as e:
+            print("ERROR: get_ref_genome ")
+            print(e)
+
+# imgt.add_command(get_ref_genome)
+# cli.add_command(imgt)
+cli.add_command(get_ref_genome)
+
 
 ########### model commands ###########
 # @click.group() #invoke_without_command=True)
@@ -228,13 +253,13 @@ cli.add_command(imgt)
 
 @click.command("model-export")
 @click.option("--from-txt", "fln_from_txt", nargs=2, default=[None, None],
-              help="Igor recombination type.")
+              help="Export Igor's model from txt files model_parms.txt and model_marginals.txt.")
 @click.option("--from-db", "fln_from_db", nargs=1, default=None,
-              help="Igor recombination type.")
+              help="Export Igor's model from database file.")
 @click.option("--to-txt", "fln_to_txt", nargs=2, default=[None, None],
-              help="Igor recombination type.")
+              help="Output filename of Igor recombination model to  <model_parms.txt> <model_marginals.txt>.")
 @click.option("--to-db", "fln_to_db", nargs=1, default=None,
-              help="Igor recombination type.")
+              help="Output filename of Igor recombination model to  <model.db>.")
 @pass_igortask
 def model_export(igortask, fln_from_txt, fln_from_db, fln_to_txt, fln_to_db):
     """
@@ -318,7 +343,7 @@ def model_export(igortask, fln_from_txt, fln_from_db, fln_to_txt, fln_to_db):
 # @click.option("-o", "--output-prefix", "fln_output_prefix", default=None, help="Prefix for models files.")
 @pass_igortask
 def model_create(igortask, rec_type, fln_output_prefix):
-    """Make a new default model VJ or VDJ with uniform probability distribution"""
+    """Make a new VJ or VDJ model with uniform probability distribution"""
     # click.echo( "igor_model_dir_path: "+igortask.igor_model_dir_path )
     import pygor3 as p3
     if rec_type == 'VJ':
@@ -369,85 +394,161 @@ cli.add_command(model_plot)
 
 # pygor3-cli [GENERAL_OPTIONS] database export all
 ########### database commands ###########
-@click.command("database") #invoke_without_command=True)
+@click.command("db-cp") #invoke_without_command=True)
+@click.option("-o", "--output-db", "fln_output_db", default=None, help="output attached database.")
+
+@click.option("--igor-reads", "b_igor_reads", is_flag=True,
+              help='Copy sequences reads to output-db.')
+@click.option("--igor-genomes", "b_igor_genomes", is_flag=True,
+              help='Copy V, (D) and J genetic data to database')
+@click.option("--igor-alignments", "b_igor_alignments", is_flag=True,
+              help='Copy all available alignments tables to database.')
+@click.option("--igor-model", "b_igor_model", is_flag=True,
+              help='Copy IGoR model to database file.')
+@click.option("--igor-scenarios", "b_igor_scenarios", is_flag=True,
+              help='Copy scenarios table to database')
+@click.option("--igor-pgen", "b_igor_pgen", is_flag=True,
+              help='Copy pgen table to database')
 @pass_igortask
-def database(igortask):
-    """Manipulations of models"""
-    import pygor3 as p3
-    print("=== Sequences table: ")
-    for tabla in p3.sql_tablename_patterns_dict['read_seqs']:
-        tables_list = igortask.igor_db.get_list_of_tables_with_name(tabla)
-        for tablename in tables_list:
-            counts = igortask.igor_db.execute_select_query("SELECT COUNT(*) FROM {tablename};".format(tablename=tablename))
-            print(tablename, " : ", counts[0][0])
+def database_copy(igortask, fln_output_db, b_igor_reads,
+                  b_igor_genomes,
+                  b_igor_alignments,
+                  b_igor_model,
+                  b_igor_scenarios, b_igor_pgen):
+    """Testing function before commit - export database"""
+    # Create a database
+    from pygor3.IgorSqliteDB import IgorSqliteDB
+    # OPEN CONEXION TO output_db
+    output_db = IgorSqliteDB.create_db(fln_output_db)
 
-    print("=== Genomes tables: ")
-    for tabla in p3.sql_tablename_patterns_dict['ref_genome']:
-        tables_list = igortask.igor_db.get_list_of_tables_with_name(tabla)
-        for tablename in tables_list:
-            counts = igortask.igor_db.execute_select_query(
-                "SELECT COUNT(*) FROM {tablename};".format(tablename=tablename))
-            print(tablename, " : ", counts[0][0])
+    # Get list of tables in igortask.igor_db
+    tablename_ctsql_dict = igortask.igor_db.get_dict_of_Igortablename_sql()
+    print("Tables in source database : ", tablename_ctsql_dict.keys())
+    if b_igor_reads and igortask.igor_db.Q_sequences_in_db():
+        try:
+            # Ask to sqlite_master for the way to create it in new database
+            tablename_to_copy = 'IgorIndexedSeq'
+            # Create table in database destiny.
+            output_db.execute_query(tablename_ctsql_dict[tablename_to_copy])
+            # Copy table
+            fln_source_db = igortask.igor_db.flnIgorDB
+            output_db.copytable_from_source(tablename_to_copy, fln_source_db)
+        except Exception as e:
+            print("ERROR: igor-reads")
+            print(e)
 
-    print("=== Alignment tables: ")
-    for tabla in p3.sql_tablename_patterns_dict['align']:
-        tables_list = igortask.igor_db.get_list_of_tables_with_name(tabla)
-        for tablename in tables_list:
-            counts = igortask.igor_db.execute_select_query(
-                "SELECT COUNT(*) FROM {tablename};".format(tablename=tablename))
-            print(tablename, " : ", counts[0][0])
+    if b_igor_genomes and igortask.igor_db.Q_ref_genome_in_db():
+        try:
+            # Ask to sqlite_master for the way to create it in new database
+            # igortask.igor_db.
+            from pygor3.IgorSQL import sql_tablename_patterns_dict
+            for table_pattern in sql_tablename_patterns_dict['ref_genome']:
+                tablename_list = igortask.igor_db.get_list_of_tables_with_name(table_pattern)
+                for tablename_to_copy in tablename_list:
+                    # tablename_to_copy = 'IgorIndexedSeq'
+                    # Create table in database destiny.
+                    output_db.execute_query(tablename_ctsql_dict[tablename_to_copy])
+                    # Copy table
+                    fln_source_db = igortask.igor_db.flnIgorDB
+                    output_db.copytable_from_source(tablename_to_copy, fln_source_db)
+        except Exception as e:
+            print("ERROR: igor-genomes")
+            print(e)
 
+    if b_igor_alignments and igortask.igor_db.Q_align_in_db():
+        try:
+            # Ask to sqlite_master for the way to create it in new database
+            # igortask.igor_db.
+            from pygor3.IgorSQL import sql_tablename_patterns_dict
+            for table_pattern in sql_tablename_patterns_dict['align']:
+                tablename_list = igortask.igor_db.get_list_of_tables_with_name(table_pattern)
+                for tablename_to_copy in tablename_list:
+                    # tablename_to_copy = 'IgorIndexedSeq'
+                    # Create table in database destiny.
+                    output_db.execute_query(tablename_ctsql_dict[tablename_to_copy])
+                    # Copy table
+                    fln_source_db = igortask.igor_db.flnIgorDB
+                    output_db.copytable_from_source(tablename_to_copy, fln_source_db)
+        except Exception as e:
+            print("ERROR: igor-genomes")
+            print(e)
 
-    print("=== Model tables: ")
-    for tabla in p3.sql_tablename_patterns_dict['model']:
-        tables_list = igortask.igor_db.get_list_of_tables_with_name(tabla)
-        for tablename in tables_list:
-            counts = igortask.igor_db.execute_select_query(
-                "SELECT COUNT(*) FROM {tablename};".format(tablename=tablename))
-            print(tablename, " : ", counts[0][0])
+    if b_igor_model and igortask.igor_db.Q_model_in_db():
+        try:
+            # Ask to sqlite_master for the way to create it in new database
+            # igortask.igor_db.
+            from pygor3.IgorSQL import sql_tablename_patterns_dict
+            for table_pattern in sql_tablename_patterns_dict['model']:
+                tablename_list = igortask.igor_db.get_list_of_tables_with_name(table_pattern)
+                for tablename_to_copy in tablename_list:
+                    # tablename_to_copy = 'IgorIndexedSeq'
+                    # Create table in database destiny.
+                    output_db.execute_query(tablename_ctsql_dict[tablename_to_copy])
+                    # Copy table
+                    fln_source_db = igortask.igor_db.flnIgorDB
+                    output_db.copytable_from_source(tablename_to_copy, fln_source_db)
+        except Exception as e:
+            print("ERROR: igor-model")
+            print(e)
 
-    print("=== Output tables: ")
-    for tabla in p3.sql_tablename_patterns_dict['output']:
-        tables_list = igortask.igor_db.get_list_of_tables_with_name(tabla)
-        for tablename in tables_list:
-            counts = igortask.igor_db.execute_select_query(
-                "SELECT COUNT(*) FROM {tablename};".format(tablename=tablename))
-            print(tablename, " : ", counts[0][0])
+        # b_igor_scenarios
 
-    # TODO: IF TABLE EXITS THEN EXPORT IT.
-    igortask.igor_db.write_IgorIndexedSeq_to_CSV("putz_indexed_seqs.csv")
-    igortask.igor_db.write_IgorGeneTemplate_to_fasta("J", "putzJ.fasta")
-    igortask.igor_db.write_IgorGeneAnchors_to_CSV("J", "putzJ_anchors.csv")
-    # TODO: FINISH IT
+    if b_igor_pgen and igortask.igor_db.Q_IgorPgen_in_db():
+        print("COPY PGEN")
+        try:
+            # Ask to sqlite_master for the way to create it in new database
+            # igortask.igor_db.
+            from pygor3.IgorSQL import sql_tablename_patterns_dict
+            for table_pattern in sql_tablename_patterns_dict['pgen']:
+                tablename_list = igortask.igor_db.get_list_of_tables_with_name(table_pattern)
+                for tablename_to_copy in tablename_list:
+                    # tablename_to_copy = 'IgorIndexedSeq'
+                    # Create table in database destiny.
+                    output_db.execute_query(tablename_ctsql_dict[tablename_to_copy])
+                    # Copy table
+                    fln_source_db = igortask.igor_db.flnIgorDB
+                    output_db.copytable_from_source(tablename_to_copy, fln_source_db)
+        except Exception as e:
+            print("ERROR: igor-pgen")
+            print(e)
 
-    igortask.igor_db.write_IgorAlignments_to_CSV("J", "putzJ_aligns.csv")
-    # print(igortask.igor_db.get_columns_type_of_tables('IgorBestScenarios'))
-    igortask.igor_db.write_IgorBestScenarios_to_CSV('shit.csv')
-    igortask.igor_db.write_IgorPgen_to_CSV('putz_pgen.csv')
+        #
 
+    if b_igor_scenarios and igortask.igor_db.Q_IgorBestScenarios_in_db():
+        try:
+            # Ask to sqlite_master for the way to create it in new database
+            # igortask.igor_db.
+            from pygor3.IgorSQL import sql_tablename_patterns_dict
+            for table_pattern in sql_tablename_patterns_dict['scenarios']:
+                tablename_list = igortask.igor_db.get_list_of_tables_with_name(table_pattern)
+                for tablename_to_copy in tablename_list:
+                    # tablename_to_copy = 'IgorIndexedSeq'
+                    # Create table in database destiny.
+                    output_db.execute_query(tablename_ctsql_dict[tablename_to_copy])
+                    # Copy table
+                    fln_source_db = igortask.igor_db.flnIgorDB
+                    output_db.copytable_from_source(tablename_to_copy, fln_source_db)
+        except Exception as e:
+            print("ERROR: igor-scenarios")
+            print(e)
 
-    # cur = igortask.igor_db.conn.cursor()
-    # cur.executescript(str_query)
-    # self.conn.commit()
-    # cur.close()
+    print("Tables in destiny database: ", fln_output_db)
+    output_db.list_from_db()
 
-    # igortask.igor_db.
 
 
 
 @click.command("db-ls")
 @pass_igortask
 def database_ls(igortask):
-    """
-    List tables in database by groups and show the number of entries.
-    """
+    """List tables in database by groups and show  number of records."""
     igortask.create_db()
     igortask.igor_db.list_from_db()
 
-    Q_seqs = igortask.igor_db.Q_output_in_db()
-    print(Q_seqs)
-    # igortask.igor_db.write_IgorIndexedSeq_to_CSV("jojo.csv")
+    # Q_seqs = igortask.igor_db.Q_output_in_db()
+    # print(Q_seqs)
 
+    # igortask.igor_db.write_IgorIndexedSeq_to_CSV("jojo.csv")
 
 @click.command("db-attach")
 @click.option("--from-db", "fln_from_db", default=None, help="Database copy source filename.")
@@ -488,13 +589,12 @@ def database_ls(igortask):
               help='Copy J alignments tables to database.')
 @click.option("--alignmentsCDR3", "alignmentsCDR3", default=None,
               help='Copy indexed cdr3 table to database.')
-
 # @click.option("-i", "--input-sequences", "igor_read_seqs", default=None, help="Input sequences in FASTA, TXT or CSV formats.")
 # @click.option("-o", "--output-prefix", "output_prefix", default=None, help="Filename output prefix.")
 @pass_igortask
 def database_attach(igortask, fln_from_db):
     """
-    List tables in database by groups and show the number of entries.
+    Attach tables to database.
     """
     igortask.create_db()
     from pygor3 import IgorSqliteDB
@@ -524,26 +624,25 @@ def database_attach(igortask, fln_from_db):
 @click.option("--igor-pgen", "b_igor_pgen", is_flag=True,
               help='If --from-db no need to add filename')
 @click.option("--igor-genomes", "b_igor_genomes", is_flag=True,
-              help='Copy V, (D) and J genetic data to database')
+              help='Delete V, (D) and J genetic data.')
 @click.option("--igor-genomesV", "b_igor_genomesV", is_flag=True,
-              help='Copy just V genomes tables to database.')
+              help='Delete just V genomes table.')
 @click.option("--igor-genomesD", "b_igor_genomesD", is_flag=True,
-              help='Copy just D genomes tables to database.')
+              help='Delete just D genomes table.')
 @click.option("--igor-genomesJ", "b_igor_genomesJ", is_flag=True,
-              help='Copy just J genomes tables to database.')
+              help='Delete just J genomes table.')
 @click.option("--igor-genomesCDR3", "b_igor_genomesCDR3", is_flag=True,
-              help='Copy just CDR3 anchors tables to database.')
+              help='Delete just CDR3 anchors table.')
 @click.option("--igor-alignments", "b_igor_alignments", is_flag=True,
-              help='Copy all available alignments tables to database.')
+              help='Delete all available alignments table.')
 @click.option("--igor-alignmentsV", "b_igor_alignmentsV", is_flag=True,
-              help='Copy V alignments tables to database.')
+              help='Delete V alignments table.')
 @click.option("--igor-alignmentsD", "b_igor_alignmentsD", is_flag=True,
-              help='Copy D alignments tables to database.')
+              help='Delete D alignments table.')
 @click.option("--igor-alignmentsJ", "b_igor_alignmentsJ", is_flag=True,
-              help='Copy J alignments tables to database.')
+              help='Delete J alignments table.')
 @click.option("--igor-alignmentsCDR3", "b_igor_alignmentsCDR3", is_flag=True,
-              help='Copy indexed cdr3 table to database.')
-
+              help='Delete indexed cdr3 table.')
 # @click.option("-i", "--input-sequences", "igor_read_seqs", default=None, help="Input sequences in FASTA, TXT or CSV formats.")
 # @click.option("-o", "--output-prefix", "output_prefix", default=None, help="Filename output prefix.")
 @pass_igortask
@@ -556,7 +655,7 @@ def database_rm(igortask, b_igor_reads, b_igor_model,
                 b_igor_alignmentsV, b_igor_alignmentsD, b_igor_alignmentsJ,
                 b_igor_alignmentsCDR3):
     """
-    List tables in database by groups and show the number of entries.
+    Delete tables in database by groups.
     """
     igortask.create_db()
     # from pygor3.IgorSqliteDB import *
@@ -570,7 +669,6 @@ def database_rm(igortask, b_igor_reads, b_igor_model,
     if b_igor_genomes:
         try:
             igortask.igor_db.delete_IgorGeneTemplate_Tables()
-            print("999999999999999")
             igortask.igor_db.delete_IgorGeneAnchors_Tables()
         except Exception as e:
             print("ERROR: igor-genomes")
@@ -606,88 +704,224 @@ def database_rm(igortask, b_igor_reads, b_igor_model,
             print(e)
 
 
-# database.add_command(database_export)
+@click.command("db-export") #invoke_without_command=True)
+# @click.option("--igor-all", "b_igor_all", is_flag=True,
+#               help='Export all available data in db with prefix.')
+# @click.option("--igor-reads", "b_igor_reads", is_flag=True,
+#               help='Delete sequences reads in database.')
+# @click.option("--igor-model", "b_igor_model", is_flag=True,
+#               help='IGoR model database file.')
+# @click.option("--igor-model-parms", "b_igor_model_parms", is_flag=True,
+#               help='IGoR model parms (or params) file.')
+# @click.option("--igor-model-marginals", "b_igor_model_marginals", is_flag=True,
+#               help='IGoR model marginals file.')
+#
+# @click.option("--igor-scenarios", "b_igor_scenarios", is_flag=True,
+#               help='If --from-db no need to add filename')
+# @click.option("--igor-pgen", "b_igor_pgen", is_flag=True,
+#               help='If --from-db no need to add filename')
+# @click.option("--igor-genomes", "b_igor_genomes", is_flag=True,
+#               help='Copy V, (D) and J genetic data to database')
+# @click.option("--igor-genomesV", "b_igor_genomesV", is_flag=True,
+#               help='Copy just V genomes tables to database.')
+# @click.option("--igor-genomesD", "b_igor_genomesD", is_flag=True,
+#               help='Copy just D genomes tables to database.')
+# @click.option("--igor-genomesJ", "b_igor_genomesJ", is_flag=True,
+#               help='Copy just J genomes tables to database.')
+# @click.option("--igor-genomesCDR3", "b_igor_genomesCDR3", is_flag=True,
+#               help='Copy just CDR3 anchors tables to database.')
+# @click.option("--igor-alignments", "b_igor_alignments", is_flag=True,
+#               help='Copy all available alignments tables to database.')
+# @click.option("--igor-alignmentsV", "b_igor_alignmentsV", is_flag=True,
+#               help='Copy V alignments tables to database.')
+# @click.option("--igor-alignmentsD", "b_igor_alignmentsD", is_flag=True,
+#               help='Copy D alignments tables to database.')
+# @click.option("--igor-alignmentsJ", "b_igor_alignmentsJ", is_flag=True,
+#               help='Copy J alignments tables to database.')
+# @click.option("--igor-alignmentsCDR3", "b_igor_alignmentsCDR3", is_flag=True,
+#               help='Copy indexed cdr3 table to database.')
+@pass_igortask
+def database_export(igortask):
+    """Export database model in igor formatted files"""
+    # fln_prefix = "tmp_export_"
+    print("batchname: ", igortask.igor_batchname)
+    if igortask.igor_batchname is None:
+        print("ERROR: batch option required.")
+        return 0
+
+    # TODO: IgorTask should help me to pass from batch to db and from db to batch and model_directory.
+    igortask.update_batch_filenames()
+    igortask.update_model_filenames(model_path=igortask.igor_batchname)
+    print(igortask.to_dict())
+
+    print("Database filename: ", igortask.igor_fln_db)
+    igortask.create_db()
+    import pygor3 as p3
+    ii_db = p3.IgorSqliteDB()
+    ii_db.write_IgorIndexedSeq_to_CSV(igortask.igor_fln_indexed_sequences)
+    ii_db.write_IgorIndexedCDR3_to_CSV(igortask.igor_fln_indexed_CDR3)
+
+    # b_igor_genomes
+    ii_db.write_IgorGeneTemplate_to_fasta("V", igortask.fln_genomicVs)
+    ii_db.write_IgorGeneTemplate_to_fasta("J", igortask.fln_genomicJs)
+    ii_db.write_IgorGeneTemplate_to_fasta("D", igortask.fln_genomicDs)
+
+    # b_igor_alignments
+    ii_db.write_IgorAlignments_to_CSV("V", igortask.igor_fln_align_V_alignments)
+    ii_db.write_IgorAlignments_to_CSV("J", igortask.igor_fln_align_J_alignments)
+    ii_db.write_IgorAlignments_to_CSV("D", igortask.igor_fln_align_D_alignments)
+
+    # b_igor_model
+    ii_db.write_Igor
+
+    igortask.export_to_igorfiles()
+    igortask.load_db_from_indexed_sequences()
+
+    """
+    igortask.load_db_from_indexed_cdr3()
+
+    igortask.igor_db.write_IgorIndexedSeq_to_CSV(fln_prefix+"_indexed_seqs.csv")
+    strGene = "J"
+    igortask.igor_db.write_IgorGeneTemplate_to_fasta(strGene, fln_prefix+"_genomics"+strGene+".fasta")
+    igortask.igor_db.write_IgorGeneAnchors_to_CSV(strGene, fln_prefix+"_genomics"+strGene+"_anchors.csv")
+    # TODO: FINISH IT
+
+    igortask.igor_db.write_IgorAlignments_to_CSV(strGene, fln_prefix+"_"+strGene+"_aligns.csv")
+    # print(igortask.igor_db.get_columns_type_of_tables('IgorBestScenarios'))
+    igortask.igor_db.write_IgorBestScenarios_to_CSV(fln_prefix+'_scenarios.csv')
+    igortask.igor_db.write_IgorPgen_to_CSV(fln_prefix+'_pgen.csv')
+    """
+
+
+@click.command("db-naive-align") #invoke_without_command=True)
+@click.option("-o", "--output-csv", "output_csv", default=None, help="Filename of output file.")
+@pass_igortask
+def database_naive_align(igortask, output_csv):
+    """
+    Get a naive alignment (no scenarios) from igor alignments
+    """
+    import pygor3 as p3
+
+    def generate_csv_line(indexed_sequence: p3.IgorIndexedSequence, indexed_cdr3_record: list,
+                          list_vdj_alignments: dict, sep=';',
+                          header_list=['sequence_id', 'sequence', 'v_call', 'd_call', 'j_call', 'v_score', 'd_score',
+                                       'j_score']):
+        csv_line = ""
+        indexed_sequence.sequence = indexed_sequence.sequence.lower()
+        fields_dict = dict()
+        fields_dict['sequence_id'] = str(indexed_sequence.seq_index)
+        fields_dict['sequence'] = indexed_sequence.sequence
+        fields_dict['v_call'] = list_vdj_alignments['V'].strGene_name
+        fields_dict['d_call'] = list_vdj_alignments['D'].strGene_name
+        fields_dict['j_call'] = list_vdj_alignments['J'].strGene_name
+        fields_dict['v_score'] = str(list_vdj_alignments['V'].score)
+        fields_dict['d_score'] = str(list_vdj_alignments['D'].score)
+        fields_dict['j_score'] = str(list_vdj_alignments['J'].score)
+        # FIXME: CREATE A BETTER WAY TO DO THIS
+        fields_dict['v_anchor'] = ""
+        fields_dict['j_anchor'] = ""
+        fields_dict['junction'] = ""
+        fields_dict['junction_aa'] = ""
+        try:
+            fields_dict['v_anchor'] = str(indexed_cdr3_record[1])  # ""
+            fields_dict['j_anchor'] = str(indexed_cdr3_record[2])  # ""
+            fields_dict['junction'] = str(indexed_cdr3_record[3])  # ""
+            fields_dict['junction_aa'] = str(indexed_cdr3_record[4])  # ""
+        except Exception as e:
+            print("No junction for sequence : " + fields_dict['sequence_id'])
+            print(e)
+            pass
+
+        # align = p3.IgorAlignment_data()
+
+        for field in header_list:
+            csv_line = csv_line + fields_dict[field] + sep
+        return csv_line
+
+    #### STARTS HERE
+    db = p3.IgorSqliteDB()
+    # db.flnIgorDB = task.igor_wd+"/"+task.igor_batchname+".db"
+    db.flnIgorDB = igortask.igor_db.flnIgorDB #args.database
+    db.connect_db()
+
+    # Make a loop over all sequences
+    if output_csv is None:
+        fln_output = db.flnIgorDB.split(".db")[0] + "_na.csv"
+    else:
+        fln_output = output_csv
+
+    ofile = open(fln_output, 'w')
+    seq_index_list = db.execute_select_query("SELECT seq_index FROM IgorIndexedSeq;")
+    seq_index_list = map(lambda x: x[0], seq_index_list)
+    header_list = ['sequence_id', 'sequence', 'v_call', 'd_call', 'j_call', 'v_score', 'd_score', 'j_score', 'v_anchor',
+                   'j_anchor', 'junction', 'junction_aa']
+    sep = ";"
+    str_header = sep.join(header_list)
+    ofile.write(str_header + '\n')
+    for seq_index in seq_index_list:
+        try:
+            # seq_index = args.seq_index
+            indexed_sequence = db.get_IgorIndexedSeq_By_seq_index(seq_index)
+            indexed_sequence.offset = 0
+
+            indexed_cdr3_record = db.fetch_IgorIndexedCDR3_By_seq_index(seq_index)
+            print(indexed_cdr3_record)
+
+            best_v_align_data = db.get_best_IgorAlignment_data_By_seq_index('V', indexed_sequence.seq_index)
+            best_d_align_data = db.get_best_IgorAlignment_data_By_seq_index('D', indexed_sequence.seq_index)
+            best_j_align_data = db.get_best_IgorAlignment_data_By_seq_index('J', indexed_sequence.seq_index)
+
+            vdj_naive_alignment = {'V': best_v_align_data,
+                                   'D': best_d_align_data,
+                                   'J': best_j_align_data}
+
+            v_align_data_list = db.get_IgorAlignment_data_list_By_seq_index('V', indexed_sequence.seq_index)
+            # print('V', len(v_align_data_list), [ ii.score for ii in v_align_data_list])
+            try:
+                d_align_data_list = db.get_IgorAlignment_data_list_By_seq_index('D', indexed_sequence.seq_index)
+            except Exception as e:
+                print(e)
+                print("No D sequences alignments found!")
+                pass
+            # print('D', len(d_align_data_list), [ ii.score for ii in d_align_data_list])
+            j_align_data_list = db.get_IgorAlignment_data_list_By_seq_index('J', indexed_sequence.seq_index)
+            # print('J', len(j_align_data_list), [ ii.score for ii in j_align_data_list])
+
+            # 1. Choose the highest score then check if this one is the desire range.
+            # if there is an overlap
+            # calculate score without overlap. If overlap
+            # if hightest score
+            for i, d_align_data in enumerate(d_align_data_list):
+                # Check if D is btwn V and J position
+                if (best_v_align_data.offset_3_p <= d_align_data.offset_5_p) and (
+                        d_align_data.offset_3_p <= best_j_align_data.offset_5_p):
+                    # vdj_naive_alignment['D'+str(i)] = d_align_data
+                    vdj_naive_alignment['D'] = d_align_data
+                    break
+
+            # ofile = open(task.igor_batchname+'__'+str(indexed_sequence.seq_index)+'_na.fasta', 'w')
+            # str_fasta = generate_str_fasta(indexed_sequence, vdj_naive_alignment)
+            # ofile.write(str_fasta)
+
+            str_csv_line = generate_csv_line(indexed_sequence, indexed_cdr3_record, vdj_naive_alignment, sep=sep,
+                                             header_list=header_list)
+            ofile.write(str_csv_line + "\n")
+        except Exception as e:
+            print("ERROR : with sequence id : " + str(seq_index))
+            print(e)
+            pass
+    ofile.close()
+
+
 # database.add_command(database_create)
-cli.add_command(database)
+cli.add_command(database_copy)
 cli.add_command(database_ls)
 cli.add_command(database_attach)
 cli.add_command(database_rm)
+cli.add_command(database_export)
+cli.add_command(database_naive_align)
 
 
-
-
-#
-# @cli.command()
-# @click.option("-o", "--output", "model_output", default=None, help="Model csv file output prefix.")
-# @pass_igortask
-# def export_model(igortask, model_output): #igor_species, igor_chain, igor_model):
-#     """Export model in csv format with a pdf file of marginals plot"""
-#     click.echo('Model utilities.')
-#     igortask.load_IgorModel()
-#     igortask.mdl.export_csv(model_output)
-#
-#
-# #click.echo(IgorTask.to_dict())
-# @cli.command()
-# @click.option("-t", "--recombination_type", "rec_type", type=click.Choice(['VJ', 'VDJ']),
-#               help="Igor recombination type.")
-# @pass_igortask
-# def new_model(igortask, rec_type):
-#     """Creates new VJ or VDJ model parms from set_path_ref_genome
-#     and save it in  set_model_path """
-#     click.echo("New model ")
-#
-#
-# @cli.command()
-# @click.option("-t", "--recombination_type", "rec_type", type=click.Choice(['VJ', 'VDJ']),
-#               help="Igor recombination type from default VJ or VDJ.")
-# @click.option("--info", "info", help="List species and chain avialable in imgt website.", is_flag=True, default=False)
-# @pass_igortask
-# def download_imgt_genomics(igortask, rec_type, info):
-#     """Download new VJ or VDJ from imgt website model parms from set_path_ref_genome
-#     and save it in  set_model_path """
-#     click.echo("Downloading data from ... ")
-#     import pygor3.imgt as imgt
-#     print(imgt.imgt_params['url.home'])
-#     if info:
-#         species_list = imgt.get_species_list()
-#
-#         print("List of IMGT available species from :")
-#         print(imgt.imgt_params['url.genelist'])
-#         print(species_list)
-#     else:
-#
-#         if (rec_type == 'VDJ'):
-#             if igortask.igor_path_ref_genome is None:
-#                 imgt.download_ref_genome_VDJ(igortask.igor_species, igortask.igor_chain)
-#             else:
-#                 imgt.download_ref_genome_VDJ(igortask.igor_species, igortask.igor_chain, modelspath=None)
-#         elif(rec_type == 'VJ'):
-#             if igortask.igor_path_ref_genome is None:
-#                 imgt.download_ref_genome_VJ(igortask.igor_species, igortask.igor_chain)
-#             else:
-#                 imgt.download_ref_genome_VJ(igortask.igor_species, igortask.igor_chain, modelspath=None)
-#         else:
-#             click.echo("ERROR: Type "+str(rec_type)+" not valid, please choose between VDJ or VJ.")
-#
-# @cli.command()
-# @pass_igortask
-# def load_database(igortask): #task):
-#     click.echo('Initialized the database')
-#     # click.echo(task.to_dict())
-#
-# @cli.command()
-# # @pass_igortask
-# def initdb(): #task):
-#     click.echo('Initialized the database')
-#     # click.echo(task.to_dict())
-#
-# @cli.command()
-# def dropdb():
-#     click.echo('Dropped the database')
-
-# cli.add_command(dropdb)
-# cli.add_command(export_model)
 
 if __name__ == '__main__':
     cli()
@@ -698,11 +932,3 @@ if __name__ == '__main__':
 # pygor3-cli olga-compute -ppost --VJmodel model/ -i
 # pygor3-cli igor-model -i model/ -o csv_files
 # pygor3-cli igor-model -i model/ -o png_files
-
-
-# @click.command()
-# @click.option("--V", "Vgene", default=True, help="Download gene V")
-# def main(Vgene):
-#     from pygor3.imgt import get_species_list
-#     species_list = get_species_list()
-#     print(species_list, Vgene)

@@ -859,6 +859,9 @@ class IgorTask:
         aln = Bio.AlignIO.read(io.StringIO(aaa), 'fasta')
         view_alignment(aln)
 
+    def export_to_igorfiles(self):
+        print("Export: ")
+
 
 ### IGOR INPUT SEQUENCES  ####
 
@@ -2004,6 +2007,11 @@ class IgorModel:
         self.parms.set_event_realizations_from_DataFrame(event_nickname, new_df)
         self.marginals.initialize_uniform_from_model_parms(self.parms)
         self.generate_xdata()
+
+    def write_model(self, fln_model_parms, fln_model_marginals):
+        self.parms.write_model_parms(filename=fln_model_parms)
+        self.parms.write_model_marginals(filename=fln_model_parms)
+
 
 class IgorModel_Parms:
     """

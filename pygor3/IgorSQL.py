@@ -340,11 +340,16 @@ sql_tablename_patterns_ref_genome = ['Igor%GeneTemplate', 'Igor%GeneCDR3Anchors'
 sql_tablename_patterns_align = ['IgorIndexedCDR3', 'Igor%Alignments']
 sql_tablename_patterns_model = ['IgorMP_%', 'IgorER_%', 'IgorMM_%']
 sql_tablename_patterns_output = ['IgorPgen', 'IgorBestScenarios']
+sql_tablename_patterns_pgen = ['IgorPgen']
+sql_tablename_patterns_scenarios = ['IgorBestScenarios']
 sql_tablename_patterns_dict['read_seqs'] = sql_tablename_patterns_read_seqs
 sql_tablename_patterns_dict['ref_genome'] = sql_tablename_patterns_ref_genome
 sql_tablename_patterns_dict['align'] = sql_tablename_patterns_align
 sql_tablename_patterns_dict['model'] = sql_tablename_patterns_model
 sql_tablename_patterns_dict['output'] = sql_tablename_patterns_output
+sql_tablename_patterns_dict['pgen'] = sql_tablename_patterns_pgen
+sql_tablename_patterns_dict['scenarios'] = sql_tablename_patterns_scenarios
+
 # ----------------------------------------------------------------------------- #
 
 
