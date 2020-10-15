@@ -750,32 +750,61 @@ def database_export(igortask):
         return 0
 
     # TODO: IgorTask should help me to pass from batch to db and from db to batch and model_directory.
+    igor_fln_db = igortask.igor_fln_db
     igortask.update_batch_filenames()
     igortask.update_model_filenames(model_path=igortask.igor_batchname)
-    print(igortask.to_dict())
 
-    print("Database filename: ", igortask.igor_fln_db)
-    igortask.create_db()
-    import pygor3 as p3
-    ii_db = p3.IgorSqliteDB()
+    igortask.create_db(igor_fln_db)
+    ii_db = igortask.igor_db
+    print("ii_db : ", ii_db, type(ii_db), type(igortask.igor_db))
+    # import pygor3 as p3
+    # ii_db = p3.IgorSqliteDB()
     ii_db.write_IgorIndexedSeq_to_CSV(igortask.igor_fln_indexed_sequences)
-    ii_db.write_IgorIndexedCDR3_to_CSV(igortask.igor_fln_indexed_CDR3)
 
     # b_igor_genomes
-    ii_db.write_IgorGeneTemplate_to_fasta("V", igortask.fln_genomicVs)
-    ii_db.write_IgorGeneTemplate_to_fasta("J", igortask.fln_genomicJs)
-    ii_db.write_IgorGeneTemplate_to_fasta("D", igortask.fln_genomicDs)
+    print(igortask.fln_genomicVs)
+    igortask.genomes.update_fln_names()
 
-    # b_igor_alignments
-    ii_db.write_IgorAlignments_to_CSV("V", igortask.igor_fln_align_V_alignments)
-    ii_db.write_IgorAlignments_to_CSV("J", igortask.igor_fln_align_J_alignments)
-    ii_db.write_IgorAlignments_to_CSV("D", igortask.igor_fln_align_D_alignments)
+    if ii_db.Q_ref_genome_in_db_by_gene("V"):
+        igortask.fln_genomicVs = igortask.genomes.fln_genomicVs
+        ii_db.write_IgorGeneTemplate_to_fasta("V", igortask.fln_genomicVs)
+    if ii_db.Q_ref_genome_in_db_by_gene("J"):
+        igortask.fln_genomicJs = igortask.genomes.fln_genomicJs
+        ii_db.write_IgorGeneTemplate_to_fasta("J", igortask.fln_genomicJs)
+    if ii_db.Q_ref_genome_in_db_by_gene("D"):
+        igortask.fln_genomicDs = igortask.genomes.fln_genomicDs
+        ii_db.write_IgorGeneTemplate_to_fasta("D", igortask.fln_genomicDs)
+
+    if ii_db.Q_align_in_db():
+        # b_igor_alignments
+        if ii_db.Q_align_in_db_by_gene("V"):
+            ii_db.write_IgorAlignments_to_CSV("V", igortask.igor_fln_align_V_alignments)
+        if ii_db.Q_align_in_db_by_gene("J"):
+            ii_db.write_IgorAlignments_to_CSV("J", igortask.igor_fln_align_J_alignments)
+        if ii_db.Q_align_in_db_by_gene("D"):
+            ii_db.write_IgorAlignments_to_CSV("D", igortask.igor_fln_align_D_alignments)
+        try:
+            ii_db.write_IgorIndexedCDR3_to_CSV(igortask.igor_fln_indexed_CDR3)
+        except Exception as e:
+            print("WARNING: No indexed CDR3 files found", igortask.igor_fln_indexed_CDR3)
+            print(e)
+            pass
 
     # b_igor_model
-    ii_db.write_Igor
+    if ii_db.Q_model_in_db():
+        print("MODEL : ",igortask.igor_model_parms_file, igortask.igor_model_marginals_file)
+        ii_db.write_IgorModel_to_TXT(igortask.igor_model_parms_file, igortask.igor_model_marginals_file)
+    # b_igor_model_parms
+    # b_igor_model_marginals
+
+    # b_igor_pgen
+    if ii_db.Q_IgorPgen_in_db():
+        ii_db.write_IgorPgen_to_CSV(igortask.igor_fln_output_pgen)
+    # b_igor_scenarios
+    if ii_db.Q_IgorBestScenarios_in_db():
+        ii_db.write_IgorBestScenarios_to_CSV(igortask.igor_fln_output_scenarios)
 
     igortask.export_to_igorfiles()
-    igortask.load_db_from_indexed_sequences()
 
     """
     igortask.load_db_from_indexed_cdr3()

@@ -341,6 +341,12 @@ class IgorTask:
         self.igor_model_marginals_file = self.igor_model_dir_path + "/models/model_marginals.txt"
         self.igor_path_ref_genome = self.igor_model_dir_path + "/ref_genome/"
 
+    def update_ref_genome(self, igor_path_ref_genome=None):
+        if igor_path_ref_genome is not None:
+            self.igor_path_ref_genome = igor_path_ref_genome
+        self.genomes.update_fln_names() #fln_genomicVs = self.igor_path_ref_genome + ""
+
+
     def update_batch_filenames(self):
         # reads
         if self.igor_wd is None:
@@ -1013,7 +1019,9 @@ class IgorRefGenome:
         return cls
 
 
-    def update_fln_names(self):
+    def update_fln_names(self, path_ref_genome=None):
+        if path_ref_genome is not None:
+            self.path_ref_genome = path_ref_genome
 
         self.fln_genomicVs = self.path_ref_genome + "/" + "genomicVs.fasta"
         self.fln_genomicDs = self.path_ref_genome + "/" + "genomicDs.fasta"

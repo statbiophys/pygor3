@@ -294,7 +294,7 @@ class IgorSqliteDB:
         return seq_indexes_list
 
     def write_IgorIndexedSeq_to_CSV(self, flnIgorIndexedSeq, sep=";"):
-        print("Exporting indexed_sequences to file: ", flnIgorIndexedSeq)
+        print("Saving indexed_sequences to file: ", flnIgorIndexedSeq)
         # print(gene_name)
         sqlSelect = "SELECT * FROM IgorIndexedSeq;"
         # print(sqlSelect)
@@ -382,7 +382,7 @@ class IgorSqliteDB:
         return (record)
 
     def write_IgorGeneTemplate_to_fasta(self, strGene, flnGeneTemplate, sep=";"):
-        print("Exporting gene templates to file: ", flnGeneTemplate)
+        print("Saving gene templates to file: ", flnGeneTemplate)
         sqlSelect = "SELECT * FROM Igor"+strGene.upper()+"GeneTemplate;"
         cur = self.conn.cursor()
         cur.execute(sqlSelect)
@@ -470,6 +470,7 @@ class IgorSqliteDB:
         return (records)
 
     def write_IgorGeneAnchors_to_CSV(self, strGene, flnGeneAnchors, sep=';'):
+        print("Saving IGoR's "+strGene+" gene anchors ")
         sqlcmd_select_template = """
                     SELECT gene.gene_name,
                             anch.anchor_index, anch.function 
@@ -856,16 +857,22 @@ class IgorSqliteDB:
         record = cur.fetchone()
         return (record)
 
-    def write_IgorIndexedCDR3_to_CSV(self, flnIgorIndexedCDR3):
-        print("Writting indexed CDR3 to file : ", flnIgorIndexedCDR3)
+    def write_IgorIndexedCDR3_to_CSV(self, flnIgorIndexedCDR3, sep=';'):
+        print("Saving IGoR's indexed CDR3 to file : ", flnIgorIndexedCDR3)
         sqlSelect = "SELECT * FROM IgorIndexedCDR3;"
         # print(sqlSelect)
         cur = self.conn.cursor()
         cur.execute(sqlSelect)
         # if strGene == 'D':
         #    print(sqlSelect)
-        record = cur.fetchone()
-        return (record)
+        records = cur.fetchall()
+
+        str_file_header = "seq_index;v_anchor;j_anchor;CDR3;CDR3_aa" + "\n"
+        with open(flnIgorIndexedCDR3, "w") as ofile:
+            ofile.write(str_file_header)
+            for record in records:
+                csvline = sep.join(map(str, record)).replace("[", "{").replace("]", "}")
+                ofile.write(csvline + "\n")
 
     def delete_IgorIndexedCDR3_Tables(self):
         """
@@ -1087,6 +1094,27 @@ class IgorSqliteDB:
         print("Loading marginals to database")
         self.load_IgorModel_Marginals(mdl.xdata)
 
+    def write_IgorModel_to_TXT(self, flnIgorModel_Parms, flnIgorModel_Marginals):
+        print("Saving IGoR's model parms to file: ", flnIgorModel_Parms, " and model marginals to file: ", flnIgorModel_Marginals)
+        mdl_parms = self.get_IgorModel_Parms()
+        mdl_parms.write_model_parms(flnIgorModel_Parms)
+        mdl_marginals = self.get_IgorModel_Marginals()
+        mdl_marginals.write_model_marginals(flnIgorModel_Marginals, mdl_parms)
+
+    def write_IgorModel_Parms_to_TXT(self, flnIgorModel_Parms):
+        # from .IgorIO import IgorModel_Parms
+        print("Saving IGoR's model parms to file: ", flnIgorModel_Parms) #
+        mdl_parms = self.get_IgorModel_Parms()
+        mdl_parms.write_model_parms(flnIgorModel_Parms)
+
+    def write_IgorModel_Marginals_to_TXT(self, flnIgorModel_Marginals):
+        from .IgorIO import IgorModel_Parms, IgorModel_Marginals
+        print("Saving IGoR's and model marginals to file: ", flnIgorModel_Marginals)
+        mdl_parms = self.get_IgorModel_Parms()
+        mdl_marginals = self.get_IgorModel_Marginals()
+        mdl_marginals.write_model_marginals(flnIgorModel_Marginals, mdl_parms)
+
+
     def delete_IgorModel_Tables(self):
         for tabla in sql_tablename_patterns_dict['model']:
             tables_list = self.get_list_of_tables_with_name(tabla)
@@ -1220,7 +1248,7 @@ class IgorSqliteDB:
         99;3;0.0100351;(109);(12);(2);(10);(13);(7);(7);(0);();(11);(0,2,0,3,3,2,2,2,0,0,3);()
         99;4;0.0100351;(109);(12);(2);(9);(14);(7);(7);(0);();(11);(0,2,0,3,3,2,2,2,0,0,3);()
         """
-        print("Exporting alignments to file: ", flnIgorBestScenarios)
+        print("Saving IGoR's best scenarios to file: ", flnIgorBestScenarios)
         if mdl is None:
             mdl = self.get_IgorModel()
 
@@ -1617,6 +1645,12 @@ class IgorSqliteDB:
 
         return flag_db
 
+    def Q_ref_genome_in_db_by_gene(self, strGene):
+        flag_table = False
+        tables_list = self.get_list_of_tables_with_name('Igor'+strGene+'GeneTemplate')
+        if len(tables_list) == 1 : flag_table = True
+        return flag_table
+
     def Q_align_in_db(self):
         flag_db = False
         for tabla in sql_tablename_patterns_dict['align']:
@@ -1625,6 +1659,13 @@ class IgorSqliteDB:
             if len(tables_list) > 0: flag_db = True
 
         return flag_db
+
+    def Q_align_in_db_by_gene(self, strGene):
+        flag_table = False
+        tables_list = self.get_list_of_tables_with_name('Igor' + strGene + 'Alignments')
+        if len(tables_list) == 1: flag_table = True
+        return flag_table
+
 
     def Q_model_in_db(self):
         flag_db = False
