@@ -13,7 +13,8 @@ setuptools.setup(
         "xarray",
         "beautifulsoup4",
         "biopython",
-        "Click"
+        "Click",
+        "networkx"
     ],
     packages=setuptools.find_packages(),
     entry_points= {

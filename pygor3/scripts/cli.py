@@ -1,5 +1,33 @@
 import click
 
+
+
+class RegisterReaderOption(click.Option):
+    """ Mark this option as getting a _set option """
+    register_reader = True
+
+class RegisterWriterOption(click.Option):
+    """ Fix the help for the _set suffix """
+    def get_help_record(self, ctx):
+        help = super(RegisterWriterOption, self).get_help_record(ctx)
+        return (help[0].replace('_set ', '='),) + help[1:]
+
+class RegisterWriterCommand(click.Command):
+    def parse_args(self, ctx, args):
+        """ Translate any opt= to opt_set= as needed """
+        options = [o for o in ctx.command.params
+                   if getattr(o, 'register_reader', None)]
+        prefixes = {p for p in sum([o.opts for o in options], [])
+                    if p.startswith('--')}
+        for i, a in enumerate(args):
+            a = a.split('=')
+            if a[0] in prefixes and len(a) > 1:
+                a[0] += '_set'
+                args[i] = '='.join(a)
+
+        return super(RegisterWriterCommand, self).parse_args(ctx, args)
+
+
 from pygor3.IgorIO import IgorTask
 
 pass_igortask = click.make_pass_decorator(IgorTask, ensure=True)
@@ -704,22 +732,24 @@ def database_rm(igortask, b_igor_reads, b_igor_model,
             print(e)
 
 
-@click.command("db-export") #invoke_without_command=True)
-# @click.option("--igor-all", "b_igor_all", is_flag=True,
-#               help='Export all available data in db with prefix.')
-# @click.option("--igor-reads", "b_igor_reads", is_flag=True,
-#               help='Delete sequences reads in database.')
-# @click.option("--igor-model", "b_igor_model", is_flag=True,
-#               help='IGoR model database file.')
-# @click.option("--igor-model-parms", "b_igor_model_parms", is_flag=True,
-#               help='IGoR model parms (or params) file.')
-# @click.option("--igor-model-marginals", "b_igor_model_marginals", is_flag=True,
-#               help='IGoR model marginals file.')
-#
-# @click.option("--igor-scenarios", "b_igor_scenarios", is_flag=True,
-#               help='If --from-db no need to add filename')
-# @click.option("--igor-pgen", "b_igor_pgen", is_flag=True,
-#               help='If --from-db no need to add filename')
+# @click.command("db-export") #invoke_without_command=True)
+@click.command("db-export", cls=RegisterWriterCommand)
+@click.option("--igor-all", "b_igor_all", is_flag=True,
+              default=False,
+              help='Export all available data in db with prefix.')
+@click.option("--igor-reads", "b_igor_reads", cls=RegisterReaderOption,
+              default=False, is_flag=True,
+              help='Export sequences reads to batch.')
+@click.option("--igor-reads_set", "fln_igor_reads", cls=RegisterWriterOption,
+              default=None,
+              help='Export sequences reads to filename.')
+@click.option("--igor-genomes", "b_igor_genomes", cls=RegisterReaderOption,
+              default=False, is_flag=True,
+              help='Export genomes to batch.')
+@click.option("--igor-genomes_set", "fln_igor_genomes", cls=RegisterWriterOption,
+              default=None,
+              help='Export genomes to filename prefix.')
+
 # @click.option("--igor-genomes", "b_igor_genomes", is_flag=True,
 #               help='Copy V, (D) and J genetic data to database')
 # @click.option("--igor-genomesV", "b_igor_genomesV", is_flag=True,
@@ -728,10 +758,23 @@ def database_rm(igortask, b_igor_reads, b_igor_model,
 #               help='Copy just D genomes tables to database.')
 # @click.option("--igor-genomesJ", "b_igor_genomesJ", is_flag=True,
 #               help='Copy just J genomes tables to database.')
+
 # @click.option("--igor-genomesCDR3", "b_igor_genomesCDR3", is_flag=True,
 #               help='Copy just CDR3 anchors tables to database.')
+@click.option("--igor-genomesCDR3", "b_igor_genomesCDR3", cls=RegisterReaderOption,
+              default=False, is_flag=True,
+              help='Export CDR3 anchors to batch.')
+@click.option("--igor-genomesCDR3_set", "fln_igor_genomesCDR3", cls=RegisterWriterOption,
+              default=None,
+              help='Export CDR3 anchors to filename prefix.')
 # @click.option("--igor-alignments", "b_igor_alignments", is_flag=True,
 #               help='Copy all available alignments tables to database.')
+@click.option("--igor-alignments", "b_igor_alignments", cls=RegisterReaderOption,
+              default=False, is_flag=True,
+              help='Export alignments to batch.')
+@click.option("--igor-alignments_set", "fln_igor_alignments", cls=RegisterWriterOption,
+              default=None,
+              help='Export alignments to filename prefix.')
 # @click.option("--igor-alignmentsV", "b_igor_alignmentsV", is_flag=True,
 #               help='Copy V alignments tables to database.')
 # @click.option("--igor-alignmentsD", "b_igor_alignmentsD", is_flag=True,
@@ -740,11 +783,54 @@ def database_rm(igortask, b_igor_reads, b_igor_model,
 #               help='Copy J alignments tables to database.')
 # @click.option("--igor-alignmentsCDR3", "b_igor_alignmentsCDR3", is_flag=True,
 #               help='Copy indexed cdr3 table to database.')
+@click.option("--igor-alignmentsCDR3", "b_igor_alignmentsCDR3", cls=RegisterReaderOption,
+              default=False, is_flag=True,
+              help='Export CDR3 segments from best alignments to batch.')
+@click.option("--igor-alignmentsCDR3_set", "fln_igor_alignmentsCDR3", cls=RegisterWriterOption,
+              default=None,
+              help='Export segments from best alignments to filename.')
+# @click.option("--igor-model", "b_igor_model", is_flag=True,
+#               help='IGoR model database file.')
+@click.option("--igor-model", "b_igor_model", cls=RegisterReaderOption,
+              default=False, is_flag=True,
+              help="Export IGoR's model to batch.")
+@click.option("--igor-model_set", "fln_igor_model", cls=RegisterWriterOption,
+              default=None,
+              help="Export IGoR's model to filename prefix.")
+# @click.option("--igor-model-parms", "b_igor_model_parms", is_flag=True,
+#               help='IGoR model parms (or params) file.')
+# @click.option("--igor-model-marginals", "b_igor_model_marginals", is_flag=True,
+#               help='IGoR model marginals file.')
+# @click.option("--igor-scenarios", "b_igor_scenarios", is_flag=True,
+#               help='If --from-db no need to add filename')
+@click.option("--igor-scenarios", "b_igor_scenarios", cls=RegisterReaderOption,
+              default=False, is_flag=True,
+              help="Export IGoR's scenarios to batch.")
+@click.option("--igor-scenarios_set", "fln_igor_scenarios", cls=RegisterWriterOption,
+              default=None,
+              help="Export IGoR's scenarios to filename prefix.")
+# @click.option("--igor-pgen", "b_igor_pgen", is_flag=True,
+#               help='If --from-db no need to add filename')
+@click.option("--igor-pgen", "b_igor_pgen", cls=RegisterReaderOption,
+              default=False, is_flag=True,
+              help="Export IGoR's pgen to batch.")
+@click.option("--igor-pgen_set", "fln_igor_pgen", cls=RegisterWriterOption,
+              default=None,
+              help="Export IGoR's pgen to filename prefix.")
 @pass_igortask
-def database_export(igortask):
+def database_export(igortask, b_igor_reads, fln_igor_reads,
+                    b_igor_genomes, fln_igor_genomes,
+                    b_igor_alignments, fln_igor_alignments,
+                    b_igor_alignmentsCDR3, fln_igor_alignmentsCDR3,
+                    b_igor_model, fln_igor_model,
+                    b_igor_scenarios, fln_igor_scenarios,
+                    b_igor_pgen, fln_igor_pgen):
     """Export database model in igor formatted files"""
     # fln_prefix = "tmp_export_"
     print("batchname: ", igortask.igor_batchname)
+    print("b_igor_reads, fln_igor_reads", b_igor_reads, fln_igor_reads)
+    print("b_igor_genomes, fln_igor_genomes", b_igor_genomes, fln_igor_genomes)
+
     if igortask.igor_batchname is None:
         print("ERROR: batch option required.")
         return 0
@@ -753,6 +839,7 @@ def database_export(igortask):
     igor_fln_db = igortask.igor_fln_db
     igortask.update_batch_filenames()
     igortask.update_model_filenames(model_path=igortask.igor_batchname)
+
 
     igortask.create_db(igor_fln_db)
     ii_db = igortask.igor_db
@@ -765,15 +852,22 @@ def database_export(igortask):
     print(igortask.fln_genomicVs)
     igortask.genomes.update_fln_names()
 
-    if ii_db.Q_ref_genome_in_db_by_gene("V"):
-        igortask.fln_genomicVs = igortask.genomes.fln_genomicVs
-        ii_db.write_IgorGeneTemplate_to_fasta("V", igortask.fln_genomicVs)
-    if ii_db.Q_ref_genome_in_db_by_gene("J"):
-        igortask.fln_genomicJs = igortask.genomes.fln_genomicJs
-        ii_db.write_IgorGeneTemplate_to_fasta("J", igortask.fln_genomicJs)
-    if ii_db.Q_ref_genome_in_db_by_gene("D"):
-        igortask.fln_genomicDs = igortask.genomes.fln_genomicDs
-        ii_db.write_IgorGeneTemplate_to_fasta("D", igortask.fln_genomicDs)
+    if fln_igor_genomes is not None:
+        b_igor_genomes = True
+        igortask.fln_genomicVs = fln_igor_genomes + "Vs.fasta"
+        igortask.fln_genomicJs = fln_igor_genomes + "Js.fasta"
+        igortask.fln_genomicDs = fln_igor_genomes + "Ds.fasta"
+
+    if b_igor_genomes :
+        if ii_db.Q_ref_genome_in_db_by_gene("V"):
+            igortask.fln_genomicVs = igortask.genomes.fln_genomicVs
+            ii_db.write_IgorGeneTemplate_to_fasta("V", igortask.fln_genomicVs)
+        if ii_db.Q_ref_genome_in_db_by_gene("J"):
+            igortask.fln_genomicJs = igortask.genomes.fln_genomicJs
+            ii_db.write_IgorGeneTemplate_to_fasta("J", igortask.fln_genomicJs)
+        if ii_db.Q_ref_genome_in_db_by_gene("D"):
+            igortask.fln_genomicDs = igortask.genomes.fln_genomicDs
+            ii_db.write_IgorGeneTemplate_to_fasta("D", igortask.fln_genomicDs)
 
     if ii_db.Q_align_in_db():
         # b_igor_alignments
