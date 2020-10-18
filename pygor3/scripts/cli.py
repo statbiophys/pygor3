@@ -368,7 +368,7 @@ def model_export(igortask, fln_from_txt, fln_from_db, fln_to_txt, fln_to_db):
 @click.command("model-create")
 @click.option("-t", "--recombination_type", "rec_type", type=click.Choice(['VJ', 'VDJ']),
               help="Igor recombination type.")
-# @click.option("-o", "--output-prefix", "fln_output_prefix", default=None, help="Prefix for models files.")
+@click.option("-o", "--output-prefix", "fln_output_prefix", default=None, help="Prefix for models files.")
 @pass_igortask
 def model_create(igortask, rec_type, fln_output_prefix):
     """Make a new VJ or VDJ model with uniform probability distribution"""
@@ -380,22 +380,25 @@ def model_create(igortask, rec_type, fln_output_prefix):
         igortask.update_model_filenames(model_path=igortask.igor_model_dir_path)
         igortask.load_IgorRefGenome()
         igortask.make_model_default_VJ_from_genomes()
-        igortask.mdl.parms.write_model_parms(igortask.igor_model_parms_file)
-        igortask.mdl.marginals.write_model_marginals(igortask.igor_model_marginals_file, igortask.mdl.parms)
     elif rec_type == 'VDJ':
         igortask.update_model_filenames(model_path=igortask.igor_model_dir_path)
         # print(igortask.to_dict())
         igortask.load_IgorRefGenome()
-
         igortask.make_model_default_VDJ_from_genomes()
-        print(igortask.igor_model_dir_path)
-        # igortask.igor_model_parms_file
-        igortask.mdl.parms.write_model_parms(igortask.igor_model_parms_file)
-        igortask.mdl.marginals.write_model_marginals(igortask.igor_model_marginals_file, igortask.mdl.parms)
+        # print(igortask.igor_model_dir_path)
     else:
         print("Model type ", rec_type)
 
     print("igortask.igor_model_dir_path: ", igortask.igor_model_dir_path)
+    if fln_output_prefix is None:
+        print(igortask.igor_model_dir_path)
+        igortask.mdl.parms.write_model_parms(igortask.igor_model_parms_file)
+        igortask.mdl.marginals.write_model_marginals(igortask.igor_model_marginals_file, igortask.mdl.parms)
+    else:
+        igortask.igor_model_parms_file = fln_output_prefix + "_parms.txt"
+        igortask.igor_model_marginals_file = fln_output_prefix + "_marginals.txt"
+        igortask.mdl.parms.write_model_parms(igortask.igor_model_parms_file)
+        igortask.mdl.marginals.write_model_marginals(igortask.igor_model_marginals_file, igortask.mdl.parms)
 
 
 @click.command("model-plot")
