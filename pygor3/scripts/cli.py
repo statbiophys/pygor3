@@ -135,6 +135,7 @@ def run_infer(igortask, igor_read_seqs, output_fln_prefix):
         # copy files
         print("Database file : ", output_fln_prefix)
     else:
+        # igortask.mdl.write_model(output_fln_parms, output_fln_marginals)
         print("Database file : ", igortask.igor_fln_db)
         # mv
 
@@ -185,6 +186,9 @@ def run_get_scenarios(igortask, igor_read_seqs, output_db):
 def run_get_pgen(igortask, igor_read_seqs, output_db):
     """IGoR's call to calculate pgen of input sequences"""
     click.echo("Get IGoR pgen process...")
+    # TODO: TO RUN THE PGEN I NEED :
+    # - INPUT SEQUENCES
+    # - ALL THE INFORMATION ABOUT ALIGNMENTS AND MODELS
     igortask.run_evaluate(igor_read_seqs=igor_read_seqs)
 
 @click.command("igor-generate")
@@ -411,7 +415,11 @@ def model_plot(igortask, fln_output_prefix):
         igortask.load_mdl_from_db()
         print("Model loaded from ", igortask.igor_fln_db)
     else:
-        igortask.update_model_filenames()
+        try:
+            igortask.update_model_filenames()
+        except Exception as e:
+            print("WARNING: update_model_filenames ", e)
+
         igortask.load_IgorModel()
 
     igortask.mdl.export_plot_Pmarginals(fln_output_prefix)
@@ -821,8 +829,8 @@ def database_rm(igortask, b_igor_reads, b_igor_model,
               default=None,
               help="Export IGoR's pgen to filename prefix.")
 @pass_igortask
-def database_export(igortask, b_igor_reads, fln_igor_reads,
-                    b_igor_genomes, fln_igor_genomes,
+def database_export(igortask, b_igor_all, b_igor_reads, fln_igor_reads,
+                    b_igor_genomes, fln_igor_genomes, b_igor_genomesCDR3, fln_igor_genomesCDR3,
                     b_igor_alignments, fln_igor_alignments,
                     b_igor_alignmentsCDR3, fln_igor_alignmentsCDR3,
                     b_igor_model, fln_igor_model,
@@ -841,7 +849,8 @@ def database_export(igortask, b_igor_reads, fln_igor_reads,
     # TODO: IgorTask should help me to pass from batch to db and from db to batch and model_directory.
     igor_fln_db = igortask.igor_fln_db
     igortask.update_batch_filenames()
-    igortask.update_model_filenames(model_path=igortask.igor_batchname)
+    path_mdl_data = igortask.igor_batchname + "_mdldata"
+    igortask.update_model_filenames(model_path=path_mdl_data)
 
 
     igortask.create_db(igor_fln_db)

@@ -255,7 +255,7 @@ class IgorSqliteDB:
         """
 
         #print(gene_name)
-        sqlSelect = "SELECT * FROM IgorIndexedSeq WHERE seq_index = "+str(seq_index)+";"
+        sqlSelect = "SELECT seq_index, sequence FROM IgorIndexedSeq WHERE seq_index = "+str(seq_index)+";"
         #print(sqlSelect)
         cur = self.conn.cursor()
         cur.execute(sqlSelect)
@@ -279,7 +279,7 @@ class IgorSqliteDB:
         #print(gene_name)
         strSeq_indexList = str( tuple( sorted( set( seq_indexList ) ) )  )
 
-        sqlSelect = "SELECT * FROM IgorIndexedSeq WHERE seq_index IN "+strSeq_indexList+";"
+        sqlSelect = "SELECT seq_index, sequence FROM IgorIndexedSeq WHERE seq_index IN "+strSeq_indexList+";"
         #print(sqlSelect)
         cur = self.conn.cursor()
         cur.execute(sqlSelect)
@@ -296,7 +296,7 @@ class IgorSqliteDB:
     def write_IgorIndexedSeq_to_CSV(self, flnIgorIndexedSeq, sep=";"):
         print("Saving indexed_sequences to file: ", flnIgorIndexedSeq)
         # print(gene_name)
-        sqlSelect = "SELECT * FROM IgorIndexedSeq;"
+        sqlSelect = "SELECT seq_index, sequence FROM IgorIndexedSeq;"
         # print(sqlSelect)
         cur = self.conn.cursor()
         cur.execute(sqlSelect)
@@ -766,8 +766,8 @@ class IgorSqliteDB:
             SELECT aln.seq_index, t_gene.gene_name, aln.score, aln.offset, aln.insertions, aln.deletions, 
             aln.mismatches, aln.length, aln.offset_5_p_align, aln.offset_3_p_align
             FROM Igor{upper}Alignments aln 
-            LEFT JOIN Igor{upper}GeneTemplate t_gene 
-            ON aln.{lower}gene_id = aln.{lower}gene_id;
+            INNER JOIN Igor{upper}GeneTemplate t_gene 
+            ON aln.{lower}gene_id = t_gene.{lower}gene_id;
             """
 
         sqlSelect = sqlcmd_select_template.format(upper=strGene.upper(), lower=strGene.lower())
@@ -775,7 +775,7 @@ class IgorSqliteDB:
         cur.execute(sqlSelect)
         records = cur.fetchall()
 
-        str_file_header = "seq_index;gene_name;score;offset;insertions;deletions;mismatches;length;5_p_align_offset;3_p_align_offset" + "\n"
+        str_file_header = "seq_index"+sep+"gene_name"+sep+"score"+sep+"offset"+sep+"insertions"+sep+"deletions"+sep+"mismatches"+sep+"length"+sep+"5_p_align_offset"+sep+"3_p_align_offset" + "\n"
         with open(flnGeneTemplate, "w") as ofile:
             ofile.write(str_file_header)
             for record in records:

@@ -635,6 +635,9 @@ class IgorTask:
     def load_db_from_models(self):
         # self.load_IgorModel()
         try:
+            if self.igor_db.Q_model_in_db():
+                print("WARNING: Overwriting previous model in database ", self.igor_fln_db)
+                self.igor_db.delete_IgorModel_Tables()
             self.igor_db.load_IgorModel(self.mdl)
         except Exception as e:
             print("Couldn't load model to database from IgorModel object")
@@ -2018,7 +2021,7 @@ class IgorModel:
 
     def write_model(self, fln_model_parms, fln_model_marginals):
         self.parms.write_model_parms(filename=fln_model_parms)
-        self.parms.write_model_marginals(filename=fln_model_parms)
+        self.marginals.write_model_marginals(filename=fln_model_parms, model_parms=self.parms)
 
 
 class IgorModel_Parms:
@@ -2100,6 +2103,9 @@ class IgorModel_Parms:
         # Add events to Event_list
         for event_nickname in Igor_VJ_default_nickname_list:
             event_dict = IgorRec_Event_default_dict[event_nickname]
+            if event_nickname == 'j_choice':
+                event_dict["priority"] = 6
+
             event = IgorRec_Event.from_dict(event_dict)
             cls.Event_list.append(event)
             if event.event_type == 'DinucMarkov':
@@ -2124,7 +2130,6 @@ class IgorModel_Parms:
                 if event_nickname == 'v_choice':
                     cls.set_event_realizations_from_DataFrame(event_nickname, df_genomicVs)
                 elif event_nickname == 'j_choice':
-                    event_dict["priority"] = 6
                     cls.set_event_realizations_from_DataFrame(event_nickname, df_genomicJs)
             else:
                 print("Unrecognized type of event. There are only 4 types of events:")
@@ -2423,13 +2428,20 @@ class IgorModel_Parms:
         """
         if filename is None:
             filename = "tmp_mdl_parms.txt"
-        print("Exporting model parms in file ", filename)
         # Sort events in list with the your specific preference.
         # FIXME: FIND ANOTHER WAY TO WRITE IN A CORRECT ORDER
         # igor_nickname_list = ["v_choice", "j_choice", "d_gene", "v_3_del"]
         # self.get_Event(nicknameList)
         # self.Event_list
         strSepChar = ";"
+        try:
+            import os
+            #print("AAAAAAAAAAAAAAA:", os.path.dirname(filename), filename)
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
+        except Exception as e:
+            print("WARNING: write_model_parms path ", e)
+
+        print("Writing model parms in file ", filename)
         with open(filename, "w") as ofile:
             # 1. Write events
             self.write_Event_list(ofile, delimiter=strSepChar)
@@ -3160,9 +3172,12 @@ class IgorModel_Marginals:
             #
             #     self.marginals_dict[event.nickname] = narr
 
-    def write_model_marginals(self, filename, model_parms=None):
+    def write_model_marginals(self, filename=None, model_parms=None):
         # self.marginals_dict = {}
         # self.network_dict = {}
+        if filename is None:
+            filename = "tmp_mdl_marginals.txt"
+
         if model_parms is None:
             print("model parms need it")
             raise
@@ -3171,7 +3186,13 @@ class IgorModel_Marginals:
         if filename is None:
             filename = "tmp_mdl_marginals.txt"
 
-        print("Exporting model marginals in file ", filename)
+        try:
+            import os
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
+        except Exception as e:
+            print("WARNING: IgorModel_Marginals.write_model_marginals path ", e)
+
+        print("Writing model marginals in file ", filename)
         with open(filename, "w") as fw:
             for event in parms.Event_list:
                 strEvent = event.nickname

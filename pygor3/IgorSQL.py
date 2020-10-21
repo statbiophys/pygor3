@@ -82,7 +82,7 @@ sqlcmd_ct['V_alignments'] = """
 CREATE TABLE IF NOT EXISTS IgorVAlignments (
     seq_index integer NOT NULL,
     vgene_id integer NOT NULL,
-    score real,
+    score integer,
     offset integer,
     insertions text NOT NULL,
     deletions  text NOT NULL,
@@ -101,7 +101,7 @@ sqlcmd_ct['D_alignments'] = """
 CREATE TABLE IF NOT EXISTS IgorDAlignments (
     seq_index integer NOT NULL,
     dgene_id integer NOT NULL,
-    score real,
+    score integer,
     offset integer,
     insertions text NOT NULL,
     deletions  text NOT NULL,
@@ -120,7 +120,7 @@ sqlcmd_ct['J_alignments'] = """
 CREATE TABLE IF NOT EXISTS IgorJAlignments (
     seq_index integer NOT NULL,
     jgene_id integer NOT NULL,
-    score real,
+    score integer,
     offset integer,
     insertions text NOT NULL,
     deletions  text NOT NULL,

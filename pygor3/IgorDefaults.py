@@ -188,14 +188,9 @@ Igor_VDJ_default_parents_dict = {
 Igor_VJ_default_parents_dict = {
     'v_choice' : [],
     'j_choice' : ['v_choice'],
-    'd_gene' : ['v_choice', 'j_choice'],
     'v_3_del' : ['v_choice'],
-    'd_5_del' : ['d_gene'],
-    'd_3_del' : ['d_gene', 'd_5_del'],
     'j_5_del' : ['j_choice'],
-    'vd_ins' : [],
-    'vd_dinucl' : [],
-    'dj_ins' : [],
-    'dj_dinucl' : []
+    'vj_ins' : [],
+    'vj_dinucl' : []
 }
 
