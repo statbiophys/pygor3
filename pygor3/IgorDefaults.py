@@ -194,3 +194,12 @@ Igor_VJ_default_parents_dict = {
     'vj_dinucl' : []
 }
 
+Igor_to_AIRR_dict={
+    "seq_index" : "sequence_id",
+    "sequence" : "sequence",
+    "v_choice" : "v_call",
+    "d_gene" : "d_call",
+    "j_choice" : "j_call" #,
+    # "np1",
+    # "np2"
+}

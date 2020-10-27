@@ -92,6 +92,23 @@ class IgorTask:
                  igor_wd=None, igor_batchname=None,
                  igor_model_parms_file=None, igor_model_marginals_file=None,
                  igor_read_seqs=None,
+                 igor_threads=None,
+                 igor_fln_indexed_sequences=None,
+                 igor_fln_indexed_CDR3=None,
+                 igor_fln_align_V_alignments=None,
+                 igor_fln_align_D_alignments=None,
+                 igor_fln_align_J_alignments=None,
+                 igor_fln_infer_final_marginals=None,
+                 igor_fln_infer_final_parms=None,
+                 igor_fln_evaluate_final_marginals=None,
+                 igor_fln_evaluate_final_parms=None,
+                 igor_fln_output_pgen=None,
+                 igor_fln_output_scenarios=None,
+                 igor_fln_output_coverage=None,
+                 igor_fln_generated_realizations_werr=None,
+                 igor_fln_generated_seqs_werr=None,
+                 igor_fln_generation_info=None,
+                 igor_fln_db=None
                  ):
         # To execute IGoR externally
         self.igor_exec_path = igor_exec_path
@@ -118,33 +135,33 @@ class IgorTask:
         self.igor_model_parms_file = igor_model_parms_file
         self.igor_model_marginals_file = igor_model_marginals_file
 
-        self.igor_read_seqs = ""
-        self.igor_threads = ""
+        self.igor_read_seqs = igor_read_seqs
+        self.igor_threads = igor_threads
 
         # read
-        self.igor_fln_indexed_sequences = ""
+        self.igor_fln_indexed_sequences = igor_fln_indexed_sequences
         # aligns
-        self.igor_fln_indexed_CDR3 = ""
-        self.igor_fln_align_V_alignments = ""
-        self.igor_fln_align_J_alignments = ""
-        self.igor_fln_align_D_alignments = ""
+        self.igor_fln_indexed_CDR3 = igor_fln_indexed_CDR3
+        self.igor_fln_align_V_alignments = igor_fln_align_V_alignments
+        self.igor_fln_align_J_alignments = igor_fln_align_J_alignments
+        self.igor_fln_align_D_alignments = igor_fln_align_D_alignments
         # inference
-        self.igor_fln_infer_final_marginals = ""
-        self.igor_fln_infer_final_parms = ""
+        self.igor_fln_infer_final_marginals = igor_fln_infer_final_marginals
+        self.igor_fln_infer_final_parms = igor_fln_infer_final_parms
         # evaluate
-        self.igor_fln_evaluate_final_marginals = ""
-        self.igor_fln_evaluate_final_parms = ""
+        self.igor_fln_evaluate_final_marginals = igor_fln_evaluate_final_marginals
+        self.igor_fln_evaluate_final_parms = igor_fln_evaluate_final_parms
         # output
-        self.igor_fln_output_pgen = ""
-        self.igor_fln_output_scenarios = ""
-        self.igor_fln_output_coverage = ""
+        self.igor_fln_output_pgen = igor_fln_output_pgen
+        self.igor_fln_output_scenarios = igor_fln_output_scenarios
+        self.igor_fln_output_coverage = igor_fln_output_coverage
 
         # TODO: NO DATABASE FIELDS FOR THIS GUYS
-        self.igor_fln_generated_realizations_werr = ""
-        self.igor_fln_generated_seqs_werr = ""
-        self.igor_fln_generation_info = ""
+        self.igor_fln_generated_realizations_werr = igor_fln_generated_realizations_werr
+        self.igor_fln_generated_seqs_werr = igor_fln_generated_seqs_werr
+        self.igor_fln_generation_info = igor_fln_generation_info
 
-        self.igor_fln_db = ""
+        self.igor_fln_db = igor_fln_db
 
         # TODO: experimental dictionary to check status of igor batch associated files
         # almost each of these files correspond to a sql table
@@ -327,19 +344,23 @@ class IgorTask:
 
     def update_model_filenames(self, model_path=None):
 
-        # if model_path is None use the self.igor_model_dir_path
-        if model_path is None:
-            # use previously defined igor_model_dir_path
-            if self.igor_model_dir_path is None:
-                # if wasn't defined use the current directory
-                model_path = "."
-        else:
-            # if a model_path is provided then override it
-            self.igor_model_dir_path = model_path
+        try:
+            # if model_path is None use the self.igor_model_dir_path
+            if model_path is None:
+                # use previously defined igor_model_dir_path
+                if self.igor_model_dir_path is None:
+                    # if wasn't defined use the current directory
+                    model_path = "."
+            else:
+                # if a model_path is provided then override it
+                self.igor_model_dir_path = model_path
 
-        self.igor_model_parms_file = self.igor_model_dir_path + "/models/model_parms.txt"
-        self.igor_model_marginals_file = self.igor_model_dir_path + "/models/model_marginals.txt"
-        self.igor_path_ref_genome = self.igor_model_dir_path + "/ref_genome/"
+            self.igor_model_parms_file = self.igor_model_dir_path + "/models/model_parms.txt"
+            self.igor_model_marginals_file = self.igor_model_dir_path + "/models/model_marginals.txt"
+            self.igor_path_ref_genome = self.igor_model_dir_path + "/ref_genome/"
+        except Exception as e:
+            print("WARNING: IgorTask.update_model_filenames", e, self.igor_model_dir_path)
+
 
     def update_ref_genome(self, igor_path_ref_genome=None):
         if igor_path_ref_genome is not None:
@@ -501,8 +522,8 @@ class IgorTask:
         self.b_align = True # FIXME: If run_command success then True
         return cmd_stdout
 
-    def run_evaluate(self, igor_read_seqs=None):
-        #"igor -set_wd $WDPATH -batch foo -species human -chain beta
+    def run_evaluate(self, igor_read_seqs=None, N_scenarios=None):
+        # "igor -set_wd $WDPATH -batch foo -species human -chain beta
         # -evaluate -output --scenarios 10"
         print(self.to_dict())
         import os.path
@@ -522,6 +543,74 @@ class IgorTask:
         cmd = cmd + " -set_custom_model " + self.igor_model_parms_file + " " + self.igor_model_marginals_file
 
         # here the evaluation
+        self.igor_output_dict_options["--scenarios"]['active'] = True
+        if N_scenarios is not None:
+            self.igor_output_dict_options["--scenarios"]['value'] = str(N_scenarios)
+        self.igor_output_dict_options["--Pgen"]['active'] = True
+        cmd = cmd + " -evaluate " + command_from_dict_options(self.igor_evaluate_dict_options)
+        cmd = cmd + " -output " + command_from_dict_options(self.igor_output_dict_options)
+        # return cmd
+        print(cmd)
+        # FIXME: REALLY BIG FLAW USE DICTIONARY FOR THE SPECIE AND CHAIN
+        # self.mdl = IgorModel.load_default(self.igor_species, igor_option_path_dict[self.igor_chain], modelpath=self.igor_models_root_path)
+        run_command(cmd)
+        # run_command_no_output(cmd)
+        # self.b_evaluate = True # FIXME: If run_command success then Truerun_infer
+
+    def run_pgen(self, igor_read_seqs=None):
+        # "igor -set_wd $WDPATH -batch foo -species human -chain beta
+        # -evaluate -output --scenarios 10"
+        print(self.to_dict())
+        import os.path
+        if igor_read_seqs is not None:
+            self.igor_read_seqs = igor_read_seqs
+
+        if self.b_align is False:
+            self.run_align(igor_read_seqs=self.igor_read_seqs)
+
+        cmd = self.igor_exec_path
+        cmd = cmd + " -set_wd " + self.igor_wd
+        cmd = cmd + " -batch " + self.igor_batchname
+        # TODO: USE COSTUM MODEL OR USE SPECIFIED SPECIES?
+        # I think that the safests is to use the
+        cmd = cmd + " -set_custom_model " + self.igor_model_parms_file + " " + self.igor_model_marginals_file
+
+        # here the evaluation
+        self.igor_output_dict_options["--scenarios"]['active'] = False
+        self.igor_output_dict_options["--Pgen"]['active'] = True
+        cmd = cmd + " -evaluate " + command_from_dict_options(self.igor_evaluate_dict_options)
+        cmd = cmd + " -output " + command_from_dict_options(self.igor_output_dict_options)
+        # return cmd
+        print(cmd)
+        # FIXME: REALLY BIG FLAW USE DICTIONARY FOR THE SPECIE AND CHAIN
+        # self.mdl = IgorModel.load_default(self.igor_species, igor_option_path_dict[self.igor_chain], modelpath=self.igor_models_root_path)
+        run_command(cmd)
+        # run_command_no_output(cmd)
+        # self.b_evaluate = True # FIXME: If run_command success then Truerun_infer
+
+    def run_scenarios(self, igor_read_seqs=None, N_scenarios=None):
+        #"igor -set_wd $WDPATH -batch foo -species human -chain beta
+        # -evaluate -output --scenarios 10"
+        print(self.to_dict())
+        import os.path
+        if igor_read_seqs is not None:
+            self.igor_read_seqs = igor_read_seqs
+
+        if self.b_align is False:
+            self.run_align(igor_read_seqs=self.igor_read_seqs)
+
+        cmd = self.igor_exec_path
+        cmd = cmd + " -set_wd " + self.igor_wd
+        cmd = cmd + " -batch " + self.igor_batchname
+        # TODO: USE COSTUM MODEL OR USE SPECIFIED SPECIES?
+        # I think that the safests is to use the
+        cmd = cmd + " -set_custom_model " + self.igor_model_parms_file + " " + self.igor_model_marginals_file
+
+        # here the evaluation
+        self.igor_output_dict_options["--scenarios"]['active'] = True
+        if N_scenarios is not None:
+            self.igor_output_dict_options["--scenarios"]['value'] = str(N_scenarios)
+        self.igor_output_dict_options["--Pgen"]['active'] = False
         cmd = cmd + " -evaluate " + command_from_dict_options(self.igor_evaluate_dict_options)
         cmd = cmd + " -output " + command_from_dict_options(self.igor_output_dict_options)
         #return cmd
@@ -529,8 +618,6 @@ class IgorTask:
         # FIXME: REALLY BIG FLAW USE DICTIONARY FOR THE SPECIE AND CHAIN
         # self.mdl = IgorModel.load_default(self.igor_species, igor_option_path_dict[self.igor_chain], modelpath=self.igor_models_root_path)
         run_command(cmd)
-        #run_command_no_output(cmd)
-        #self.b_evaluate = True # FIXME: If run_command success then Truerun_infer
 
     def run_infer(self, igor_read_seqs=None):
         #"igor -set_wd $WDPATH -batch foo -species human -chain beta
@@ -563,20 +650,31 @@ class IgorTask:
         self.b_infer = True # FIXME: If run_command success then True
         return output
 
-    def run_generate(self, N):
+    def run_generate(self, N_seqs=None):
         cmd = self.igor_exec_path
         cmd = cmd + " -set_wd " + self.igor_wd
         cmd = cmd + " -batch " + self.igor_batchname
         cmd = cmd + " -set_custom_model " + self.igor_model_parms_file + " " + self.igor_model_marginals_file
-        cmd = cmd + " -generate " + str(N)
+        if N_seqs is not None:
+            cmd = cmd + " -generate " + str(N_seqs)
+        else:
+            cmd = cmd + " -generate "
         print(cmd)
 
         run_command(cmd)
-        path_generated = self.igor_wd + "/" + self.igor_batchname+"_generated/"
+        path_generated = self.igor_wd + "/" + self.igor_batchname + "_generated/"
         self.igor_fln_generated_realizations_werr = path_generated + "generated_realizations_werr.csv"
         self.igor_fln_generated_seqs_werr = path_generated + "generated_seqs_werr.csv"
         self.igor_fln_generation_info = path_generated + "generated_seqs_werr.out"
         self.b_generate = True
+
+        # FIXME: LOAD TO DATABASE CREATE PROPER TABLES FOR THIS
+        # import pandas as pd
+        df = pd.read_csv(self.igor_fln_generated_seqs_werr, delimiter=';').set_index('seq_index')
+        return df
+
+    def run_generate_to_dataframe(self, N):
+        self.run_generate(self, N)
 
         # FIXME: LOAD TO DATABASE CREATE PROPER TABLES FOR THIS
         # import pandas as pd
@@ -1022,16 +1120,34 @@ class IgorRefGenome:
         return cls
 
 
-    def update_fln_names(self, path_ref_genome=None):
+    def update_fln_names(self, path_ref_genome=None, fln_genomicVs=None, fln_genomicDs=None, fln_genomicJs=None, fln_V_gene_CDR3_anchors=None, fln_J_gene_CDR3_anchors=None):
         if path_ref_genome is not None:
             self.path_ref_genome = path_ref_genome
 
-        self.fln_genomicVs = self.path_ref_genome + "/" + "genomicVs.fasta"
-        self.fln_genomicDs = self.path_ref_genome + "/" + "genomicDs.fasta"
-        self.fln_genomicJs = self.path_ref_genome + "/" + "genomicJs.fasta"
+        if fln_genomicVs is None:
+            self.fln_genomicVs = self.path_ref_genome + "/" + "genomicVs.fasta"
+        else:
+            self.fln_genomicVs = fln_genomicVs
 
-        self.fln_V_gene_CDR3_anchors = self.path_ref_genome + "/" + "V_gene_CDR3_anchors.csv"
-        self.fln_J_gene_CDR3_anchors = self.path_ref_genome + "/" + "J_gene_CDR3_anchors.csv"
+        if fln_genomicDs is None:
+            self.fln_genomicDs = self.path_ref_genome + "/" + "genomicDs.fasta"
+        else:
+            self.fln_genomicDs = fln_genomicDs
+
+        if fln_genomicJs is None:
+            self.fln_genomicJs = self.path_ref_genome + "/" + "genomicJs.fasta"
+        else:
+            self.fln_genomicJs = fln_genomicJs
+
+        if fln_V_gene_CDR3_anchors is None:
+            self.fln_V_gene_CDR3_anchors = self.path_ref_genome + "/" + "V_gene_CDR3_anchors.csv"
+        else:
+            self.fln_V_gene_CDR3_anchors = fln_V_gene_CDR3_anchors
+
+        if fln_J_gene_CDR3_anchors is None:
+            self.fln_J_gene_CDR3_anchors = self.path_ref_genome + "/" + "J_gene_CDR3_anchors.csv"
+        else:
+            self.fln_J_gene_CDR3_anchors = fln_J_gene_CDR3_anchors
 
     # TODO: LOAD INSTANCE FROM DEFINED FILES, what is the difference btwn load_dataframes?
     def load_from_files(self, fln_genomicVs=None, fln_genomicDs=None, fln_genomicJs=None,
@@ -1815,27 +1931,250 @@ class IgorModel:
             print("Event nickname : " + event_nickname + " is not an event in this IGoR model.")
             return list()
 
-    def plot_GeneChoice(self, event_nickname:str):
-        """ Return """
+    def plot_event_GeneChoice(self, event_nickname:str, **kwargs):
+        """ Return GeneChoice plot """
+        # Default values in plot
+
         import numpy as np
         v_genLabel = np.vectorize(genLabel)
         import matplotlib.pyplot as plt
         fig, ax = plt.subplots()
-        event_nickname = 'j_choice'
         da = self.xdata[event_nickname]
         for parent_nickname in da.dims:  # attrs['parents']
             da["lbl__" + parent_nickname].values = v_genLabel(da["lbl__" + parent_nickname].values)
 
-        # TODO: assuming Genechoice
-        self.xdata[event_nickname]
+        parents_list = da.attrs['parents']
+        if len(parents_list) == 0:
+            # ONE DIMENSIONAL PLOT
+            titulo = "$P($" + event_nickname + "$)$"
+            fig, ax = plt.subplots(figsize=(18, 15))
+            XX = da[event_nickname].values
+            YY = da.values
+            ax.bar(XX, YY, **kwargs)
+            lbl_XX = da['lbl__' + event_nickname].values
+            ax.set_xticks(XX)
+            ax.set_xticklabels(v_genLabel(lbl_XX), rotation=90)
+            ax.set_title(titulo)
+            return fig, ax
+        elif len(parents_list) == 1:
+            if not 'cmap' in kwargs.keys():
+                kwargs['cmap'] = 'gnuplot2_r'
+            lbl_parents = ",".join(da.attrs['parents'])
+            titulo = "$P($" + event_nickname + "$|$" + lbl_parents + "$)$"
+            fig, ax = plt.subplots(figsize=(18, 15))
+            XX = da[event_nickname].values
+            YY = da.values
+            da.plot(ax=ax, **kwargs)
+            lbl_XX = da['lbl__' + event_nickname].values
+            ax.set_title(titulo)
+            ax.set_aspect('equal')
+            return fig, ax
+        elif len(parents_list) == 2:
+            if not 'cmap' in kwargs.keys():
+                kwargs['cmap'] = 'gnuplot2_r'
+            # da = self.xdata[event_nickname]
+            fig, ax = plt.subplots(*da[event_nickname].shape, figsize=(10, 20))
+            for ii, ev_realiz in enumerate(da[event_nickname]):
+                # print(ev_realiz.values)
+                da[{event_nickname: ev_realiz.values}].plot(ax=ax[ii], cmap='gnuplot2_r')
+                lbl_ev_realiz = str( ev_realiz["lbl__" + event_nickname].values )
+                lbl_parents = str( ",".join(da.attrs['parents']) )
+                titulo = "$P($" + event_nickname + "$ = $ " + lbl_ev_realiz + " $|$" + lbl_parents + "$)$"
+                ax[ii].set_title(titulo)
+            return fig, ax
+        else:
+            fig, ax = plt.subplots()
+            ax.set_title("Dimensionality not supportted for event : ", event_nickname)
+            return fig, ax
+
+    def plot_event_Insertion(self, event_nickname:str, **kwargs):
+        """ Return Insertion plot """
+
+        import numpy as np
+        v_genLabel = np.vectorize(genLabel)
+        import matplotlib.pyplot as plt
+        fig, ax = plt.subplots()
+        da = self.xdata[event_nickname]
+
+        parents_list = da.attrs['parents']
+        if len(parents_list) == 0:
+            # ONE DIMENSIONAL PLOT
+            titulo = "$P($" + event_nickname + "$)$"
+            fig, ax = plt.subplots(figsize=(18, 15))
+            XX = da[event_nickname].values
+            YY = da.values
+            ax.bar(XX, YY, **kwargs)
+            lbl_XX = da['lbl__' + event_nickname].values
+            ax.set_xticks(XX)
+            ax.set_xticklabels(lbl_XX, rotation=90)
+            ax.set_title(titulo)
+            return fig, ax
+        elif len(parents_list) == 1:
+            titulo = "$P($" + event_nickname + "$|$" + ",".join(da.attrs['parents']) + "$)$"
+            fig, ax = plt.subplots(figsize=(18, 15))
+            XX = da[event_nickname].values
+            YY = da.values
+            da.plot(ax=ax, **kwargs)
+            lbl_XX = da['lbl__' + event_nickname].values
+            ax.set_title(titulo)
+            ax.set_aspect('equal')
+            return fig, ax
+        elif len(parents_list) == 2:
+            # da = self.xdata[event_nickname]
+            fig, ax = plt.subplots(*da[event_nickname].shape, figsize=(10, 20))
+            for ii, ev_realiz in enumerate(da[event_nickname]):
+                # print(ev_realiz.values)
+                da[{event_nickname: ev_realiz.values}].plot(ax=ax[ii], cmap='gnuplot2_r')
+                lbl_ev_realiz = str(ev_realiz["lbl__" + event_nickname].values)
+                lbl_parents = str(",".join(da.attrs['parents']))
+                print(lbl_ev_realiz, lbl_parents)
+                titulo = "$P($" + event_nickname + "$ = $ " + lbl_ev_realiz + " $|$" + lbl_parents + "$)$"
+                ax[ii].set_title(titulo)
+            return fig, ax
+        else:
+            fig, ax = plt.subplots()
+            ax.set_title("Dimensionality not supportted for event : ", event_nickname)
+            return fig, ax
+
+    def plot_event_Deletion(self, event_nickname:str, **kwargs):
+        """ Return GeneChoice plot """
+
+        import numpy as np
+        v_genLabel = np.vectorize(genLabel)
+        import matplotlib.pyplot as plt
+        fig, ax = plt.subplots()
+        da = self.xdata[event_nickname]
+
+        parents_list = da.attrs['parents']
+        if len(parents_list) == 0:
+            # ONE DIMENSIONAL PLOT
+            titulo = "$P($" + event_nickname + "$)$"
+            fig, ax = plt.subplots(figsize=(18, 15))
+            XX = da[event_nickname].values
+            YY = da.values
+            ax.bar(XX, YY, **kwargs)
+            lbl_XX = da['lbl__' + event_nickname].values
+            ax.set_xticks(XX)
+            ax.set_xticklabels(lbl_XX, rotation=90)
+            ax.set_title(titulo)
+            return fig, ax
+        elif len(parents_list) == 1:
+            if not 'cmap' in kwargs.keys():
+                kwargs['cmap'] = 'gnuplot2_r'
+            titulo = "$P($" + event_nickname + "$|$" + ",".join(da.attrs['parents']) + "$)$"
+            fig, ax = plt.subplots(figsize=(18, 15))
+            XX = da[event_nickname].values
+            YY = da.values
+            da.plot(ax=ax, **kwargs)
+            lbl_XX = da['lbl__' + event_nickname].values
+            ax.set_title(titulo)
+            ax.set_aspect('equal')
+            return fig, ax
+        elif len(parents_list) == 2:
+            if not 'cmap' in kwargs.keys():
+                kwargs['cmap'] = 'gnuplot2_r'
+            # da = self.xdata[event_nickname]
+            fig, ax = plt.subplots(*da[event_nickname].shape, figsize=(10, 50))
+            for ii, ev_realiz in enumerate(da[event_nickname]):
+                # print(ev_realiz.values)
+                lbl_ev_realiz = str(ev_realiz["lbl__" + event_nickname].values)
+                lbl_parents = str(",".join(da.attrs['parents']))
+                da[{event_nickname: ev_realiz.values}].plot(ax=ax[ii], cmap='gnuplot2_r')
+                titulo = "$P($" + event_nickname + "$ = $ " + lbl_ev_realiz + " $|$" + lbl_parents + "$)$"
+                ax[ii].set_title(titulo)
+            return fig, ax
+        else:
+            fig, ax = plt.subplots()
+            ax.set_title("Dimensionality not supportted for event : ", event_nickname)
+            return fig, ax
+
+    def plot_event_DinucMarkov(self, event_nickname:str, **kwargs):
+        """ Return GeneChoice plot """
+        # Default values in plot
+        if not 'cmap' in kwargs.keys():
+            kwargs['cmap'] = 'gnuplot2_r'
+
+        import numpy as np
+        import matplotlib.pyplot as plt
+        da = self.xdata[event_nickname]
+        lblEvent = event_nickname.replace("_", " ")
+        xEtiqueta = lblEvent
+        yEtiqueta = "P"
+        fig, ax = plt.subplots()
+        XX = da['x'].values
+        YY = da['y'].values
+
+        lbl__XX = da['lbl__' + 'x'].values
+        lbl__YY = da['lbl__' + 'y'].values
+
+        ZZ = da.values
+
+        da.plot(ax=ax, x='x', y='y', vmin=0, vmax=1, **kwargs)
+
+        ax.set_xlabel('From')
+        ax.set_xticks(XX)
+        ax.set_xticklabels(lbl__XX, rotation=0)
+
+        ax.set_ylabel('To')
+        ax.set_yticks(YY)
+        ax.set_yticklabels(lbl__YY, rotation=0)
+
+        ax.set_title(lblEvent)
+        ax.set_aspect('equal')
+        for i, j in zip(*ZZ.nonzero()):
+            ax.text(j, i, ZZ[i, j], color='white', ha='center', va='center')
+
+        return fig, ax
+
+    def export_plot_events(self, outfilename_prefix):
+        import matplotlib.pyplot as plt
+        from matplotlib.backends.backend_pdf import PdfPages
+
+        with PdfPages(outfilename_prefix + ".pdf") as pdf_file:
+            fig, ax = plt.subplots()
+            self.parms.plot_Graph(ax=ax)
+            fig.tight_layout()
+            pdf_file.savefig(fig)
+
+            # GeneChoice, Insertion, Deletion, DinucMarkov
+            for event_nickname in self.xdata.keys():
+                event = self.parms.get_Event(event_nickname)
+                if event.event_type == 'GeneChoice':
+                    fig, ax = self.plot_event_GeneChoice(event_nickname)
+                    fig.tight_layout()
+                    pdf_file.savefig(fig)
+                    del fig
+                elif event.event_type == 'Insertion':
+                    fig, ax = self.plot_event_Insertion(event_nickname)
+                    fig.tight_layout()
+                    pdf_file.savefig(fig)
+                    del fig
+                elif event.event_type == 'Deletion':
+                    fig, ax = self.plot_event_Deletion(event_nickname)
+                    fig.tight_layout()
+                    pdf_file.savefig(fig)
+                    del fig
+                elif event.event_type == 'DinucMarkov':
+                    fig, ax = self.plot_event_DinucMarkov(event_nickname)
+                    fig.tight_layout()
+                    pdf_file.savefig(fig)
+                    del fig
+                else:
+                    print("ERROR: EVENT NOT RECOGNIZE", event_nickname)
+
 
     def export_plot_Pmarginals(self, outfilename_prefix):
         import matplotlib.pyplot as plt
         from matplotlib.backends.backend_pdf import PdfPages
 
         with PdfPages(outfilename_prefix+".pdf") as pdf_file:
+            fig, ax = plt.subplots()
+            self.parms.plot_Graph(ax=ax)
+            fig.tight_layout()
+            pdf_file.savefig(fig)
+
             for event_nickname in self.Pmarginal.keys():
-                fig, ax = plt.subplots()
+                fig, ax = plt.subplots(figsize=(20, 10))
                 self.plot_Event_Marginal(event_nickname, ax=ax)
                 fig.tight_layout()
                 # flnOutput = flnPrefix + "_" + event_nickname + ".pdf"
@@ -1878,6 +2217,8 @@ class IgorModel:
             # FIXME: but if not what to do.
             XX = da['lbl__' + event_nickname].values
             YY = da.values
+            if not 'marker' in kwargs.keys():
+                kwargs['marker'] = 'o'
             ax.plot(XX, YY, **kwargs)
 
         elif event.event_type == 'Deletion':
@@ -1886,6 +2227,8 @@ class IgorModel:
             #ax.plot(XX, YY)
             XX = da['lbl__' + event_nickname].values
             YY = da.values
+            if not 'marker' in kwargs.keys():
+                kwargs['marker'] = 's'
             ax.plot(XX, YY, **kwargs)
 
         elif event.event_type == 'DinucMarkov':
@@ -1938,8 +2281,15 @@ class IgorModel:
         return list(events_set)
 
     # PLOTS:
-    def plot_Bayes_network(self):
-        return self.parms.plot_Graph()
+    def plot_Bayes_network(self, filename=None):
+        if filename is None:
+            return self.parms.plot_Graph()
+        else:
+            import matplotlib.pyplot as plt
+            fig, ax = plt.subplots()
+            ax_ = self.parms.plot_Graph(ax=ax)
+            fig.savefig(filename)
+            return ax_
 
     def plot(self, event_nickname:str, ax=None):
         if ax is None:
@@ -2021,7 +2371,7 @@ class IgorModel:
 
     def write_model(self, fln_model_parms, fln_model_marginals):
         self.parms.write_model_parms(filename=fln_model_parms)
-        self.marginals.write_model_marginals(filename=fln_model_parms, model_parms=self.parms)
+        self.marginals.write_model_marginals(filename=fln_model_marginals, model_parms=self.parms)
 
 
 class IgorModel_Parms:
@@ -3316,6 +3666,38 @@ class IgorScenario:
                     cls.realizations_ids_dict[col_name] = eval(sqlRecordScenario[ii])
 
         return cls
+
+    def export_to_AIRR_line(self, scenario_col_list:list, sep='\t'):
+        str_line = ""
+        self.seq_index = -1
+        self.scenario_rank = -1
+        self.scenario_proba_cond_seq = -1
+
+        # n_d_5_del = self.mdlParms.Event_dict[strEv].loc[self.id_d_5_del]['value']
+        # name_D = self.mdlParms.Event_dict[strEv].loc[self.id_d_gene]['name']
+
+        from pygor3 import IgorModel_Parms
+        mdl_parms = IgorModel_Parms()
+        # mdl_parms = self.mdl.parms
+        for event_nickname in scenario_col_list:
+            event_realization_id = self.realizations_ids_dict[event_nickname]
+            event_realization_value = mdl_parms.Event_dict[event_nickname].loc[event_realization_id]['value']
+            event_realization_name = mdl_parms.Event_dict[event_nickname].loc[event_realization_id]['name']
+
+            bs_realiz = mdl_parms.realiz_dict_from_scenario(bs)
+            mdl_parms.from_scenario()
+            # GeneChoice
+            self.realizations_ids_dict[event_nickname]
+            # Deletions
+
+            # Insertions
+
+            # DinucMarkov
+
+        str_line = sep.join([self.seq_index, self.scenario_rank, self.scenario_proba_cond_seq])
+
+
+        return str_line
 
 ### IGOR BEST SCENARIOS VDJ ###
 class IgorBestScenariosVDJ:

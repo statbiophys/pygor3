@@ -2,14 +2,6 @@
 import pygor3 as p3
 
 
-def get_V_anchor_index_in_seq_from_gene(align:p3.IgorAlignment_data):
-    ins_size = len(align.insertions)
-    dels_size = len(align.deletions)
-    dict_gene_anchor_index = dict()
-    # TODO: COUNT number of insertions before cdr3_v_gene_anch
-
-
-
 # TODO: THERE IS A WAY TO GET
 def generate_str_fasta(indexed_sequence, list_vdj_alignments:dict):
     """ Given an Sequence index and the corresponding alignments vj/ vdj

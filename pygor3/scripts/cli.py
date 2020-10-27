@@ -33,9 +33,50 @@ from pygor3.IgorIO import IgorTask
 pass_igortask = click.make_pass_decorator(IgorTask, ensure=True)
 
 @click.group()
-# @click.pass_context
-@click.option("-s", "--set_igor_species", "igor_species", default=None, help="Species in IGoR's format: human, mouse") # FIXME:
-@click.option("-c", "--set_igor_chain", "igor_chain", default=None, help="Chain in IGoR's format, e.g. alpha, beta, TRB, TRA") # FIXME:
+def cli():
+    # igortask, igor_species, igor_chain, igor_model, igor_model_path, igor_path_ref_genome, igor_wd, igor_batch, igor_fln_db,
+    #     fln_genomicVs, fln_genomicDs, fln_genomicJs, fln_V_gene_CDR3_anchors, fln_J_gene_CDR3_anchors):
+    click.echo("--------------------------------")
+
+#######################################################################
+import functools
+def common_options(f):
+    options = [
+        click.option("-s", "--set_igor_species", "igor_species", default=None, help="Species in IGoR's format: human, mouse"),
+        click.option("-c", "--set_igor_chain", "igor_chain", default=None, help="Chain in IGoR's format, e.g. alpha, beta, TRB, TRA"),
+        click.option("-m", "--set_igor_model", "igor_model", default=[None, None], nargs=2,
+                      metavar="<model_parms.txt> <model_marginals.txt>",
+                      help='IGoR model_params.txt and model_marginals.txt filenames.'),
+        click.option("-M", "--set_model_path", "igor_model_path", default=None,
+                      metavar="<model_directory_path>",
+                      help='IGoR model directory path, this path include ref_genomes and model_parms'),
+        click.option("-g", "--set_path_ref_genome", "igor_path_ref_genome", default=None,
+                            help='Directory where genome references are stored: genomicDs.fasta,  genomicJs.fasta,  genomicVs.fasta,  J_gene_CDR3_anchors.csv,  V_gene_CDR3_anchors.csv'),
+        click.option("--Vgene", "fln_genomicVs", default=None,
+                      help="Genes template for V gene"),
+        click.option("--Dgene", "fln_genomicDs", default=None,
+                      help="Gimport functoolsenes template for D gene"),
+        click.option("--Jgene", "fln_genomicJs", default=None,
+                      help="Genes template for J gene"),
+        click.option("--Vanchors", "fln_V_gene_CDR3_anchors", default=None,
+                      help="V gene anchors filename"),
+        click.option("--Janchors", "fln_J_gene_CDR3_anchors", default=None,
+                      help="V gene anchors filename"),
+        click.option("-w", "--set_wd", "igor_wd", help="Sets the working directory to path", default='./', show_default=True),
+        click.option("-b", "--set_batch", "igor_batch", default=None,
+                            help='Sets batchname to identify run. If not set random name is generated'),
+        click.option("-D", "--set_database", "igor_fln_db", default=None, help="Igor database created with database script.")
+
+    ]
+    return functools.reduce(lambda x, opt: opt(x), options, f)
+
+
+
+########### IGoR's run commands ###########
+@click.group("igor-read-seqs")
+############## COMMON options ##############
+@click.option("-s", "--set_igor_species", "igor_species", default=None, help="Species in IGoR's format: human, mouse")
+@click.option("-c", "--set_igor_chain", "igor_chain", default=None, help="Chain in IGoR's format, e.g. alpha, beta, TRB, TRA")
 @click.option("-m", "--set_igor_model", "igor_model", default=[None, None], nargs=2,
               metavar="<model_parms.txt> <model_marginals.txt>",
               help='IGoR model_params.txt and model_marginals.txt filenames.')
@@ -44,16 +85,39 @@ pass_igortask = click.make_pass_decorator(IgorTask, ensure=True)
               metavar="<model_directory_path>",
               help='IGoR model directory path, this path include ref_genomes and model_parms')
 @click.option("-g", "--set_path_ref_genome", "igor_path_ref_genome", default=None,
-                    help='Directory where genome references are stored: genomicDs.fasta,  genomicJs.fasta,  genomicVs.fasta,  J_gene_CDR3_anchors.csv,  V_gene_CDR3_anchors.csv')  # , default='./ref_genome')
+                    help='Directory where genome references are stored: genomicDs.fasta,  genomicJs.fasta,  genomicVs.fasta,  J_gene_CDR3_anchors.csv,  V_gene_CDR3_anchors.csv')
+@click.option("--Vgene", "fln_genomicVs", default=None,
+              help="Filename of genes template for V gene")
+@click.option("--Dgene", "fln_genomicDs", default=None,
+              help="Filename of genes template for D gene")
+@click.option("--Jgene", "fln_genomicJs", default=None,
+              help="Filename of genes template for J gene")
+@click.option("--Vanchors", "fln_V_gene_CDR3_anchors", default=None,
+              metavar="<V_gene_CDR3_anchors.csv>",
+              help="Anchors filename of V gene")
+@click.option("--Janchors", "fln_J_gene_CDR3_anchors", default=None,
+              metavar="<J_gene_CDR3_anchors.csv>",
+              help="Anchors filename of J gene")
 @click.option("-w", "--set_wd", "igor_wd", help="Sets the working directory to path", default='./', show_default=True)
 # To load all data files use batchname
 @click.option("-b", "--set_batch", "igor_batch", default=None,
-                    help='Sets batchname to identify run. If not set random name is generated') #, required=True)
+                    help='Sets batchname to identify run. If not set random name is generated')
 @click.option("-D", "--set_database", "igor_fln_db", default=None, help="Igor database created with database script.")
-@pass_igortask
-def cli(igortask, igor_species, igor_chain, igor_model, igor_model_path, igor_path_ref_genome, igor_wd, igor_batch, igor_fln_db):
 
+############## NO COMMON options ##############
+@click.option("-i", "--input-sequences", "igor_read_seqs", default=None, help="Input sequences in FASTA, TXT or CSV formats.")
+def run_read_seqs(igortask, igor_read_seqs, igor_species, igor_chain, igor_model, igor_model_path, igor_path_ref_genome, igor_wd, igor_batch, igor_fln_db,
+        fln_genomicVs, fln_genomicDs, fln_genomicJs, fln_V_gene_CDR3_anchors, fln_J_gene_CDR3_anchors):
+    """IGoR's call to read_seqs"""
+    from pygor3 import IgorTask
+    igortask = IgorTask()
     igortask.igor_path_ref_genome = igor_path_ref_genome
+    igortask.fln_genomicVs = fln_genomicVs
+    igortask.fln_genomicDs = fln_genomicDs
+    igortask.fln_genomicJs = fln_genomicJs
+    igortask.fln_V_gene_CDR3_anchors = fln_V_gene_CDR3_anchors
+    igortask.fln_J_gene_CDR3_anchors = fln_J_gene_CDR3_anchors
+
     igortask.igor_species = igor_species
     igortask.igor_chain = igor_chain
     igor_model_parms = igor_model[0]
@@ -77,31 +141,171 @@ def cli(igortask, igor_species, igor_chain, igor_model, igor_model_path, igor_pa
         igortask.create_db()
     else:
         print("WARNING: No model provided!")
-    click.echo("--------------------------------")
-
-
-
-########### IGoR's run commands ###########
-@click.group("igor-read-seqs")
-@click.option("-i", "--input-sequences", "igor_read_seqs", default=None, help="Input sequences in FASTA, TXT or CSV formats.")
-@pass_igortask
-def run_read_seqs(igortask, igor_read_seqs):
-    """IGoR's call to read_seqs"""
     igortask.run_read_seqs(igor_read_seqs=igor_read_seqs)
 
+
+
+
+
+
+
 @click.group("igor-align")
+############## COMMON options ##############
+@click.option("-s", "--set_igor_species", "igor_species", default=None, help="Species in IGoR's format: human, mouse") # FIXME:
+@click.option("-c", "--set_igor_chain", "igor_chain", default=None, help="Chain in IGoR's format, e.g. alpha, beta, TRB, TRA") # FIXME:
+@click.option("-m", "--set_igor_model", "igor_model", default=[None, None], nargs=2,
+              metavar="<model_parms.txt> <model_marginals.txt>",
+              help='IGoR model_params.txt and model_marginals.txt filenames.')
+
+@click.option("-M", "--set_model_path", "igor_model_path", default=None,
+              metavar="<model_directory_path>",
+              help='IGoR model directory path, this path include ref_genomes and model_parms')
+@click.option("-g", "--set_path_ref_genome", "igor_path_ref_genome", default=None,
+                    help='Directory where genome references are stored: genomicDs.fasta,  genomicJs.fasta,  genomicVs.fasta,  J_gene_CDR3_anchors.csv,  V_gene_CDR3_anchors.csv')
+@click.option("--Vgene", "fln_genomicVs", default=None,
+              help="Filename of genes template for V gene")
+@click.option("--Dgene", "fln_genomicDs", default=None,
+              help="Filename of genes template for D gene")
+@click.option("--Jgene", "fln_genomicJs", default=None,
+              help="Filename of genes template for J gene")
+@click.option("--Vanchors", "fln_V_gene_CDR3_anchors", default=None,
+              metavar="<V_gene_CDR3_anchors.csv>",
+              help="Anchors filename of V gene")
+@click.option("--Janchors", "fln_J_gene_CDR3_anchors", default=None,
+              metavar="<J_gene_CDR3_anchors.csv>",
+              help="Anchors filename of J gene")
+@click.option("-w", "--set_wd", "igor_wd", help="Sets the working directory to path", default='./', show_default=True)
+# To load all data files use batchname
+@click.option("-b", "--set_batch", "igor_batch", default=None,
+                    help='Sets batchname to identify run. If not set random name is generated') #, required=True)
+@click.option("-D", "--set_database", "igor_fln_db", default=None, help="Igor database created with database script.")
+
+############## NO COMMON options ##############
 @click.option("-i", "--input-sequences", "igor_read_seqs", default=None, help="Input sequences in FASTA, TXT or CSV formats.")
-@pass_igortask
-def run_align(igortask, igor_read_seqs):
+def run_align(igortask, igor_read_seqs,
+              igor_species, igor_chain, igor_model, igor_model_path, igor_path_ref_genome, igor_wd, igor_batch,
+              igor_fln_db,
+              fln_genomicVs, fln_genomicDs, fln_genomicJs, fln_V_gene_CDR3_anchors, fln_J_gene_CDR3_anchors):
     """IGoR's call to aligns"""
+    from pygor3 import IgorTask
+    igortask = IgorTask()
+    igortask.igor_path_ref_genome = igor_path_ref_genome
+    igortask.fln_genomicVs = fln_genomicVs
+    igortask.fln_genomicDs = fln_genomicDs
+    igortask.fln_genomicJs = fln_genomicJs
+    igortask.fln_V_gene_CDR3_anchors = fln_V_gene_CDR3_anchors
+    igortask.fln_J_gene_CDR3_anchors = fln_J_gene_CDR3_anchors
+
+    igortask.igor_species = igor_species
+    igortask.igor_chain = igor_chain
+    igor_model_parms = igor_model[0]
+    igor_model_marginals = igor_model[1]
+    igortask.igor_model_parms_file = igor_model[0]
+    igortask.igor_model_marginals_file = igor_model[1]
+    igortask.igor_model_dir_path = igor_model_path
+    igortask.igor_wd = igor_wd
+    igortask.igor_batchname = igor_batch
+    igortask.igor_fln_db = igor_fln_db
+
+    Q_species_chain = (not (igor_species is None) and not (igor_chain is None))
+    Q_model_files = (not (igor_model_parms is None) and not (igor_model_marginals is None))
+    if Q_species_chain:
+        igortask.igor_species = igor_species
+        igortask.igor_chain = igor_chain
+    elif Q_model_files:
+        igortask.igor_model_parms_file = igor_model_parms
+        igortask.igor_model_marginals_file = igor_model_marginals
+    elif igor_fln_db is not None:
+        igortask.create_db()
+    else:
+        print("WARNING: No model provided!")
+
     igortask.run_align(igor_read_seqs=igor_read_seqs)
 
+
+
+
+
+
+
+
+
+
 @click.command("igor-infer")
+############## COMMON options ##############
+@click.option("-s", "--set_igor_species", "igor_species", default=None, help="Species in IGoR's format: human, mouse")
+@click.option("-c", "--set_igor_chain", "igor_chain", default=None, help="Chain in IGoR's format, e.g. alpha, beta, TRB, TRA")
+@click.option("-m", "--set_igor_model", "igor_model", default=[None, None], nargs=2,
+              metavar="<model_parms.txt> <model_marginals.txt>",
+              help='IGoR model_params.txt and model_marginals.txt filenames.')
+
+@click.option("-M", "--set_model_path", "igor_model_path", default=None,
+              metavar="<model_directory_path>",
+              help='IGoR model directory path, this path include ref_genomes and model_parms')
+@click.option("-g", "--set_path_ref_genome", "igor_path_ref_genome", default=None,
+                    help='Directory where genome references are stored: genomicDs.fasta,  genomicJs.fasta,  genomicVs.fasta,  J_gene_CDR3_anchors.csv,  V_gene_CDR3_anchors.csv')
+@click.option("--Vgene", "fln_genomicVs", default=None,
+              metavar="<genomicVs.fasta>",
+              help="Filename of genes template for V gene")
+@click.option("--Dgene", "fln_genomicDs", default=None,
+              metavar="<genomicDs.fasta>",
+              help="Filename of genes template for D gene")
+@click.option("--Jgene", "fln_genomicJs", default=None,
+              metavar="<genomicJs.fasta>",
+              help="Filename of genes template for J gene")
+@click.option("--Vanchors", "fln_V_gene_CDR3_anchors", default=None,
+              metavar="<V_gene_CDR3_anchors.csv>",
+              help="Anchors filename of V gene")
+@click.option("--Janchors", "fln_J_gene_CDR3_anchors", default=None,
+              metavar="<J_gene_CDR3_anchors.csv>",
+              help="Anchors filename of J gene")
+@click.option("-w", "--set_wd", "igor_wd", help="Sets the working directory to path", default='./', show_default=True)
+# To load all data files use batchname
+@click.option("-b", "--set_batch", "igor_batch", default=None,
+                    help='Sets batchname to identify run. If not set random name is generated')
+@click.option("-D", "--set_database", "igor_fln_db", default=None, help="Igor database created with database script.")
+############## NO COMMON options ##############
 @click.option("-i", "--input-sequences", "igor_read_seqs", default=None, help="Input sequences in FASTA, TXT or CSV formats.")
 @click.option("-o", "--output-prefix", "output_fln_prefix", default=None, help="Output database file.")
-@pass_igortask
-def run_infer(igortask, igor_read_seqs, output_fln_prefix):
+def run_infer(igor_read_seqs, output_fln_prefix,
+    igor_species, igor_chain, igor_model, igor_model_path, igor_path_ref_genome, igor_wd, igor_batch, igor_fln_db,
+    fln_genomicVs, fln_genomicDs, fln_genomicJs, fln_V_gene_CDR3_anchors, fln_J_gene_CDR3_anchors):
     """IGoR's call to infer model from input sequences and model"""
+
+    from pygor3 import IgorTask
+    igortask = IgorTask()
+    igortask.igor_path_ref_genome = igor_path_ref_genome
+    igortask.fln_genomicVs = fln_genomicVs
+    igortask.fln_genomicDs = fln_genomicDs
+    igortask.fln_genomicJs = fln_genomicJs
+    igortask.fln_V_gene_CDR3_anchors = fln_V_gene_CDR3_anchors
+    igortask.fln_J_gene_CDR3_anchors = fln_J_gene_CDR3_anchors
+
+    igortask.igor_species = igor_species
+    igortask.igor_chain = igor_chain
+    igor_model_parms = igor_model[0]
+    igor_model_marginals = igor_model[1]
+    igortask.igor_model_parms_file = igor_model[0]
+    igortask.igor_model_marginals_file = igor_model[1]
+    igortask.igor_model_dir_path = igor_model_path
+    igortask.igor_wd = igor_wd
+    igortask.igor_batchname = igor_batch
+    igortask.igor_fln_db = igor_fln_db
+
+    Q_species_chain = (not (igor_species is None) and not (igor_chain is None))
+    Q_model_files = (not (igor_model_parms is None) and not (igor_model_marginals is None))
+    if Q_species_chain:
+        igortask.igor_species = igor_species
+        igortask.igor_chain = igor_chain
+    elif Q_model_files:
+        igortask.igor_model_parms_file = igor_model_parms
+        igortask.igor_model_marginals_file = igor_model_marginals
+    elif igor_fln_db is not None:
+        igortask.create_db()
+    else:
+        print("WARNING: No model provided!")
+
+
     print("===== Running inference =====")
     igortask.update_batch_filenames()
     igortask.update_model_filenames()
@@ -129,6 +333,8 @@ def run_infer(igortask, igor_read_seqs, output_fln_prefix):
         output_fln_db = output_fln_prefix+".db"
         output_fln_parms = output_fln_prefix + "_parms.txt"
         output_fln_marginals = output_fln_prefix + "_marginals.txt"
+        igortask.mdl.plot_Bayes_network(filename=output_fln_prefix+"_BN.pdf")
+        igortask.mdl.export_plot_Pmarginals(output_fln_prefix+"_RM.pdf")
 
         os.rename(igortask.igor_fln_db, output_fln_db)
         igortask.mdl.write_model(output_fln_parms, output_fln_marginals)
@@ -137,15 +343,96 @@ def run_infer(igortask, igor_read_seqs, output_fln_prefix):
     else:
         # igortask.mdl.write_model(output_fln_parms, output_fln_marginals)
         print("Database file : ", igortask.igor_fln_db)
+        base_fln_output = igortask.igor_fln_db.split(".db")[0]
+        output_fln_prefix = base_fln_output
+        # output_fln_db = output_fln_prefix + ".db"
+        output_fln_parms = output_fln_prefix + "_parms.txt"
+        output_fln_marginals = output_fln_prefix + "_marginals.txt"
+        igortask.mdl.plot_Bayes_network(filename=output_fln_prefix+"_BN.pdf")
+        igortask.mdl.export_plot_Pmarginals(output_fln_prefix + "_RM.pdf")
+        igortask.mdl.write_model(output_fln_parms, output_fln_marginals)
         # mv
 
 
+
+
+
+
+
+
+
 @click.command("igor-evaluate")
+############## COMMON options ##############
+@click.option("-s", "--set_igor_species", "igor_species", default=None, help="Species in IGoR's format: human, mouse")
+@click.option("-c", "--set_igor_chain", "igor_chain", default=None, help="Chain in IGoR's format, e.g. alpha, beta, TRB, TRA")
+@click.option("-m", "--set_igor_model", "igor_model", default=[None, None], nargs=2,
+              metavar="<model_parms.txt> <model_marginals.txt>",
+              help='IGoR model_params.txt and model_marginals.txt filenames.')
+
+@click.option("-M", "--set_model_path", "igor_model_path", default=None,
+              metavar="<model_directory_path>",
+              help='IGoR model directory path, this path include ref_genomes and model_parms')
+@click.option("-g", "--set_path_ref_genome", "igor_path_ref_genome", default=None,
+                    help='Directory where genome references are stored: genomicDs.fasta,  genomicJs.fasta,  genomicVs.fasta,  J_gene_CDR3_anchors.csv,  V_gene_CDR3_anchors.csv')
+@click.option("--Vgene", "fln_genomicVs", default=None,
+              help="Filename of genes template for V gene")
+@click.option("--Dgene", "fln_genomicDs", default=None,
+              help="Filename of genes template for D gene")
+@click.option("--Jgene", "fln_genomicJs", default=None,
+              help="Filename of genes template for J gene")
+@click.option("--Vanchors", "fln_V_gene_CDR3_anchors", default=None,
+              metavar="<V_gene_CDR3_anchors.csv>",
+              help="Anchors filename of V gene")
+@click.option("--Janchors", "fln_J_gene_CDR3_anchors", default=None,
+              metavar="<J_gene_CDR3_anchors.csv>",
+              help="Anchors filename of J gene")
+@click.option("-w", "--set_wd", "igor_wd", help="Sets the working directory to path", default='./', show_default=True)
+# To load all data files use batchname
+@click.option("-b", "--set_batch", "igor_batch", default=None,
+                    help='Sets batchname to identify run. If not set random name is generated')
+@click.option("-D", "--set_database", "igor_fln_db", default=None, help="Igor database created with database script.")
+
+############## NO COMMON options ##############
 @click.option("-i", "--input-sequences", "igor_read_seqs", default=None, help="Input sequences in FASTA, TXT or CSV formats.")
 @click.option("-o", "--output-db", "output_db", default=None, help="Output database file.")
-@pass_igortask
-def run_evaluate(igortask, igor_read_seqs, output_db):
+def run_evaluate(igor_read_seqs, output_db,
+            igor_species, igor_chain, igor_model, igor_model_path, igor_path_ref_genome, igor_wd, igor_batch, igor_fln_db,
+            fln_genomicVs, fln_genomicDs, fln_genomicJs, fln_V_gene_CDR3_anchors, fln_J_gene_CDR3_anchors):
     """IGoR's call to evaluate input sequences"""
+    ########################
+    from pygor3 import IgorTask
+    igortask = IgorTask()
+    igortask.igor_path_ref_genome = igor_path_ref_genome
+    igortask.fln_genomicVs = fln_genomicVs
+    igortask.fln_genomicDs = fln_genomicDs
+    igortask.fln_genomicJs = fln_genomicJs
+    igortask.fln_V_gene_CDR3_anchors = fln_V_gene_CDR3_anchors
+    igortask.fln_J_gene_CDR3_anchors = fln_J_gene_CDR3_anchors
+
+    igortask.igor_species = igor_species
+    igortask.igor_chain = igor_chain
+    igor_model_parms = igor_model[0]
+    igor_model_marginals = igor_model[1]
+    igortask.igor_model_parms_file = igor_model[0]
+    igortask.igor_model_marginals_file = igor_model[1]
+    igortask.igor_model_dir_path = igor_model_path
+    igortask.igor_wd = igor_wd
+    igortask.igor_batchname = igor_batch
+    igortask.igor_fln_db = igor_fln_db
+
+    Q_species_chain = (not (igor_species is None) and not (igor_chain is None))
+    Q_model_files = (not (igor_model_parms is None) and not (igor_model_marginals is None))
+    if Q_species_chain:
+        igortask.igor_species = igor_species
+        igortask.igor_chain = igor_chain
+    elif Q_model_files:
+        igortask.igor_model_parms_file = igor_model_parms
+        igortask.igor_model_marginals_file = igor_model_marginals
+    elif igor_fln_db is not None:
+        igortask.create_db()
+    else:
+        print("WARNING: No model provided!")
+
     click.echo("Running IGoR evaluation process...")
     igortask.update_batch_filenames()
     igortask.update_model_filenames()
@@ -169,33 +456,275 @@ def run_evaluate(igortask, igor_read_seqs, output_db):
     igortask.load_db_from_bestscenarios()
     igortask.load_db_from_pgen()
 
+    # Use the database to get bestscenarios
+    igortask.igor_db
+
+
+
+
+
+
+
+
 @click.command("igor-scenarios")
+############## COMMON options ##############
+@click.option("-s", "--set_igor_species", "igor_species", default=None, help="Species in IGoR's format: human, mouse")
+@click.option("-c", "--set_igor_chain", "igor_chain", default=None, help="Chain in IGoR's format, e.g. alpha, beta, TRB, TRA")
+@click.option("-m", "--set_igor_model", "igor_model", default=[None, None], nargs=2,
+              metavar="<model_parms.txt> <model_marginals.txt>",
+              help='IGoR model_params.txt and model_marginals.txt filenames.')
+
+@click.option("-M", "--set_model_path", "igor_model_path", default=None,
+              metavar="<model_directory_path>",
+              help='IGoR model directory path, this path include ref_genomes and model_parms')
+@click.option("-g", "--set_path_ref_genome", "igor_path_ref_genome", default=None,
+                    help='Directory where genome references are stored: genomicDs.fasta,  genomicJs.fasta,  genomicVs.fasta,  J_gene_CDR3_anchors.csv,  V_gene_CDR3_anchors.csv')
+@click.option("--Vgene", "fln_genomicVs", default=None,
+              help="Filename of genes template for V gene")
+@click.option("--Dgene", "fln_genomicDs", default=None,
+              help="Filename of genes template for D gene")
+@click.option("--Jgene", "fln_genomicJs", default=None,
+              help="Filename of genes template for J gene")
+@click.option("--Vanchors", "fln_V_gene_CDR3_anchors", default=None,
+              metavar="<V_gene_CDR3_anchors.csv>",
+              help="Anchors filename of V gene")
+@click.option("--Janchors", "fln_J_gene_CDR3_anchors", default=None,
+              metavar="<J_gene_CDR3_anchors.csv>",
+              help="Anchors filename of J gene")
+@click.option("-w", "--set_wd", "igor_wd", help="Sets the working directory to path", default='./', show_default=True)
+# To load all data files use batchname
+@click.option("-b", "--set_batch", "igor_batch", default=None,
+                    help='Sets batchname to identify run. If not set random name is generated')
+@click.option("-D", "--set_database", "igor_fln_db", default=None, help="Igor database created with database script.")
+
+############## NO COMMON options ##############
 @click.option("-i", "--input-sequences", "igor_read_seqs", default=None, help="Input sequences in FASTA, TXT or CSV formats.")
 @click.option("-o", "--output-db", "output_db", default=None, help="Output database file.")
-@pass_igortask
-def run_get_scenarios(igortask, igor_read_seqs, output_db):
+def run_get_scenarios(igor_read_seqs, output_db,
+                      igor_species, igor_chain, igor_model, igor_model_path, igor_path_ref_genome, igor_wd, igor_batch,
+                      igor_fln_db,
+                      fln_genomicVs, fln_genomicDs, fln_genomicJs, fln_V_gene_CDR3_anchors, fln_J_gene_CDR3_anchors):
     """IGoR's call to get best scenarios."""
+    ########################
+    from pygor3 import IgorTask
+    igortask = IgorTask()
+    igortask.igor_path_ref_genome = igor_path_ref_genome
+    igortask.fln_genomicVs = fln_genomicVs
+    igortask.fln_genomicDs = fln_genomicDs
+    igortask.fln_genomicJs = fln_genomicJs
+    igortask.fln_V_gene_CDR3_anchors = fln_V_gene_CDR3_anchors
+    igortask.fln_J_gene_CDR3_anchors = fln_J_gene_CDR3_anchors
+
+    igortask.igor_species = igor_species
+    igortask.igor_chain = igor_chain
+    igor_model_parms = igor_model[0]
+    igor_model_marginals = igor_model[1]
+    igortask.igor_model_parms_file = igor_model[0]
+    igortask.igor_model_marginals_file = igor_model[1]
+    igortask.igor_model_dir_path = igor_model_path
+    igortask.igor_wd = igor_wd
+    igortask.igor_batchname = igor_batch
+    igortask.igor_fln_db = igor_fln_db
+
+    Q_species_chain = (not (igor_species is None) and not (igor_chain is None))
+    Q_model_files = (not (igor_model_parms is None) and not (igor_model_marginals is None))
+    if Q_species_chain:
+        igortask.igor_species = igor_species
+        igortask.igor_chain = igor_chain
+    elif Q_model_files:
+        igortask.igor_model_parms_file = igor_model_parms
+        igortask.igor_model_marginals_file = igor_model_marginals
+    elif igor_fln_db is not None:
+        igortask.create_db()
+    else:
+        print("WARNING: No model provided!")
+
+    ########################
     click.echo("Running IGoR scenarios process...")
     igortask.run_evaluate(igor_read_seqs=igor_read_seqs)
 
+
+
+
+
+
+
+
+
+
 @click.command("igor-pgen")
+############## COMMON options ##############
+@click.option("-s", "--set_igor_species", "igor_species", default=None, help="Species in IGoR's format: human, mouse")
+@click.option("-c", "--set_igor_chain", "igor_chain", default=None, help="Chain in IGoR's format, e.g. alpha, beta, TRB, TRA")
+@click.option("-m", "--set_igor_model", "igor_model", default=[None, None], nargs=2,
+              metavar="<model_parms.txt> <model_marginals.txt>",
+              help='IGoR model_params.txt and model_marginals.txt filenames.')
+
+@click.option("-M", "--set_model_path", "igor_model_path", default=None,
+              metavar="<model_directory_path>",
+              help='IGoR model directory path, this path include ref_genomes and model_parms')
+@click.option("-g", "--set_path_ref_genome", "igor_path_ref_genome", default=None,
+                    help='Directory where genome references are stored: genomicDs.fasta,  genomicJs.fasta,  genomicVs.fasta,  J_gene_CDR3_anchors.csv,  V_gene_CDR3_anchors.csv')
+@click.option("--Vgene", "fln_genomicVs", default=None,
+              help="Filename of genes template for V gene")
+@click.option("--Dgene", "fln_genomicDs", default=None,
+              help="Filename of genes template for D gene")
+@click.option("--Jgene", "fln_genomicJs", default=None,
+              help="Filename of genes template for J gene")
+@click.option("--Vanchors", "fln_V_gene_CDR3_anchors", default=None,
+              metavar="<V_gene_CDR3_anchors.csv>",
+              help="Anchors filename of V gene")
+@click.option("--Janchors", "fln_J_gene_CDR3_anchors", default=None,
+              metavar="<J_gene_CDR3_anchors.csv>",
+              help="Anchors filename of J gene")
+@click.option("-w", "--set_wd", "igor_wd", help="Sets the working directory to path", default='./', show_default=True)
+# To load all data files use batchname
+@click.option("-b", "--set_batch", "igor_batch", default=None,
+                    help='Sets batchname to identify run. If not set random name is generated')
+@click.option("-D", "--set_database", "igor_fln_db", default=None, help="Igor database created with database script.")
+
+############## NO COMMON options ##############
 @click.option("-i", "--input-sequences", "igor_read_seqs", default=None,
               help="Input sequences in FASTA, TXT or CSV formats.")
 @click.option("-o", "--output-db", "output_db", default=None, help="Output database file.")
-@pass_igortask
-def run_get_pgen(igortask, igor_read_seqs, output_db):
+def run_get_pgen(igor_read_seqs, output_db,
+                 igor_species, igor_chain, igor_model, igor_model_path, igor_path_ref_genome, igor_wd, igor_batch,
+                 igor_fln_db,
+                 fln_genomicVs, fln_genomicDs, fln_genomicJs, fln_V_gene_CDR3_anchors, fln_J_gene_CDR3_anchors
+                 ):
     """IGoR's call to calculate pgen of input sequences"""
     click.echo("Get IGoR pgen process...")
     # TODO: TO RUN THE PGEN I NEED :
     # - INPUT SEQUENCES
     # - ALL THE INFORMATION ABOUT ALIGNMENTS AND MODELS
+
+    ########################
+    from pygor3 import IgorTask
+    igortask = IgorTask()
+    igortask.igor_path_ref_genome = igor_path_ref_genome
+    igortask.fln_genomicVs = fln_genomicVs
+    igortask.fln_genomicDs = fln_genomicDs
+    igortask.fln_genomicJs = fln_genomicJs
+    igortask.fln_V_gene_CDR3_anchors = fln_V_gene_CDR3_anchors
+    igortask.fln_J_gene_CDR3_anchors = fln_J_gene_CDR3_anchors
+
+    igortask.igor_species = igor_species
+    igortask.igor_chain = igor_chain
+    igor_model_parms = igor_model[0]
+    igor_model_marginals = igor_model[1]
+    igortask.igor_model_parms_file = igor_model[0]
+    igortask.igor_model_marginals_file = igor_model[1]
+    igortask.igor_model_dir_path = igor_model_path
+    igortask.igor_wd = igor_wd
+    igortask.igor_batchname = igor_batch
+    igortask.igor_fln_db = igor_fln_db
+
+    Q_species_chain = (not (igor_species is None) and not (igor_chain is None))
+    Q_model_files = (not (igor_model_parms is None) and not (igor_model_marginals is None))
+    if Q_species_chain:
+        igortask.igor_species = igor_species
+        igortask.igor_chain = igor_chain
+    elif Q_model_files:
+        igortask.igor_model_parms_file = igor_model_parms
+        igortask.igor_model_marginals_file = igor_model_marginals
+    elif igor_fln_db is not None:
+        igortask.create_db()
+    else:
+        print("WARNING: No model provided!")
+
+    ########################
     igortask.run_evaluate(igor_read_seqs=igor_read_seqs)
 
+
+
+
+
+
+
+
+
+
+
+
 @click.command("igor-generate")
-@pass_igortask
-def run_generate(igortask):
+############## COMMON options ##############
+@click.option("-s", "--set_igor_species", "igor_species", default=None, help="Species in IGoR's format: human, mouse")
+@click.option("-c", "--set_igor_chain", "igor_chain", default=None, help="Chain in IGoR's format, e.g. alpha, beta, TRB, TRA")
+@click.option("-m", "--set_igor_model", "igor_model", default=[None, None], nargs=2,
+              metavar="<model_parms.txt> <model_marginals.txt>",
+              help='IGoR model_params.txt and model_marginals.txt filenames.')
+
+@click.option("-M", "--set_model_path", "igor_model_path", default=None,
+              metavar="<model_directory_path>",
+              help='IGoR model directory path, this path include ref_genomes and model_parms')
+@click.option("-g", "--set_path_ref_genome", "igor_path_ref_genome", default=None,
+                    help='Directory where genome references are stored: genomicDs.fasta,  genomicJs.fasta,  genomicVs.fasta,  J_gene_CDR3_anchors.csv,  V_gene_CDR3_anchors.csv')
+@click.option("--Vgene", "fln_genomicVs", default=None,
+              help="Filename of genes template for V gene")
+@click.option("--Dgene", "fln_genomicDs", default=None,
+              help="Filename of genes template for D gene")
+@click.option("--Jgene", "fln_genomicJs", default=None,
+              help="Filename of genes template for J gene")
+@click.option("--Vanchors", "fln_V_gene_CDR3_anchors", default=None,
+              metavar="<V_gene_CDR3_anchors.csv>",
+              help="Anchors filename of V gene")
+@click.option("--Janchors", "fln_J_gene_CDR3_anchors", default=None,
+              metavar="<J_gene_CDR3_anchors.csv>",
+              help="Anchors filename of J gene")
+@click.option("-w", "--set_wd", "igor_wd", help="Sets the working directory to path", default='./', show_default=True)
+# To load all data files use batchname
+@click.option("-b", "--set_batch", "igor_batch", default=None,
+                    help='Sets batchname to identify run. If not set random name is generated')
+@click.option("-D", "--set_database", "igor_fln_db", default=None, help="Igor database created with database script.")
+
+############## NO COMMON options ##############
+@click.option("-N","N", default=None, help="Number of sequences to generate.")
+def run_generate(N,
+                 igor_species, igor_chain, igor_model, igor_model_path, igor_path_ref_genome, igor_wd, igor_batch,
+                 igor_fln_db,
+                 fln_genomicVs, fln_genomicDs, fln_genomicJs, fln_V_gene_CDR3_anchors, fln_J_gene_CDR3_anchors):
     """IGoR's call to generate sequences"""
-    igortask.run_generate()
+    ########################
+    from pygor3 import IgorTask
+    igortask = IgorTask()
+    igortask.igor_path_ref_genome = igor_path_ref_genome
+    igortask.fln_genomicVs = fln_genomicVs
+    igortask.fln_genomicDs = fln_genomicDs
+    igortask.fln_genomicJs = fln_genomicJs
+    igortask.fln_V_gene_CDR3_anchors = fln_V_gene_CDR3_anchors
+    igortask.fln_J_gene_CDR3_anchors = fln_J_gene_CDR3_anchors
+
+    igortask.igor_species = igor_species
+    igortask.igor_chain = igor_chain
+    igor_model_parms = igor_model[0]
+    igor_model_marginals = igor_model[1]
+    igortask.igor_model_parms_file = igor_model[0]
+    igortask.igor_model_marginals_file = igor_model[1]
+    igortask.igor_model_dir_path = igor_model_path
+    igortask.igor_wd = igor_wd
+    igortask.igor_batchname = igor_batch
+    igortask.igor_fln_db = igor_fln_db
+
+    Q_species_chain = (not (igor_species is None) and not (igor_chain is None))
+    Q_model_files = (not (igor_model_parms is None) and not (igor_model_marginals is None))
+    if Q_species_chain:
+        igortask.igor_species = igor_species
+        igortask.igor_chain = igor_chain
+    elif Q_model_files:
+        igortask.igor_model_parms_file = igor_model_parms
+        igortask.igor_model_marginals_file = igor_model_marginals
+    elif igor_fln_db is not None:
+        igortask.create_db()
+    else:
+        print("WARNING: No model provided!")
+
+    ########################
+    igortask.run_generate(N=N)
+
+
+
+
+
 
 # run_read_seqs.add_command(get_ref_genome)
 cli.add_command(run_read_seqs)
@@ -207,26 +736,66 @@ cli.add_command(run_get_pgen)
 cli.add_command(run_generate)
 
 
+
+
+
+
 ########### IMGT commands ###########
 # @cli.command()
-@click.group(invoke_without_command=True)
-@click.option("--info", "info", help="List species and chain avialable in imgt website.", is_flag=True, default=False)
-@pass_igortask
-def imgt(igortask, info): #igor_species, igor_chain, igor_model):
-    """Download genomic information from imgt website --info for more details"""
+# @click.group(invoke_without_command=True)
+# @click.option("--info", "info", help="List species and chain avialable in imgt website.", is_flag=True, default=False)
+# @pass_igortask
+# def imgt(igortask, info): #igor_species, igor_chain, igor_model):
+#     """Download genomic information from imgt website --info for more details"""
+#
+#     import pygor3.imgt as p3imgt
+#     print(p3imgt.imgt_params['url.home'])
+#     species_list = p3imgt.get_species_list()
+#
+#     if info:
+#         click.echo("Downloading data from ... ")
+#         print("List of IMGT available species:")
+#         print("\n".join(species_list))
+#         print("For more details access:")
+#         print(p3imgt.imgt_params['url.genelist'])
+#
 
-    import pygor3.imgt as p3imgt
-    print(p3imgt.imgt_params['url.home'])
-    species_list = p3imgt.get_species_list()
 
-    if info:
-        click.echo("Downloading data from ... ")
-        print("List of IMGT available species:")
-        print("\n".join(species_list))
-        print("For more details access:")
-        print(p3imgt.imgt_params['url.genelist'])
+
+
 
 @click.command("imgt-get-genomes")
+############## COMMON options ##############
+@click.option("-s", "--set_igor_species", "igor_species", default=None, help="Species in IGoR's format: human, mouse")
+@click.option("-c", "--set_igor_chain", "igor_chain", default=None, help="Chain in IGoR's format, e.g. alpha, beta, TRB, TRA")
+@click.option("-m", "--set_igor_model", "igor_model", default=[None, None], nargs=2,
+              metavar="<model_parms.txt> <model_marginals.txt>",
+              help='IGoR model_params.txt and model_marginals.txt filenames.')
+
+@click.option("-M", "--set_model_path", "igor_model_path", default=None,
+              metavar="<model_directory_path>",
+              help='IGoR model directory path, this path include ref_genomes and model_parms')
+@click.option("-g", "--set_path_ref_genome", "igor_path_ref_genome", default=None,
+                    help='Directory where genome references are stored: genomicDs.fasta,  genomicJs.fasta,  genomicVs.fasta,  J_gene_CDR3_anchors.csv,  V_gene_CDR3_anchors.csv')
+@click.option("--Vgene", "fln_genomicVs", default=None,
+              help="Filename of genes template for V gene")
+@click.option("--Dgene", "fln_genomicDs", default=None,
+              help="Filename of genes template for D gene")
+@click.option("--Jgene", "fln_genomicJs", default=None,
+              help="Filename of genes template for J gene")
+@click.option("--Vanchors", "fln_V_gene_CDR3_anchors", default=None,
+              metavar="<V_gene_CDR3_anchors.csv>",
+              help="Anchors filename of V gene")
+@click.option("--Janchors", "fln_J_gene_CDR3_anchors", default=None,
+              metavar="<J_gene_CDR3_anchors.csv>",
+              help="Anchors filename of J gene")
+@click.option("-w", "--set_wd", "igor_wd", help="Sets the working directory to path", default='./', show_default=True)
+# To load all data files use batchname
+@click.option("-b", "--set_batch", "igor_batch", default=None,
+                    help='Sets batchname to identify run. If not set random name is generated')
+@click.option("-D", "--set_database", "igor_fln_db", default=None, help="Igor database created with database script.")
+
+############## NO COMMON options ##############
 @click.option("--info", "info", help="List species and chain avialable in imgt website.", is_flag=True, default=False)
 @click.option("-t", "--recombination_type", "rec_type", type=click.Choice(['VJ', 'VDJ']),
               help="Igor recombination type.")
@@ -234,11 +803,49 @@ def imgt(igortask, info): #igor_species, igor_chain, igor_model):
               help="IMGT species name for name specifications run imgt --info.")
 @click.option("--imgt-chain", "imgt_chain", #type=click.Choice(['VJ', 'VDJ']),
               help="IMGT chain name e.g. TRA, TRB.")
-@pass_igortask
-def get_ref_genome(igortask, info, rec_type, imgt_species, imgt_chain):
+def get_ref_genome(info, rec_type, imgt_species, imgt_chain,
+                   igor_species, igor_chain, igor_model, igor_model_path, igor_path_ref_genome, igor_wd, igor_batch,
+                   igor_fln_db,
+                   fln_genomicVs, fln_genomicDs, fln_genomicJs, fln_V_gene_CDR3_anchors, fln_J_gene_CDR3_anchors):
     """
     Get genomes from imgt website of specifing species and chain in imgt format.
     """
+
+    ########################
+    from pygor3 import IgorTask
+    igortask = IgorTask()
+    igortask.igor_path_ref_genome = igor_path_ref_genome
+    igortask.fln_genomicVs = fln_genomicVs
+    igortask.fln_genomicDs = fln_genomicDs
+    igortask.fln_genomicJs = fln_genomicJs
+    igortask.fln_V_gene_CDR3_anchors = fln_V_gene_CDR3_anchors
+    igortask.fln_J_gene_CDR3_anchors = fln_J_gene_CDR3_anchors
+
+    igortask.igor_species = igor_species
+    igortask.igor_chain = igor_chain
+    igor_model_parms = igor_model[0]
+    igor_model_marginals = igor_model[1]
+    igortask.igor_model_parms_file = igor_model[0]
+    igortask.igor_model_marginals_file = igor_model[1]
+    igortask.igor_model_dir_path = igor_model_path
+    igortask.igor_wd = igor_wd
+    igortask.igor_batchname = igor_batch
+    igortask.igor_fln_db = igor_fln_db
+
+    Q_species_chain = (not (igor_species is None) and not (igor_chain is None))
+    Q_model_files = (not (igor_model_parms is None) and not (igor_model_marginals is None))
+    if Q_species_chain:
+        igortask.igor_species = igor_species
+        igortask.igor_chain = igor_chain
+    elif Q_model_files:
+        igortask.igor_model_parms_file = igor_model_parms
+        igortask.igor_model_marginals_file = igor_model_marginals
+    elif igor_fln_db is not None:
+        igortask.create_db()
+    else:
+        print("WARNING: No model provided!")
+
+    ########################
 
     import pygor3.imgt as p3imgt
     print(p3imgt.imgt_params['url.home'])
@@ -271,9 +878,15 @@ def get_ref_genome(igortask, info, rec_type, imgt_species, imgt_chain):
             print("ERROR: get_ref_genome ")
             print(e)
 
-# imgt.add_command(get_ref_genome)
-# cli.add_command(imgt)
+
+
+
 cli.add_command(get_ref_genome)
+
+
+
+
+
 
 
 ########### model commands ###########
@@ -284,6 +897,37 @@ cli.add_command(get_ref_genome)
 #     pass
 
 @click.command("model-export")
+############## COMMON options ##############
+@click.option("-s", "--set_igor_species", "igor_species", default=None, help="Species in IGoR's format: human, mouse")
+@click.option("-c", "--set_igor_chain", "igor_chain", default=None, help="Chain in IGoR's format, e.g. alpha, beta, TRB, TRA")
+@click.option("-m", "--set_igor_model", "igor_model", default=[None, None], nargs=2,
+              metavar="<model_parms.txt> <model_marginals.txt>",
+              help='IGoR model_params.txt and model_marginals.txt filenames.')
+
+@click.option("-M", "--set_model_path", "igor_model_path", default=None,
+              metavar="<model_directory_path>",
+              help='IGoR model directory path, this path include ref_genomes and model_parms')
+@click.option("-g", "--set_path_ref_genome", "igor_path_ref_genome", default=None,
+                    help='Directory where genome references are stored: genomicDs.fasta,  genomicJs.fasta,  genomicVs.fasta,  J_gene_CDR3_anchors.csv,  V_gene_CDR3_anchors.csv')
+@click.option("--Vgene", "fln_genomicVs", default=None,
+              help="Filename of genes template for V gene")
+@click.option("--Dgene", "fln_genomicDs", default=None,
+              help="Filename of genes template for D gene")
+@click.option("--Jgene", "fln_genomicJs", default=None,
+              help="Filename of genes template for J gene")
+@click.option("--Vanchors", "fln_V_gene_CDR3_anchors", default=None,
+              metavar="<V_gene_CDR3_anchors.csv>",
+              help="Anchors filename of V gene")
+@click.option("--Janchors", "fln_J_gene_CDR3_anchors", default=None,
+              metavar="<J_gene_CDR3_anchors.csv>",
+              help="Anchors filename of J gene")
+@click.option("-w", "--set_wd", "igor_wd", help="Sets the working directory to path", default='./', show_default=True)
+# To load all data files use batchname
+@click.option("-b", "--set_batch", "igor_batch", default=None,
+                    help='Sets batchname to identify run. If not set random name is generated')
+@click.option("-D", "--set_database", "igor_fln_db", default=None, help="Igor database created with database script.")
+
+############## NO COMMON options ##############
 @click.option("--from-txt", "fln_from_txt", nargs=2, default=[None, None],
               help="Export Igor's model from txt files model_parms.txt and model_marginals.txt.")
 @click.option("--from-db", "fln_from_db", nargs=1, default=None,
@@ -292,11 +936,48 @@ cli.add_command(get_ref_genome)
               help="Output filename of Igor recombination model to  <model_parms.txt> <model_marginals.txt>.")
 @click.option("--to-db", "fln_to_db", nargs=1, default=None,
               help="Output filename of Igor recombination model to  <model.db>.")
-@pass_igortask
-def model_export(igortask, fln_from_txt, fln_from_db, fln_to_txt, fln_to_db):
+def model_export(fln_from_txt, fln_from_db, fln_to_txt, fln_to_db,
+                 igor_species, igor_chain, igor_model, igor_model_path, igor_path_ref_genome, igor_wd, igor_batch,
+                 igor_fln_db,
+                 fln_genomicVs, fln_genomicDs, fln_genomicJs, fln_V_gene_CDR3_anchors, fln_J_gene_CDR3_anchors):
     """
     Export IGoR's models from txt (model_parms.txt, model_marginals.txt) files to db viceversa
     """
+    ########################
+    from pygor3 import IgorTask
+    igortask = IgorTask()
+    igortask.igor_path_ref_genome = igor_path_ref_genome
+    igortask.fln_genomicVs = fln_genomicVs
+    igortask.fln_genomicDs = fln_genomicDs
+    igortask.fln_genomicJs = fln_genomicJs
+    igortask.fln_V_gene_CDR3_anchors = fln_V_gene_CDR3_anchors
+    igortask.fln_J_gene_CDR3_anchors = fln_J_gene_CDR3_anchors
+
+    igortask.igor_species = igor_species
+    igortask.igor_chain = igor_chain
+    igor_model_parms = igor_model[0]
+    igor_model_marginals = igor_model[1]
+    igortask.igor_model_parms_file = igor_model[0]
+    igortask.igor_model_marginals_file = igor_model[1]
+    igortask.igor_model_dir_path = igor_model_path
+    igortask.igor_wd = igor_wd
+    igortask.igor_batchname = igor_batch
+    igortask.igor_fln_db = igor_fln_db
+
+    Q_species_chain = (not (igor_species is None) and not (igor_chain is None))
+    Q_model_files = (not (igor_model_parms is None) and not (igor_model_marginals is None))
+    if Q_species_chain:
+        igortask.igor_species = igor_species
+        igortask.igor_chain = igor_chain
+    elif Q_model_files:
+        igortask.igor_model_parms_file = igor_model_parms
+        igortask.igor_model_marginals_file = igor_model_marginals
+    elif igor_fln_db is not None:
+        igortask.create_db()
+    else:
+        print("WARNING: No model provided!")
+    ########################
+
     b_from_db = False
     b_from_txt = False
     b_to_db = False
@@ -369,14 +1050,87 @@ def model_export(igortask, fln_from_txt, fln_from_db, fln_to_txt, fln_to_db):
             print(e)
 
 
+
+
+
+
+
+
 @click.command("model-create")
+############## COMMON options ##############
+@click.option("-s", "--set_igor_species", "igor_species", default=None, help="Species in IGoR's format: human, mouse")
+@click.option("-c", "--set_igor_chain", "igor_chain", default=None, help="Chain in IGoR's format, e.g. alpha, beta, TRB, TRA")
+@click.option("-m", "--set_igor_model", "igor_model", default=[None, None], nargs=2,
+              metavar="<model_parms.txt> <model_marginals.txt>",
+              help='IGoR model_params.txt and model_marginals.txt filenames.')
+
+@click.option("-M", "--set_model_path", "igor_model_path", default=None,
+              metavar="<model_directory_path>",
+              help='IGoR model directory path, this path include ref_genomes and model_parms')
+@click.option("-g", "--set_path_ref_genome", "igor_path_ref_genome", default=None,
+                    help='Directory where genome references are stored: genomicDs.fasta,  genomicJs.fasta,  genomicVs.fasta,  J_gene_CDR3_anchors.csv,  V_gene_CDR3_anchors.csv')
+@click.option("--Vgene", "fln_genomicVs", default=None,
+              help="Filename of genes template for V gene")
+@click.option("--Dgene", "fln_genomicDs", default=None,
+              help="Filename of genes template for D gene")
+@click.option("--Jgene", "fln_genomicJs", default=None,
+              help="Filename of genes template for J gene")
+@click.option("--Vanchors", "fln_V_gene_CDR3_anchors", default=None,
+              metavar="<V_gene_CDR3_anchors.csv>",
+              help="Anchors filename of V gene")
+@click.option("--Janchors", "fln_J_gene_CDR3_anchors", default=None,
+              metavar="<J_gene_CDR3_anchors.csv>",
+              help="Anchors filename of J gene")
+@click.option("-w", "--set_wd", "igor_wd", help="Sets the working directory to path", default='./', show_default=True)
+# To load all data files use batchname
+@click.option("-b", "--set_batch", "igor_batch", default=None,
+                    help='Sets batchname to identify run. If not set random name is generated')
+@click.option("-D", "--set_database", "igor_fln_db", default=None, help="Igor database created with database script.")
+
+############## NO COMMON options ##############
 @click.option("-t", "--recombination_type", "rec_type", type=click.Choice(['VJ', 'VDJ']),
               help="Igor recombination type.")
 @click.option("-o", "--output-prefix", "fln_output_prefix", default=None, help="Prefix for models files.")
-@pass_igortask
-def model_create(igortask, rec_type, fln_output_prefix):
+def model_create(rec_type, fln_output_prefix,
+                 igor_species, igor_chain, igor_model, igor_model_path, igor_path_ref_genome, igor_wd, igor_batch,
+                 igor_fln_db,
+                 fln_genomicVs, fln_genomicDs, fln_genomicJs, fln_V_gene_CDR3_anchors, fln_J_gene_CDR3_anchors):
     """Make a new VJ or VDJ model with uniform probability distribution"""
     # click.echo( "igor_model_dir_path: "+igortask.igor_model_dir_path )
+    ########################
+    from pygor3 import IgorTask
+    igortask = IgorTask()
+    igortask.igor_path_ref_genome = igor_path_ref_genome
+    igortask.fln_genomicVs = fln_genomicVs
+    igortask.fln_genomicDs = fln_genomicDs
+    igortask.fln_genomicJs = fln_genomicJs
+    igortask.fln_V_gene_CDR3_anchors = fln_V_gene_CDR3_anchors
+    igortask.fln_J_gene_CDR3_anchors = fln_J_gene_CDR3_anchors
+
+    igortask.igor_species = igor_species
+    igortask.igor_chain = igor_chain
+    igor_model_parms = igor_model[0]
+    igor_model_marginals = igor_model[1]
+    igortask.igor_model_parms_file = igor_model[0]
+    igortask.igor_model_marginals_file = igor_model[1]
+    igortask.igor_model_dir_path = igor_model_path
+    igortask.igor_wd = igor_wd
+    igortask.igor_batchname = igor_batch
+    igortask.igor_fln_db = igor_fln_db
+
+    Q_species_chain = (not (igor_species is None) and not (igor_chain is None))
+    Q_model_files = (not (igor_model_parms is None) and not (igor_model_marginals is None))
+    if Q_species_chain:
+        igortask.igor_species = igor_species
+        igortask.igor_chain = igor_chain
+    elif Q_model_files:
+        igortask.igor_model_parms_file = igor_model_parms
+        igortask.igor_model_marginals_file = igor_model_marginals
+    elif igor_fln_db is not None:
+        igortask.create_db()
+    else:
+        print("WARNING: No model provided!")
+    ########################
     import pygor3 as p3
     if rec_type == 'VJ':
         # load genomics
@@ -405,11 +1159,87 @@ def model_create(igortask, rec_type, fln_output_prefix):
         igortask.mdl.marginals.write_model_marginals(igortask.igor_model_marginals_file, igortask.mdl.parms)
 
 
+
+
+
+
+
+
+
+
 @click.command("model-plot")
+############## COMMON options ##############
+@click.option("-s", "--set_igor_species", "igor_species", default=None, help="Species in IGoR's format: human, mouse")
+@click.option("-c", "--set_igor_chain", "igor_chain", default=None, help="Chain in IGoR's format, e.g. alpha, beta, TRB, TRA")
+@click.option("-m", "--set_igor_model", "igor_model", default=[None, None], nargs=2,
+              metavar="<model_parms.txt> <model_marginals.txt>",
+              help='IGoR model_params.txt and model_marginals.txt filenames.')
+
+@click.option("-M", "--set_model_path", "igor_model_path", default=None,
+              metavar="<model_directory_path>",
+              help='IGoR model directory path, this path include ref_genomes and model_parms')
+@click.option("-g", "--set_path_ref_genome", "igor_path_ref_genome", default=None,
+                    help='Directory where genome references are stored: genomicDs.fasta,  genomicJs.fasta,  genomicVs.fasta,  J_gene_CDR3_anchors.csv,  V_gene_CDR3_anchors.csv')
+@click.option("--Vgene", "fln_genomicVs", default=None,
+              help="Filename of genes template for V gene")
+@click.option("--Dgene", "fln_genomicDs", default=None,
+              help="Filename of genes template for D gene")
+@click.option("--Jgene", "fln_genomicJs", default=None,
+              help="Filename of genes template for J gene")
+@click.option("--Vanchors", "fln_V_gene_CDR3_anchors", default=None,
+              metavar="<V_gene_CDR3_anchors.csv>",
+              help="Anchors filename of V gene")
+@click.option("--Janchors", "fln_J_gene_CDR3_anchors", default=None,
+              metavar="<J_gene_CDR3_anchors.csv>",
+              help="Anchors filename of J gene")
+@click.option("-w", "--set_wd", "igor_wd", help="Sets the working directory to path", default='./', show_default=True)
+# To load all data files use batchname
+@click.option("-b", "--set_batch", "igor_batch", default=None,
+                    help='Sets batchname to identify run. If not set random name is generated')
+@click.option("-D", "--set_database", "igor_fln_db", default=None, help="Igor database created with database script.")
+
+############## NO COMMON options ##############
 @click.option("-o", "--output-prefix", "fln_output_prefix", default=None, help="Prefix to pdf files with model plots.")
-@pass_igortask
-def model_plot(igortask, fln_output_prefix):
+def model_plot(fln_output_prefix,
+               igor_species, igor_chain, igor_model, igor_model_path, igor_path_ref_genome, igor_wd, igor_batch,
+               igor_fln_db,
+               fln_genomicVs, fln_genomicDs, fln_genomicJs, fln_V_gene_CDR3_anchors, fln_J_gene_CDR3_anchors):
     """Plot real marginals of the bayesian network events """
+    ########################
+    from pygor3 import IgorTask
+    igortask = IgorTask()
+    igortask.igor_path_ref_genome = igor_path_ref_genome
+    igortask.fln_genomicVs = fln_genomicVs
+    igortask.fln_genomicDs = fln_genomicDs
+    igortask.fln_genomicJs = fln_genomicJs
+    igortask.fln_V_gene_CDR3_anchors = fln_V_gene_CDR3_anchors
+    igortask.fln_J_gene_CDR3_anchors = fln_J_gene_CDR3_anchors
+
+    igortask.igor_species = igor_species
+    igortask.igor_chain = igor_chain
+    igor_model_parms = igor_model[0]
+    igor_model_marginals = igor_model[1]
+    igortask.igor_model_parms_file = igor_model[0]
+    igortask.igor_model_marginals_file = igor_model[1]
+    igortask.igor_model_dir_path = igor_model_path
+    igortask.igor_wd = igor_wd
+    igortask.igor_batchname = igor_batch
+    igortask.igor_fln_db = igor_fln_db
+
+    Q_species_chain = (not (igor_species is None) and not (igor_chain is None))
+    Q_model_files = (not (igor_model_parms is None) and not (igor_model_marginals is None))
+    if Q_species_chain:
+        igortask.igor_species = igor_species
+        igortask.igor_chain = igor_chain
+    elif Q_model_files:
+        igortask.igor_model_parms_file = igor_model_parms
+        igortask.igor_model_marginals_file = igor_model_marginals
+    elif igor_fln_db is not None:
+        igortask.create_db()
+    else:
+        print("WARNING: No model provided!")
+    ########################
+
     if igortask.igor_fln_db is not None:
         igortask.create_db(igortask.igor_fln_db)
         igortask.load_mdl_from_db()
@@ -422,20 +1252,168 @@ def model_plot(igortask, fln_output_prefix):
 
         igortask.load_IgorModel()
 
-    igortask.mdl.export_plot_Pmarginals(fln_output_prefix)
+    igortask.mdl.export_plot_events(fln_output_prefix+"_CP")
+    igortask.mdl.export_plot_Pmarginals(fln_output_prefix+"_MP")
 
 
 cli.add_command(model_export)
 cli.add_command(model_create)
 cli.add_command(model_plot)
-# cli.add_command(model)
+
+
+
+
+
 
 
 # pygor3-cli [GENERAL_OPTIONS] database export all
 ########### database commands ###########
-@click.command("db-cp") #invoke_without_command=True)
-@click.option("-o", "--output-db", "fln_output_db", default=None, help="output attached database.")
+@click.command("db-import") #invoke_without_command=True)
+############## COMMON options ##############
+@click.option("-s", "--set_igor_species", "igor_species", default=None, help="Species in IGoR's format: human, mouse")
+@click.option("-c", "--set_igor_chain", "igor_chain", default=None, help="Chain in IGoR's format, e.g. alpha, beta, TRB, TRA")
+@click.option("-m", "--set_igor_model", "igor_model", default=[None, None], nargs=2,
+              metavar="<model_parms.txt> <model_marginals.txt>",
+              help='IGoR model_params.txt and model_marginals.txt filenames.')
 
+@click.option("-M", "--set_model_path", "igor_model_path", default=None,
+              metavar="<model_directory_path>",
+              help='IGoR model directory path, this path include ref_genomes and model_parms')
+@click.option("-g", "--set_path_ref_genome", "igor_path_ref_genome", default=None,
+                    help='Directory where genome references are stored: genomicDs.fasta,  genomicJs.fasta,  genomicVs.fasta,  J_gene_CDR3_anchors.csv,  V_gene_CDR3_anchors.csv')
+@click.option("--Vgene", "fln_genomicVs", default=None,
+              help="Filename of genes template for V gene")
+@click.option("--Dgene", "fln_genomicDs", default=None,
+              help="Filename of genes template for D gene")
+@click.option("--Jgene", "fln_genomicJs", default=None,
+              help="Filename of genes template for J gene")
+@click.option("--Vanchors", "fln_V_gene_CDR3_anchors", default=None,
+              metavar="<V_gene_CDR3_anchors.csv>",
+              help="Anchors filename of V gene")
+@click.option("--Janchors", "fln_J_gene_CDR3_anchors", default=None,
+              metavar="<J_gene_CDR3_anchors.csv>",
+              help="Anchors filename of J gene")
+@click.option("-w", "--set_wd", "igor_wd", help="Sets the working directory to path", default='./', show_default=True)
+# To load all data files use batchname
+@click.option("-b", "--set_batch", "igor_batch", default=None,
+                    help='Sets batchname to identify run. If not set random name is generated')
+@click.option("-D", "--set_database", "igor_fln_db", default=None, help="Igor database created with database script.")
+
+############## NO COMMON options ##############
+@click.option("-o", "--output-db", "fln_output_db", default=None, help="output attached database.")
+def database_import(fln_output_db,
+                    igor_species, igor_chain, igor_model, igor_model_path, igor_path_ref_genome, igor_wd, igor_batch,
+                    igor_fln_db,
+                    fln_genomicVs, fln_genomicDs, fln_genomicJs, fln_V_gene_CDR3_anchors, fln_J_gene_CDR3_anchors):
+    """
+    Import igor files to database
+    """
+    ########################
+    from pygor3 import IgorTask
+    igortask = IgorTask()
+    igortask.igor_path_ref_genome = igor_path_ref_genome
+    igortask.fln_genomicVs = fln_genomicVs
+    igortask.fln_genomicDs = fln_genomicDs
+    igortask.fln_genomicJs = fln_genomicJs
+    igortask.fln_V_gene_CDR3_anchors = fln_V_gene_CDR3_anchors
+    igortask.fln_J_gene_CDR3_anchors = fln_J_gene_CDR3_anchors
+
+    igortask.igor_species = igor_species
+    igortask.igor_chain = igor_chain
+    igor_model_parms = igor_model[0]
+    igor_model_marginals = igor_model[1]
+    igortask.igor_model_parms_file = igor_model[0]
+    igortask.igor_model_marginals_file = igor_model[1]
+    igortask.igor_model_dir_path = igor_model_path
+    igortask.igor_wd = igor_wd
+    igortask.igor_batchname = igor_batch
+    igortask.igor_fln_db = igor_fln_db
+
+    Q_species_chain = (not (igor_species is None) and not (igor_chain is None))
+    Q_model_files = (not (igor_model_parms is None) and not (igor_model_marginals is None))
+    if Q_species_chain:
+        igortask.igor_species = igor_species
+        igortask.igor_chain = igor_chain
+    elif Q_model_files:
+        igortask.igor_model_parms_file = igor_model_parms
+        igortask.igor_model_marginals_file = igor_model_marginals
+    elif igor_fln_db is not None:
+        igortask.create_db()
+    else:
+        print("WARNING: No model provided!")
+    ########################
+
+    # load a task object to get all data in one structure
+    igortask.update_batch_filenames()
+    print(igortask.igor_fln_db)
+    igortask.create_db()
+
+    igortask.load_db_from_indexed_sequences()
+    igortask.load_db_from_indexed_cdr3()
+
+    import pygor3 as p3
+    if (igortask.igor_species is not None) and (igortask.igor_chain is not None):
+        print("species : ", igortask.igor_species, " chain: ", igortask.igor_chain)
+        try:
+            igortask.run_datadir()
+            igor_model_path = igortask.igor_models_root_path + igortask.igor_species + "/" \
+                              + p3.igor_option_path_dict[igortask.igor_chain] + "/"
+            # igor_model_path = task.igor_models_root_path + task.igor_species + "/" \
+            #                 + p3.igor_option_path_dict[task.igor_chain] + "/"
+            igortask.igor_model_dir_path = igor_model_path
+        except Exception as e:
+            print("WARNING: Default model not found!", e)
+
+    # IF MODEL_PATH PROVIDED THEN
+    # task.igor_model_dir_path = args.model_path
+    if (igortask.igor_model_dir_path is not None):
+        try:
+            igortask.update_model_filenames(igortask.igor_model_dir_path)
+            # task.igor_model_parms_file = task.igor_model_dir_path+"/models/model_parms.txt"
+            # task.igor_model_marginals_file = task.igor_model_dir_path+"/models/model_marginals.txt"
+            # task.igor_path_ref_genome = task.igor_model_dir_path+"/ref_genome/"
+            # task.load_IgorModel()
+            # args.path_ref_genome = igortask.igor_path_ref_genome
+            igortask.load_db_from_models()
+        except Exception as e:
+            print("Couldn't load models to database")
+            print(e)
+
+    # IF GENOME PATH PROVIDED
+    if igortask.igor_path_ref_genome is not None:
+        try:
+            # igortask.igor_path_ref_genome = args.path_ref_genome  # "/home/alfaceor/Dropbox/PosDoc/IGoR/dev/MyGithub/pygor3/demo/thi/genomics_repseqio_F"
+            igortask.load_IgorRefGenome()
+            # print(task.igor_fln_indexed_sequences)
+            # print(task.genomes.df_genomicVs) # is where all this data is collected
+            # print(task.genomes.df_genomicDs)
+            # print(task.genomes.df_genomicJs)
+
+            igortask.load_db_from_genomes()
+        except Exception as e:
+            print("Couldn't load genome templates to database")
+            print("ERROR: ", e)
+
+    igortask.load_db_from_alignments()
+
+    igortask.load_db_from_bestscenarios()
+
+    igortask.load_db_from_pgen()
+
+
+
+
+
+
+
+
+
+@click.command("db-cp") #invoke_without_command=True)
+############## COMMON options ##############
+@click.option("-D", "--set_database", "igor_fln_db", default=None, help="Igor database created with database script.")
+
+############## NO COMMON options ##############
+@click.option("-o", "--output-db", "fln_output_db", default=None, help="output attached database.")
 @click.option("--igor-reads", "b_igor_reads", is_flag=True,
               help='Copy sequences reads to output-db.')
 @click.option("--igor-genomes", "b_igor_genomes", is_flag=True,
@@ -448,13 +1426,22 @@ cli.add_command(model_plot)
               help='Copy scenarios table to database')
 @click.option("--igor-pgen", "b_igor_pgen", is_flag=True,
               help='Copy pgen table to database')
-@pass_igortask
-def database_copy(igortask, fln_output_db, b_igor_reads,
+def database_copy(fln_output_db, b_igor_reads,
                   b_igor_genomes,
                   b_igor_alignments,
                   b_igor_model,
-                  b_igor_scenarios, b_igor_pgen):
+                  b_igor_scenarios, b_igor_pgen,
+                  igor_fln_db):
     """Testing function before commit - export database"""
+    ########################
+    from pygor3 import IgorTask
+    igortask = IgorTask()
+
+    igortask.igor_fln_db = igor_fln_db
+    igortask.create_db()
+
+    ########################
+
     # Create a database
     from pygor3.IgorSqliteDB import IgorSqliteDB
     # OPEN CONEXION TO output_db
@@ -577,10 +1564,26 @@ def database_copy(igortask, fln_output_db, b_igor_reads,
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 @click.command("db-ls")
-@pass_igortask
-def database_ls(igortask):
+############## COMMON options ##############
+@click.option("-D", "--set_database", "igor_fln_db", default=None, help="Igor database created with database script.")
+############## NO COMMON options ##############
+def database_ls(igor_fln_db):
     """List tables in database by groups and show  number of records."""
+    from pygor3 import IgorTask
+    igortask = IgorTask()
+    igortask.igor_fln_db = igor_fln_db
     igortask.create_db()
     igortask.igor_db.list_from_db()
 
@@ -589,7 +1592,21 @@ def database_ls(igortask):
 
     # igortask.igor_db.write_IgorIndexedSeq_to_CSV("jojo.csv")
 
+
+
+
+
+
+
+
+
+
+
 @click.command("db-attach")
+############## COMMON options ##############
+@click.option("-D", "--set_database", "igor_fln_db", default=None, help="Igor database created with database script.")
+
+############## NO COMMON options ##############
 @click.option("--from-db", "fln_from_db", default=None, help="Database copy source filename.")
 @click.option("--from-batch", "fln_from_db", default=None, help="Database copy source filename.")
 @click.option("--from-genome-dir", "fln_from_db", default=None, help="Database copy source filename.")
@@ -630,16 +1647,53 @@ def database_ls(igortask):
               help='Copy indexed cdr3 table to database.')
 # @click.option("-i", "--input-sequences", "igor_read_seqs", default=None, help="Input sequences in FASTA, TXT or CSV formats.")
 # @click.option("-o", "--output-prefix", "output_prefix", default=None, help="Filename output prefix.")
-@pass_igortask
-def database_attach(igortask, fln_from_db):
+def database_attach(fln_from_db,
+                    igor_fln_db,):
     """
     Attach tables to database.
     """
+
+    ########################
+    from pygor3 import IgorTask
+    igortask = IgorTask()
+    igortask.igor_path_ref_genome = igor_path_ref_genome
+    igortask.fln_genomicVs = fln_genomicVs
+    igortask.fln_genomicDs = fln_genomicDs
+    igortask.fln_genomicJs = fln_genomicJs
+    igortask.fln_V_gene_CDR3_anchors = fln_V_gene_CDR3_anchors
+    igortask.fln_J_gene_CDR3_anchors = fln_J_gene_CDR3_anchors
+
+    igortask.igor_species = igor_species
+    igortask.igor_chain = igor_chain
+    igor_model_parms = igor_model[0]
+    igor_model_marginals = igor_model[1]
+    igortask.igor_model_parms_file = igor_model[0]
+    igortask.igor_model_marginals_file = igor_model[1]
+    igortask.igor_model_dir_path = igor_model_path
+    igortask.igor_wd = igor_wd
+    igortask.igor_batchname = igor_batch
+    igortask.igor_fln_db = igor_fln_db
+
+    Q_species_chain = (not (igor_species is None) and not (igor_chain is None))
+    Q_model_files = (not (igor_model_parms is None) and not (igor_model_marginals is None))
+    if Q_species_chain:
+        igortask.igor_species = igor_species
+        igortask.igor_chain = igor_chain
+    elif Q_model_files:
+        igortask.igor_model_parms_file = igor_model_parms
+        igortask.igor_model_marginals_file = igor_model_marginals
+    elif igor_fln_db is not None:
+        igortask.create_db()
+    else:
+        print("WARNING: No model provided!")
+    ########################
+
     igortask.create_db()
     from pygor3 import IgorSqliteDB
     other_igor_db = IgorSqliteDB.create_db(fln_from_db)
     dicto = other_igor_db.get_dict_of_Igortablename_sql()
     print(dicto.keys())
+    # import pygor3 as p3
     import pygor3 as p3
     print("sql_tablename_patterns_dict : ", p3.sql_tablename_patterns_dict)
     other_igor_db.close_db()
@@ -648,7 +1702,20 @@ def database_attach(igortask, fln_from_db):
 
 
 
+
+
+
+
+
+
+
+
+
 @click.command("db-rm")
+############## COMMON options ##############
+@click.option("-D", "--set_database", "igor_fln_db", default=None, help="Igor database created with database script.")
+
+############## NO COMMON options ##############
 @click.option("--igor-reads", "b_igor_reads", is_flag=True,
               help='Delete sequences reads in database.')
 @click.option("--igor-model", "b_igor_model", is_flag=True,
@@ -684,18 +1751,21 @@ def database_attach(igortask, fln_from_db):
               help='Delete indexed cdr3 table.')
 # @click.option("-i", "--input-sequences", "igor_read_seqs", default=None, help="Input sequences in FASTA, TXT or CSV formats.")
 # @click.option("-o", "--output-prefix", "output_prefix", default=None, help="Filename output prefix.")
-@pass_igortask
-def database_rm(igortask, b_igor_reads, b_igor_model,
+def database_rm(b_igor_reads, b_igor_model,
                 b_igor_model_parms, b_igor_model_marginals,
                 b_igor_scenarios, b_igor_pgen,
                 b_igor_genomes,
                 b_igor_genomesV, b_igor_genomesD, b_igor_genomesJ, b_igor_genomesCDR3,
                 b_igor_alignments,
                 b_igor_alignmentsV, b_igor_alignmentsD, b_igor_alignmentsJ,
-                b_igor_alignmentsCDR3):
+                b_igor_alignmentsCDR3,
+                igor_fln_db):
     """
     Delete tables in database by groups.
     """
+    from pygor3 import IgorTask
+    igortask = IgorTask()
+    igortask.igor_fln_db = igor_fln_db
     igortask.create_db()
     # from pygor3.IgorSqliteDB import *
     if b_igor_reads:
@@ -743,8 +1813,24 @@ def database_rm(igortask, b_igor_reads, b_igor_model,
             print(e)
 
 
-# @click.command("db-export") #invoke_without_command=True)
+
+
+
+
+
+
+
+
+
+
+
+
+
 @click.command("db-export", cls=RegisterWriterCommand)
+############## COMMON options ##############
+@click.option("-D", "--set_database", "igor_fln_db", default=None, help="Igor database created with database script.")
+
+############## NO COMMON options ##############
 @click.option("--igor-all", "b_igor_all", is_flag=True,
               default=False,
               help='Export all available data in db with prefix.')
@@ -828,16 +1914,52 @@ def database_rm(igortask, b_igor_reads, b_igor_model,
 @click.option("--igor-pgen_set", "fln_igor_pgen", cls=RegisterWriterOption,
               default=None,
               help="Export IGoR's pgen to filename prefix.")
-@pass_igortask
-def database_export(igortask, b_igor_all, b_igor_reads, fln_igor_reads,
+def database_export(b_igor_all, b_igor_reads, fln_igor_reads,
                     b_igor_genomes, fln_igor_genomes, b_igor_genomesCDR3, fln_igor_genomesCDR3,
                     b_igor_alignments, fln_igor_alignments,
                     b_igor_alignmentsCDR3, fln_igor_alignmentsCDR3,
                     b_igor_model, fln_igor_model,
                     b_igor_scenarios, fln_igor_scenarios,
-                    b_igor_pgen, fln_igor_pgen):
+                    b_igor_pgen, fln_igor_pgen,
+                    igor_species, igor_chain, igor_model, igor_model_path, igor_path_ref_genome, igor_wd, igor_batch,
+                    igor_fln_db,
+                    fln_genomicVs, fln_genomicDs, fln_genomicJs, fln_V_gene_CDR3_anchors, fln_J_gene_CDR3_anchors):
     """Export database model in igor formatted files"""
     # fln_prefix = "tmp_export_"
+    ########################
+    from pygor3 import IgorTask
+    igortask = IgorTask()
+    igortask.igor_path_ref_genome = igor_path_ref_genome
+    igortask.fln_genomicVs = fln_genomicVs
+    igortask.fln_genomicDs = fln_genomicDs
+    igortask.fln_genomicJs = fln_genomicJs
+    igortask.fln_V_gene_CDR3_anchors = fln_V_gene_CDR3_anchors
+    igortask.fln_J_gene_CDR3_anchors = fln_J_gene_CDR3_anchors
+
+    igortask.igor_species = igor_species
+    igortask.igor_chain = igor_chain
+    igor_model_parms = igor_model[0]
+    igor_model_marginals = igor_model[1]
+    igortask.igor_model_parms_file = igor_model[0]
+    igortask.igor_model_marginals_file = igor_model[1]
+    igortask.igor_model_dir_path = igor_model_path
+    igortask.igor_wd = igor_wd
+    igortask.igor_batchname = igor_batch
+    igortask.igor_fln_db = igor_fln_db
+
+    Q_species_chain = (not (igor_species is None) and not (igor_chain is None))
+    Q_model_files = (not (igor_model_parms is None) and not (igor_model_marginals is None))
+    if Q_species_chain:
+        igortask.igor_species = igor_species
+        igortask.igor_chain = igor_chain
+    elif Q_model_files:
+        igortask.igor_model_parms_file = igor_model_parms
+        igortask.igor_model_marginals_file = igor_model_marginals
+    elif igor_fln_db is not None:
+        igortask.create_db()
+    else:
+        print("WARNING: No model provided!")
+    ########################
     print("batchname: ", igortask.igor_batchname)
     print("b_igor_reads, fln_igor_reads", b_igor_reads, fln_igor_reads)
     print("b_igor_genomes, fln_igor_genomes", b_igor_genomes, fln_igor_genomes)
@@ -928,100 +2050,292 @@ def database_export(igortask, b_igor_all, b_igor_reads, fln_igor_reads,
     """
 
 
+
+
+
+
+
+
+
+
+
 @click.command("db-naive-align") #invoke_without_command=True)
-@click.option("-o", "--output-csv", "output_csv", default=None, help="Filename of output file.")
-@pass_igortask
-def database_naive_align(igortask, output_csv):
+############## COMMON options ##############
+############## COMMON options ##############
+@click.option("-D", "--set_database", "igor_fln_db", default=None, help="Igor database created with database script.")
+
+############## NO COMMON options ##############
+@click.option("-o", "--output-filename", "output_fln", default=None, help="Filename of output file csv or fasta if --seq_index is use.")
+@click.option("-s", "--seq-index", "seq_index", default=None, type=int, help="Sequence id (seq_index) in db.", required=False)
+def database_naive_align(output_fln, seq_index, igor_fln_db):
     """
     Get a naive alignment (no scenarios) from igor alignments
     """
+    from pygor3 import IgorTask
+    igortask = IgorTask()
+    igortask.igor_fln_db = igor_fln_db
+
     import pygor3 as p3
 
-    def generate_csv_line(indexed_sequence: p3.IgorIndexedSequence, indexed_cdr3_record: list,
-                          list_vdj_alignments: dict, sep=';',
-                          header_list=['sequence_id', 'sequence', 'v_call', 'd_call', 'j_call', 'v_score', 'd_score',
-                                       'j_score']):
-        csv_line = ""
-        indexed_sequence.sequence = indexed_sequence.sequence.lower()
-        fields_dict = dict()
-        fields_dict['sequence_id'] = str(indexed_sequence.seq_index)
-        fields_dict['sequence'] = indexed_sequence.sequence
-        fields_dict['v_call'] = list_vdj_alignments['V'].strGene_name
-        fields_dict['d_call'] = list_vdj_alignments['D'].strGene_name
-        fields_dict['j_call'] = list_vdj_alignments['J'].strGene_name
-        fields_dict['v_score'] = str(list_vdj_alignments['V'].score)
-        fields_dict['d_score'] = str(list_vdj_alignments['D'].score)
-        fields_dict['j_score'] = str(list_vdj_alignments['J'].score)
-        # FIXME: CREATE A BETTER WAY TO DO THIS
-        fields_dict['v_anchor'] = ""
-        fields_dict['j_anchor'] = ""
-        fields_dict['junction'] = ""
-        fields_dict['junction_aa'] = ""
-        try:
-            fields_dict['v_anchor'] = str(indexed_cdr3_record[1])  # ""
-            fields_dict['j_anchor'] = str(indexed_cdr3_record[2])  # ""
-            fields_dict['junction'] = str(indexed_cdr3_record[3])  # ""
-            fields_dict['junction_aa'] = str(indexed_cdr3_record[4])  # ""
-        except Exception as e:
-            print("No junction for sequence : " + fields_dict['sequence_id'])
-            print(e)
-            pass
+    if seq_index is None:
+        def generate_csv_line(indexed_sequence: p3.IgorIndexedSequence, indexed_cdr3_record: list,
+                              list_vdj_alignments: dict, sep=';',
+                              header_list=['sequence_id', 'sequence', 'v_call', 'd_call', 'j_call', 'v_score', 'd_score',
+                                           'j_score']):
+            csv_line = ""
+            indexed_sequence.sequence = indexed_sequence.sequence.lower()
+            fields_dict = dict()
+            fields_dict['sequence_id'] = str(indexed_sequence.seq_index)
+            fields_dict['sequence'] = indexed_sequence.sequence
+            fields_dict['v_call'] = list_vdj_alignments['V'].strGene_name
+            fields_dict['d_call'] = list_vdj_alignments['D'].strGene_name
+            fields_dict['j_call'] = list_vdj_alignments['J'].strGene_name
+            fields_dict['v_score'] = str(list_vdj_alignments['V'].score)
+            fields_dict['d_score'] = str(list_vdj_alignments['D'].score)
+            fields_dict['j_score'] = str(list_vdj_alignments['J'].score)
+            # FIXME: CREATE A BETTER WAY TO DO THIS
+            fields_dict['v_anchor'] = ""
+            fields_dict['j_anchor'] = ""
+            fields_dict['junction'] = ""
+            fields_dict['junction_aa'] = ""
+            try:
+                fields_dict['v_anchor'] = str(indexed_cdr3_record[1])  # ""
+                fields_dict['j_anchor'] = str(indexed_cdr3_record[2])  # ""
+                fields_dict['junction'] = str(indexed_cdr3_record[3])  # ""
+                fields_dict['junction_aa'] = str(indexed_cdr3_record[4])  # ""
+            except Exception as e:
+                print("No junction for sequence : " + fields_dict['sequence_id'])
+                print(e)
+                pass
 
-        # align = p3.IgorAlignment_data()
+            # align = p3.IgorAlignment_data()
 
-        for field in header_list:
-            csv_line = csv_line + fields_dict[field] + sep
-        return csv_line
+            for field in header_list:
+                csv_line = csv_line + fields_dict[field] + sep
+            return csv_line
 
-    #### STARTS HERE
-    db = p3.IgorSqliteDB()
-    # db.flnIgorDB = task.igor_wd+"/"+task.igor_batchname+".db"
-    db.flnIgorDB = igortask.igor_db.flnIgorDB #args.database
-    db.connect_db()
+        #### STARTS HERE
+        db = p3.IgorSqliteDB()
+        # db.flnIgorDB = task.igor_wd+"/"+task.igor_batchname+".db"
+        db.flnIgorDB = igortask.igor_db.flnIgorDB #args.database
+        db.connect_db()
 
-    # Make a loop over all sequences
-    if output_csv is None:
-        fln_output = db.flnIgorDB.split(".db")[0] + "_na.csv"
+        # Make a loop over all sequences
+        if output_fln is None:
+            fln_output = db.flnIgorDB.split(".db")[0] + "_na.csv"
+        else:
+            fln_output = output_fln
+
+        ofile = open(fln_output, 'w')
+        seq_index_list = db.execute_select_query("SELECT seq_index FROM IgorIndexedSeq;")
+        seq_index_list = map(lambda x: x[0], seq_index_list)
+        header_list = ['sequence_id', 'sequence', 'v_call', 'd_call', 'j_call', 'v_score', 'd_score', 'j_score', 'v_anchor',
+                       'j_anchor', 'junction', 'junction_aa']
+        sep = ";"
+        str_header = sep.join(header_list)
+        ofile.write(str_header + '\n')
+        for seq_index in seq_index_list:
+            try:
+                # seq_index = args.seq_index
+                indexed_sequence = db.get_IgorIndexedSeq_By_seq_index(seq_index)
+                indexed_sequence.offset = 0
+
+                indexed_cdr3_record = db.fetch_IgorIndexedCDR3_By_seq_index(seq_index)
+                print(indexed_cdr3_record)
+
+                best_v_align_data = db.get_best_IgorAlignment_data_By_seq_index('V', indexed_sequence.seq_index)
+                best_d_align_data = db.get_best_IgorAlignment_data_By_seq_index('D', indexed_sequence.seq_index)
+                best_j_align_data = db.get_best_IgorAlignment_data_By_seq_index('J', indexed_sequence.seq_index)
+
+                vdj_naive_alignment = {'V': best_v_align_data,
+                                       'D': best_d_align_data,
+                                       'J': best_j_align_data}
+
+                v_align_data_list = db.get_IgorAlignment_data_list_By_seq_index('V', indexed_sequence.seq_index)
+                # print('V', len(v_align_data_list), [ ii.score for ii in v_align_data_list])
+                try:
+                    d_align_data_list = db.get_IgorAlignment_data_list_By_seq_index('D', indexed_sequence.seq_index)
+                except Exception as e:
+                    print(e)
+                    print("No D sequences alignments found!")
+                    pass
+                # print('D', len(d_align_data_list), [ ii.score for ii in d_align_data_list])
+                j_align_data_list = db.get_IgorAlignment_data_list_By_seq_index('J', indexed_sequence.seq_index)
+                # print('J', len(j_align_data_list), [ ii.score for ii in j_align_data_list])
+
+                # 1. Choose the highest score then check if this one is the desire range.
+                # if there is an overlap
+                # calculate score without overlap. If overlap
+                # if hightest score
+                for i, d_align_data in enumerate(d_align_data_list):
+                    # Check if D is btwn V and J position
+                    if (best_v_align_data.offset_3_p <= d_align_data.offset_5_p) and (
+                            d_align_data.offset_3_p <= best_j_align_data.offset_5_p):
+                        # vdj_naive_alignment['D'+str(i)] = d_align_data
+                        vdj_naive_alignment['D'] = d_align_data
+                        break
+
+                # ofile = open(task.igor_batchname+'__'+str(indexed_sequence.seq_index)+'_na.fasta', 'w')
+                # str_fasta = generate_str_fasta(indexed_sequence, vdj_naive_alignment)
+                # ofile.write(str_fasta)
+
+                str_csv_line = generate_csv_line(indexed_sequence, indexed_cdr3_record, vdj_naive_alignment, sep=sep,
+                                                 header_list=header_list)
+                ofile.write(str_csv_line + "\n")
+            except Exception as e:
+                print("ERROR : with sequence id : " + str(seq_index))
+                print(e)
+                pass
+        ofile.close()
     else:
-        fln_output = output_csv
+        ###############################################
+        def generate_str_fasta(indexed_sequence, list_vdj_alignments: dict):
+            """ Given an Sequence index and the corresponding alignments vj/ vdj
+            return a string with considering only offset"""
 
-    ofile = open(fln_output, 'w')
-    seq_index_list = db.execute_select_query("SELECT seq_index FROM IgorIndexedSeq;")
-    seq_index_list = map(lambda x: x[0], seq_index_list)
-    header_list = ['sequence_id', 'sequence', 'v_call', 'd_call', 'j_call', 'v_score', 'd_score', 'j_score', 'v_anchor',
-                   'j_anchor', 'junction', 'junction_aa']
-    sep = ";"
-    str_header = sep.join(header_list)
-    ofile.write(str_header + '\n')
-    for seq_index in seq_index_list:
+            indexed_sequence.sequence = indexed_sequence.sequence.lower()
+            # add mismatches in sequence.
+            s = list(indexed_sequence.sequence)
+            for key_align in list_vdj_alignments.keys():
+                for pos_mis in list_vdj_alignments[key_align].mismatches:
+                    s[pos_mis] = s[pos_mis].upper()
+            indexed_sequence.sequence = "".join(s)
+
+            str_fasta = ""
+            min_offset_key = min(list_vdj_alignments.keys(), key=lambda x: list_vdj_alignments[x].offset)  # .offset
+            min_offset = list_vdj_alignments[min_offset_key].offset
+            min_offset = min(indexed_sequence.offset, min_offset)
+
+            delta_offset = indexed_sequence.offset - min_offset
+            str_prefix = '-' * (delta_offset)
+            str_fasta_sequence = str_prefix + indexed_sequence.sequence
+            print(str_fasta_sequence)
+            str_fasta = str_fasta + "> " + str(indexed_sequence.seq_index) + "\n"
+            str_fasta = str_fasta + str_fasta_sequence + "\n"
+            for key in list_vdj_alignments.keys():
+                list_vdj_alignments[key].strGene_seq = list_vdj_alignments[key].strGene_seq.lower()
+                delta_offset = list_vdj_alignments[key].offset - min_offset
+                str_prefix = '-' * (delta_offset)
+                str_fasta_sequence = str_prefix + list_vdj_alignments[key].strGene_seq
+                print(str_fasta_sequence)
+                str_fasta = str_fasta + "> " + key + ", " + list_vdj_alignments[key].strGene_name + "\n"
+                str_fasta = str_fasta + str_fasta_sequence + "\n"
+                offset_5_p = list_vdj_alignments[key].offset_5_p - min_offset
+                offset_3_p = list_vdj_alignments[key].offset_3_p - min_offset
+                print("delta_offset : ", delta_offset)
+                print("offset_5_p : ", list_vdj_alignments[key].offset_5_p, offset_5_p)
+                print("offset_3_p : ", list_vdj_alignments[key].offset_3_p, offset_3_p)
+                str_prefix_2 = '-' * (offset_5_p + 1)
+                str_fasta_sequence2 = str_prefix_2 + str_fasta_sequence[offset_5_p + 1:offset_3_p + 1]
+
+                str_fasta = str_fasta + "> " + list_vdj_alignments[key].strGene_name + ", score : " + str(
+                    list_vdj_alignments[key].score) + "\n"
+                str_fasta = str_fasta + str_fasta_sequence2 + "\n"
+
+                # TODO ADD MISMATCHES
+                align = list_vdj_alignments[key]
+                # align mismatches are in indexed sequence reference I need to convert it to gene reference given the alignment
+                # given the align.offset
+                # pos_in_gene  = pos_in_seq - align.offset
+                # pos_in_gene = cdr3 - align.offset
+
+            return str_fasta
+
+        def generate_csv_line(indexed_sequence: p3.IgorIndexedSequence, list_vdj_alignments: dict, sep=';',
+                              header_list=['sequence_id', 'sequence', 'v_call', 'd_call', 'j_call', 'v_score',
+                                           'd_score', 'j_score', 'junction']):
+            csv_line = ""
+            indexed_sequence.sequence = indexed_sequence.sequence.lower()
+            fields_dict = dict()
+            fields_dict['sequence_id'] = indexed_sequence.seq_index
+            fields_dict['sequence'] = indexed_sequence.sequence
+            fields_dict['v_call'] = list_vdj_alignments['V'].strGene_name
+            fields_dict['d_call'] = list_vdj_alignments['D'].strGene_name
+            fields_dict['j_call'] = list_vdj_alignments['J'].strGene_name
+            fields_dict['v_score'] = list_vdj_alignments['V'].score
+            fields_dict['d_score'] = list_vdj_alignments['D'].score
+            fields_dict['j_score'] = list_vdj_alignments['J'].score
+
+            align = p3.IgorAlignment_data()
+
+            for field in header_list:
+                csv_line = csv_line + fields_dict[field] + sep
+            return csv_line
+
+            # mixcr :
+            # targetSequences	targetQualities	allVHitsWithScore
+            # allDHitsWithScore	allJHitsWithScore	allCHitsWithScore	allVAlignments	allDAlignments
+            # allJAlignments	allCAlignments	nSeqFR1	minQualFR1	nSeqCDR1	minQualCDR1	nSeqFR2	minQualFR2	nSeqCDR2	minQualCDR2	nSeqFR3	minQualFR3	nSeqCDR3	minQualCDR3	nSeqFR4	minQualFR4	aaSeqFR1	aaSeqCDR1	aaSeqFR2	aaSeqCDR2	aaSeqFR3	aaSeqCDR3	aaSeqFR4	refPoints
+
+            # AIRR :
+            # sequence_id (req)
+            # sequence (req)
+            # rev_comp (req) //false by default # FIXME: for now
+            # productive (req) // false by default # FIXME: a naive alignmnet of productive is possible.
+            # locus (chain type) // eg. TCR IG
+            # v_call
+            # d_call
+            # d2_call // FIXME: not gonna use this by the moment.
+            # j_call
+            # sequence alignment // FIXME: Aligned portion of query sequence. IMGT-gaps check the best way to do this
+            # germline_alignment // FIXME: Assembled, aligned, full-length inferred germline sequence spanning the same region as the sequence_alignment field (typically the V(D)J region) and including the same set of corrections and spacers (if any)
+            # junction
+            # junction_aa // Our CDR3
+            # np1 (nts btwn V and D or btwn V and J  // vd_ins  or vj_ins
+            # np2 (nts btwn first D and J gene or btwn first D and second D // dj_ins or d1d2_ins
+            # np3 (nts btwn second D and J gene
+            # v_score
+            # v_cigar
+            # d_score
+            # d_cigar
+            # j_score
+            # j_cigar
+            # junction_length
+
+        def generate_str_fasta_simple(indexed_sequence, list_vdj_alignments: dict):
+            """ Given an Sequence index and the corresponding alignments vj/ vdj
+            return a string with considering only offset"""
+
+            str_fasta = ""
+            str_fasta = str_fasta + "> " + str(indexed_sequence.seq_index) + "\n"
+            str_fasta = str_fasta + indexed_sequence.sequence + "\n"
+            for key in list_vdj_alignments.keys():
+                str_fasta = str_fasta + "> " + key + ", " + list_vdj_alignments[key].strGene_name + "\n"
+                str_fasta = str_fasta + list_vdj_alignments[key].strGene_seq + "\n"
+
+            # print(list_vdj_alignments['V'])
+            # print(list_vdj_alignments['D        '])
+            return str_fasta
+
+        ############################################
+        #### naive align with id seq_index
+        db = p3.IgorSqliteDB()
+
+        db.flnIgorDB = igortask.igor_fln_db
+        db.connect_db()
+
+        #seq_index = args.seq_index
         try:
-            # seq_index = args.seq_index
             indexed_sequence = db.get_IgorIndexedSeq_By_seq_index(seq_index)
-            indexed_sequence.offset = 0
+        except Exception as e:
+            print("ERROR: seq_index ", seq_index, " not found in db ", igortask.igor_fln_db)
+            raise
+        indexed_sequence.offset = 0
 
-            indexed_cdr3_record = db.fetch_IgorIndexedCDR3_By_seq_index(seq_index)
-            print(indexed_cdr3_record)
+        best_v_align_data = db.get_best_IgorAlignment_data_By_seq_index('V', indexed_sequence.seq_index)
+        best_j_align_data = db.get_best_IgorAlignment_data_By_seq_index('J', indexed_sequence.seq_index)
 
-            best_v_align_data = db.get_best_IgorAlignment_data_By_seq_index('V', indexed_sequence.seq_index)
+        try:
             best_d_align_data = db.get_best_IgorAlignment_data_By_seq_index('D', indexed_sequence.seq_index)
-            best_j_align_data = db.get_best_IgorAlignment_data_By_seq_index('J', indexed_sequence.seq_index)
-
             vdj_naive_alignment = {'V': best_v_align_data,
                                    'D': best_d_align_data,
                                    'J': best_j_align_data}
-
             v_align_data_list = db.get_IgorAlignment_data_list_By_seq_index('V', indexed_sequence.seq_index)
-            # print('V', len(v_align_data_list), [ ii.score for ii in v_align_data_list])
-            try:
-                d_align_data_list = db.get_IgorAlignment_data_list_By_seq_index('D', indexed_sequence.seq_index)
-            except Exception as e:
-                print(e)
-                print("No D sequences alignments found!")
-                pass
-            # print('D', len(d_align_data_list), [ ii.score for ii in d_align_data_list])
+            print('V', len(v_align_data_list), [ii.score for ii in v_align_data_list])
+            d_align_data_list = db.get_IgorAlignment_data_list_By_seq_index('D', indexed_sequence.seq_index)
+            print('D', len(d_align_data_list), [ii.score for ii in d_align_data_list])
             j_align_data_list = db.get_IgorAlignment_data_list_By_seq_index('J', indexed_sequence.seq_index)
-            # print('J', len(j_align_data_list), [ ii.score for ii in j_align_data_list])
-
+            print('J', len(j_align_data_list), [ii.score for ii in j_align_data_list])
             # 1. Choose the highest score then check if this one is the desire range.
             # if there is an overlap
             # calculate score without overlap. If overlap
@@ -1034,21 +2348,38 @@ def database_naive_align(igortask, output_csv):
                     vdj_naive_alignment['D'] = d_align_data
                     break
 
-            # ofile = open(task.igor_batchname+'__'+str(indexed_sequence.seq_index)+'_na.fasta', 'w')
-            # str_fasta = generate_str_fasta(indexed_sequence, vdj_naive_alignment)
-            # ofile.write(str_fasta)
-
-            str_csv_line = generate_csv_line(indexed_sequence, indexed_cdr3_record, vdj_naive_alignment, sep=sep,
-                                             header_list=header_list)
-            ofile.write(str_csv_line + "\n")
         except Exception as e:
-            print("ERROR : with sequence id : " + str(seq_index))
             print(e)
+            print("No d gene alignments found!")
+            vdj_naive_alignment = {'V': best_v_align_data,
+                                   'J': best_j_align_data}
+            v_align_data_list = db.get_IgorAlignment_data_list_By_seq_index('V', indexed_sequence.seq_index)
+            print('V', len(v_align_data_list), [ii.score for ii in v_align_data_list])
+            j_align_data_list = db.get_IgorAlignment_data_list_By_seq_index('J', indexed_sequence.seq_index)
+            print('J', len(j_align_data_list), [ii.score for ii in j_align_data_list])
             pass
-    ofile.close()
+
+        if output_fln is None:
+            batchname = db.flnIgorDB.split(".db")[0]
+            fln_output = batchname + '__' + str(indexed_sequence.seq_index) + '_na.fasta'
+            # fln_output = args.database.split(".db")[0]+"_na.csv"
+        else:
+            fln_output = output_fln
+
+        ofile = open(fln_output, 'w')
+        str_fasta = generate_str_fasta(indexed_sequence, vdj_naive_alignment)
+        ofile.write(str_fasta)
+        ofile.close()
+
+
+
+
+
+
 
 
 # database.add_command(database_create)
+cli.add_command(database_import)
 cli.add_command(database_copy)
 cli.add_command(database_ls)
 cli.add_command(database_attach)

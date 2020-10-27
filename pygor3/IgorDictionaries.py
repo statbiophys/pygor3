@@ -69,7 +69,7 @@ igor_evaluate_dict_options = {
 # Options used to output in  IGoR
 igor_output_dict_options = {
     '--scenarios':
-        {'active': True, 'value': '5',
+        {'active': True, 'value': '10',
          'dict_options':
              {}
          },

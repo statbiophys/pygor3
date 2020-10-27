@@ -1293,6 +1293,74 @@ class IgorSqliteDB:
             sql_cmd_drop = "DROP TABLE IF EXISTS {tablename};".format(tablename=tablename)
             self.execute_query(sql_cmd_drop)
 
+    def export_IgorBestScenarios_to_AIRR(self, flnIgorBestScenarios, mdl=None, sep='\t'):
+        """
+        sequence_id
+        v_call
+        d_call
+        j_call
+        sequence_alignment
+        junction
+        junction_aa
+        np1 # Nucleotide sequence of the combined N/P between VD or VJ
+        np2 # between DJ
+        v_cigar
+        d_cigar
+        j_cigar
+        """
+
+        if mdl is None:
+            mdl = self.get_IgorModel()
+
+        # n_d_5_del = self.mdlParms.Event_dict[strEv].loc[self.id_d_5_del]['value']
+        # name_D = self.mdlParms.Event_dict[strEv].loc[self.id_d_gene]['name']
+        # v_call d_call c_call v_score d_score j_score v_cigar j_evalue v_identity v_start v_end v_germ_start v_germ_end np1_seq np1_length np2_seq np2_length
+
+        from pygor3.IgorIO import IgorScenario
+        # OPEN FILE
+        for seq_index in self.fetch_IgorIndexedSeq_indexes():
+            scenarios = self.get_IgorBestScenarios_By_seq_index(seq_index)
+            for scenario in scenarios:
+                scenario.export_to_AIRR_line()
+
+
+        ### MAKE THE HEADER with name using nicknames
+        # Transform the nicknames with id
+        db_events_nickname_name_dict = dict()
+        for event in mdl.parms.Event_list:
+            if event.event_type == 'DinucMarkov':
+                db_events_nickname_name_dict[event.nickname] = event.name
+            else:
+                db_events_nickname_name_dict["id_" + event.nickname] = event.name
+        db_events_nickname_name_dict['mismatches'] = 'Mismatches'
+        print(db_events_nickname_name_dict)
+
+        list_bs_columns_db = [el[0] for el in self.get_columns_type_of_tables('IgorBestScenarios')[:-1]]
+        tmp_list = list()
+        for aaa in list_bs_columns_db:
+            if aaa in db_events_nickname_name_dict.keys():
+                tmp_list.append(db_events_nickname_name_dict[aaa])
+            else:
+                tmp_list.append(aaa)
+        # str_file_header
+        # str_file_header = sep.join(list_bs_columns_db)
+        str_file_header = sep.join(tmp_list) + "\n"
+
+        str_sql_columns_to_query = ",".join(list_bs_columns_db)
+        sqlSelect = "SELECT " + str_sql_columns_to_query + " FROM IgorBestScenarios;"
+        cur = self.conn.cursor()
+        cur.execute(sqlSelect)
+        records = cur.fetchall()
+
+        # str_file_header = "seq_index;gene_name;score;offset;insertions;deletions;mismatches;length;5_p_align_offset;3_p_align_offset" + "\n"
+        with open(flnIgorBestScenarios, "w") as ofile:
+            ofile.write(str_file_header)
+            for record in records:
+                csvline = sep.join(map(str, record)).replace("[", "{").replace("]", "}")
+                ofile.write(csvline + "\n")
+
+
+
     ###### PGEN
     def load_IgorPgen_FromCSV(self, flnIgorPgen):
         print(flnIgorPgen)
