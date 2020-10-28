@@ -351,6 +351,10 @@ class IgorTask:
                 if self.igor_model_dir_path is None:
                     # if wasn't defined use the current directory
                     model_path = "."
+                    if (not (self.igor_species is None) ) and (not (self.igor_chain is None)):
+                        self.run_datadir()
+                        self.igor_model_dir_path = self.igor_models_root_path + "/" + self.igor_species + "/" + \
+                                                       igor_option_path_dict[self.igor_chain]
             else:
                 # if a model_path is provided then override it
                 self.igor_model_dir_path = model_path

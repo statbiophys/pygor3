@@ -719,7 +719,11 @@ def run_generate(N,
         print("WARNING: No model provided!")
 
     ########################
-    igortask.run_generate(N=N)
+    igortask.update_batch_filenames()
+    igortask.update_model_filenames()
+
+    print(igortask.to_dict())
+    igortask.run_generate(N_seqs=N)
 
 
 
