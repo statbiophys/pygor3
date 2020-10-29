@@ -540,8 +540,16 @@ def run_get_scenarios(igor_read_seqs, output_db,
         print("WARNING: No model provided!")
 
     ########################
+    igortask.update_batch_filenames()
+    igortask.update_model_filenames()
+    print(igortask)
+
+    igortask.load_IgorRefGenome()
+    igortask.load_IgorModel()
+
     click.echo("Running IGoR scenarios process...")
-    igortask.run_evaluate(igor_read_seqs=igor_read_seqs)
+    # igortask.run_evaluate(igor_read_seqs=igor_read_seqs)
+    igortask.run_scenarios(igor_read_seqs=igor_read_seqs)
 
 
 
@@ -1093,7 +1101,7 @@ def model_export(fln_from_txt, fln_from_db, fln_to_txt, fln_to_db,
 
 ############## NO COMMON options ##############
 @click.option("-t", "--recombination_type", "rec_type", type=click.Choice(['VJ', 'VDJ']),
-              help="Igor recombination type.")
+              help="Igor recombination type.", required=True)
 @click.option("-o", "--output-prefix", "fln_output_prefix", default=None, help="Prefix for models files.")
 def model_create(rec_type, fln_output_prefix,
                  igor_species, igor_chain, igor_model, igor_model_path, igor_path_ref_genome, igor_wd, igor_batch,

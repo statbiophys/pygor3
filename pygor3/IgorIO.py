@@ -1349,13 +1349,22 @@ class IgorModel:
 
     # TODO: finish this method to load model with default installed igor.
     @classmethod
-    def load_default(cls, IgorSpecie, IgorChain, modelpath=rcParams['paths.igor_models']):
+    def load_default(cls, IgorSpecie, IgorChain, modelpath=None): #rcParams['paths.igor_models']):
         """
         :return IgorModel loaded with the default location for specie and chain
         """        
         # IGoR run parameters
         #IgorSpecie    = specie #"mouse"
         #IgorChain     = chain #"tcr_beta"
+        if modelpath is None:
+            try:
+                modelpath = run_igor_datadir()
+            except Exception as e:
+                print("ERROR: getting default igor datadir.", e)
+
+
+
+
         IgorModelPath = modelpath+"/"+IgorSpecie+"/"+IgorChain+"/"
         print("Loading default IGoR model from path : ", IgorModelPath)
         # FIXME: FIND A WAY TO GENERALIZE THIS WITH SOMEKIND OF STANDARD NAME

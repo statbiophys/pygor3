@@ -64,11 +64,11 @@ class RcParams(dict):
 
 defaultParams = {
     # default system paths
-    'paths.igor_prefix' : "/home/alfaceor/.local",
-    'paths.igor_exec' : "/home/alfaceor/.local/bin/igor",
-    'paths.igor_data' : "",
-    'paths.igor_models': "/home/alfaceor/.local/share/igor/models",
-    'paths.igor_src' : ""
+    'paths.igor_prefix' : None, #"/home/alfaceor/.local",
+    'paths.igor_exec' : None, #"/home/alfaceor/.local/bin/igor",
+    'paths.igor_data' : None, #"",
+    'paths.igor_models': None, #"/home/alfaceor/.local/share/igor/models",
+    'paths.igor_src' : None #""
 }
 
 rcParams = RcParams(defaultParams)

@@ -148,3 +148,22 @@ except Exception as exception:
     print(exception.__class__.__name__ + ": " + exception.message)
 
 
+def run_igor_datadir():
+    import subprocess
+
+    p = subprocess.Popen("which igor", shell=True, stdout=subprocess.PIPE)
+    line = p.stdout.readline()
+    igor_exec_path = line.decode("utf-8").replace('\n', '')
+
+    cmd = igor_exec_path + " -getdatadir"
+
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    stdout = []
+    while True:
+        line = p.stdout.readline()
+        line = line.decode("utf-8")
+        stdout.append(line)
+        # print (line, end='')
+        if line == '' and p.poll() != None:
+            break
+    return ''.join(stdout)
