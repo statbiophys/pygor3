@@ -315,7 +315,7 @@ def run_infer(igor_read_seqs, output_fln_prefix,
     igortask.load_IgorModel()
     print(igortask)
     output = igortask.run_infer(igor_read_seqs=igor_read_seqs)
-    print(output)
+    # print(output)
 
     print("===== Saving files in database : =====")
     igortask.create_db()

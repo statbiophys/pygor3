@@ -73,6 +73,24 @@ def run_command(cmd):
             break
     return ''.join(stdout)
 
+
+def execute_command_generator(cmd):
+    popen = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, universal_newlines=True)
+    for stdout_line in iter(popen.stdout.readline, ""):
+        yield stdout_line
+    popen.stdout.close()
+    return_code = popen.wait()
+    if return_code:
+        raise subprocess.CalledProcessError(return_code, cmd)
+
+def run_command_print(cmd):
+    std_output_str = ""
+    for path in execute_command_generator(cmd):
+        print(path, end="")
+        std_output_str = std_output_str + '\n'
+
+    return std_output_str
+
 def run_command_no_output(cmd):
     """from http://blog.kagesenshi.org/2008/02/teeing-python-subprocesspopen-output.html
     """
@@ -621,7 +639,8 @@ class IgorTask:
         print(cmd)
         # FIXME: REALLY BIG FLAW USE DICTIONARY FOR THE SPECIE AND CHAIN
         # self.mdl = IgorModel.load_default(self.igor_species, igor_option_path_dict[self.igor_chain], modelpath=self.igor_models_root_path)
-        run_command(cmd)
+        # run_command(cmd)
+        run_command_print(cmd)
 
     def run_infer(self, igor_read_seqs=None):
         #"igor -set_wd $WDPATH -batch foo -species human -chain beta
@@ -649,7 +668,8 @@ class IgorTask:
         # FIXME: REALLY BIG FLAW USE DICTIONARY FOR THE SPECIE AND CHAIN
         # self.mdl = IgorModel.load_default(self.igor_species, igor_option_path_dict[self.igor_chain], modelpath=self.igor_models_root_path)
         self.mdl = IgorModel(model_parms_file=self.igor_model_parms_file, model_marginals_file=self.igor_model_marginals_file)
-        output = run_command(cmd)
+        # output = run_command(cmd)
+        output = run_command_print(cmd)
         #run_command_no_output(cmd)
         self.b_infer = True # FIXME: If run_command success then True
         return output
@@ -665,7 +685,8 @@ class IgorTask:
             cmd = cmd + " -generate "
         print(cmd)
 
-        run_command(cmd)
+        # run_command(cmd)
+        run_command_print(cmd)
         path_generated = self.igor_wd + "/" + self.igor_batchname + "_generated/"
         self.igor_fln_generated_realizations_werr = path_generated + "generated_realizations_werr.csv"
         self.igor_fln_generated_seqs_werr = path_generated + "generated_seqs_werr.csv"

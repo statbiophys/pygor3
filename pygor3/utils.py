@@ -151,7 +151,8 @@ except Exception as exception:
 def run_igor_datadir():
     import subprocess
 
-    p = subprocess.Popen("which igor", shell=True, stdout=subprocess.PIPE)
+    cmd = "which igor"
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
     line = p.stdout.readline()
     igor_exec_path = line.decode("utf-8").replace('\n', '')
 

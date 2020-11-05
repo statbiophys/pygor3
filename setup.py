@@ -14,7 +14,8 @@ setuptools.setup(
         "beautifulsoup4",
         "biopython",
         "Click",
-        "networkx"
+        "networkx",
+        "requests"
     ],
     packages=setuptools.find_packages(),
     entry_points= {
@@ -31,14 +32,14 @@ setuptools.setup(
             'pygor3-naive_align_id=pygor3.scripts.naive_align_id:main',
             'pygor3-align_export=pygor3.scripts.align_export:main',
             'pygor3-bs_export=pygor3.scripts.bs_export:main',
-            'igor-pgen_sequences=pygor3.scripts.pgen_sequences:main',
-            'igor-infer_sequences=pygor3.scripts.infer_sequences:main',
-            'igor-model_plot=pygor3.scripts.model_plot:main',
+            #'igor-pgen_sequences=pygor3.scripts.pgen_sequences:main',
+            #'igor-infer_sequences=pygor3.scripts.infer_sequences:main',
+            #'igor-model_plot=pygor3.scripts.model_plot:main',
             #'igor-model_export=pygor3.scripts.model_export:main',
             'pygor3-model_export=pygor3.scripts.model_export:main',
             'pygor3-plot_marginals=pygor3.scripts.plot_marginals:main',
-            'igor-model_create=pygor3.scripts.model_create:main',
-            'igor-get_imgt_data=pygor3.scripts.get_imgt_data:main',
+            #'igor-model_create=pygor3.scripts.model_create:main',
+            #'igor-get_imgt_data=pygor3.scripts.get_imgt_data:main',
             'pygor3-download_imgt_gene_templates=pygor3.scripts.download_imgt_gene_templates:main',
             'pygor3-short_names_imgt_templates=pygor3.scripts.short_names_imgt_templates:main'
             #'igor-model_import=pygor3.model_import:main',
