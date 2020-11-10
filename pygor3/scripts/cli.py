@@ -334,7 +334,7 @@ def run_infer(igor_read_seqs, output_fln_prefix,
         output_fln_parms = output_fln_prefix + "_parms.txt"
         output_fln_marginals = output_fln_prefix + "_marginals.txt"
         igortask.mdl.plot_Bayes_network(filename=output_fln_prefix+"_BN.pdf")
-        igortask.mdl.export_plot_Pmarginals(output_fln_prefix+"_RM.pdf")
+        igortask.mdl.export_plot_Pmarginals(output_fln_prefix+"_RM")
 
         os.rename(igortask.igor_fln_db, output_fln_db)
         igortask.mdl.write_model(output_fln_parms, output_fln_marginals)
@@ -349,7 +349,7 @@ def run_infer(igor_read_seqs, output_fln_prefix,
         output_fln_parms = output_fln_prefix + "_parms.txt"
         output_fln_marginals = output_fln_prefix + "_marginals.txt"
         igortask.mdl.plot_Bayes_network(filename=output_fln_prefix+"_BN.pdf")
-        igortask.mdl.export_plot_Pmarginals(output_fln_prefix + "_RM.pdf")
+        igortask.mdl.export_plot_Pmarginals(output_fln_prefix + "_RM")
         igortask.mdl.write_model(output_fln_parms, output_fln_marginals)
         # mv
 
@@ -499,8 +499,8 @@ def run_evaluate(igor_read_seqs, output_db,
 
 ############## NO COMMON options ##############
 @click.option("-i", "--input-sequences", "igor_read_seqs", default=None, help="Input sequences in FASTA, TXT or CSV formats.")
-@click.option("-o", "--output-db", "output_db", default=None, help="Output database file.")
-def run_get_scenarios(igor_read_seqs, output_db,
+@click.option("-o", "--output-prefix", "output_fln_prefix", default=None, help="Output prefix for database file a scenarios file.")
+def run_get_scenarios(igor_read_seqs, output_fln_prefix,
                       igor_species, igor_chain, igor_model, igor_model_path, igor_path_ref_genome, igor_wd, igor_batch,
                       igor_fln_db,
                       fln_genomicVs, fln_genomicDs, fln_genomicJs, fln_V_gene_CDR3_anchors, fln_J_gene_CDR3_anchors):
@@ -550,14 +550,35 @@ def run_get_scenarios(igor_read_seqs, output_db,
     click.echo("Running IGoR scenarios process...")
     # igortask.run_evaluate(igor_read_seqs=igor_read_seqs)
     igortask.run_scenarios(igor_read_seqs=igor_read_seqs)
+    # cp igortask.igor_fln_output_scenarios
 
+    if output_fln_prefix is not None:
+        import os
+        output_fln_db = output_fln_prefix + ".db"
+        output_fln_parms = output_fln_prefix + "_parms.txt"
+        output_fln_marginals = output_fln_prefix + "_marginals.txt"
+        # igortask.mdl.plot_Bayes_network(filename=output_fln_prefix + "_BN.pdf")
+        # igortask.mdl.export_plot_Pmarginals(output_fln_prefix + "_RM")
 
-
-
-
-
-
-
+        os.rename(igortask.igor_fln_db, output_fln_db)
+        os.rename(igortask.igor_fln_output_scenarios, output_fln_prefix+"_scenarios.csv")
+        # igortask.mdl.write_model(output_fln_parms, output_fln_marginals)
+        # copy files
+        print("Database file : ", output_fln_prefix)
+    else:
+        import os
+        # igortask.mdl.write_model(output_fln_parms, output_fln_marginals)
+        print("Database file : ", igortask.igor_fln_db)
+        base_fln_output = igortask.igor_fln_db.split(".db")[0]
+        output_fln_prefix = base_fln_output
+        # output_fln_db = output_fln_prefix + ".db"
+        output_fln_parms = output_fln_prefix + "_parms.txt"
+        output_fln_marginals = output_fln_prefix + "_marginals.txt"
+        os.rename(igortask.igor_fln_output_scenarios, output_fln_prefix + "_scenarios.csv")
+        print("scenarios file: ", output_fln_prefix + "_scenarios.csv")
+        # igortask.mdl.plot_Bayes_network(filename=output_fln_prefix + "_BN.pdf")
+        # igortask.mdl.export_plot_Pmarginals(output_fln_prefix + "_RM")
+        # igortask.mdl.write_model(output_fln_parms, output_fln_marginals)
 
 
 @click.command("igor-pgen")
@@ -732,6 +753,7 @@ def run_generate(N,
 
     print(igortask.to_dict())
     igortask.run_generate(N_seqs=N)
+
 
 
 

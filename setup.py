@@ -15,7 +15,8 @@ setuptools.setup(
         "biopython",
         "Click",
         "networkx",
-        "requests"
+        "requests",
+        "matplotlib"
     ],
     packages=setuptools.find_packages(),
     entry_points= {

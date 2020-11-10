@@ -539,7 +539,7 @@ class IgorTask:
         cmd = cmd + " -align " + command_from_dict_options(self.igor_align_dict_options)
         #return cmd
         print(cmd)
-        cmd_stdout = run_command(cmd)
+        cmd_stdout = run_command_print(cmd)
         #run_command_no_output(cmd)
         self.b_align = True # FIXME: If run_command success then True
         return cmd_stdout
