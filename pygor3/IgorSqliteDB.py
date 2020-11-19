@@ -1151,6 +1151,7 @@ class IgorSqliteDB:
             ## Change event_name to event_nickname using dictionary.
             # Get dictionary to change names to nicknames
             events_name_nickname_dict = mdl.parms.get_event_dict('name', 'nickname')
+            print("events_name_nickname_dict", events_name_nickname_dict)
             bs_events_nickname_list = [ events_name_nickname_dict[event_name] for event_name in bs_events_name_list]
 
             # Now generate sql_id, sql_type and foreign_key in the file order
@@ -1235,7 +1236,7 @@ class IgorSqliteDB:
                 print(e)
                 pass
         except Exception as e:
-            print("ohohohoho")
+            print("ERROR: insert_IgorBestScenarios_FromCSVline")
             print(csvlist)
             print(e)
             pass
@@ -1293,7 +1294,7 @@ class IgorSqliteDB:
             sql_cmd_drop = "DROP TABLE IF EXISTS {tablename};".format(tablename=tablename)
             self.execute_query(sql_cmd_drop)
 
-    def export_IgorBestScenarios_to_AIRR(self, flnIgorBestScenarios, mdl=None, sep='\t'):
+    def export_IgorBestScenarios_to_AIRR(self, flnAIRR_arrangement, mdl=None, sep='\t'):
         """
         sequence_id
         v_call
@@ -1320,6 +1321,7 @@ class IgorSqliteDB:
         # OPEN FILE
         for seq_index in self.fetch_IgorIndexedSeq_indexes():
             scenarios = self.get_IgorBestScenarios_By_seq_index(seq_index)
+            sequence = self.fetch_IgorIndexedSeq_By_seq_index(seq_index)
             for scenario in scenarios:
                 scenario.export_to_AIRR_line()
 
@@ -1624,6 +1626,37 @@ class IgorSqliteDB:
             scenarios_mdl_list.append(scen)
 
         return scenarios_mdl_list
+
+
+    def fetch_AIRR_arrangement_By_seq_index(self, seq_index):
+        sqlSelect = "SELECT * FROM IgorBestScenarios WHERE seq_index==" + str(
+            seq_index) #+ " ORDER BY score DESC LIMIT 1"
+
+        sqlSelect_VDJ= """
+            SELECT Tscenarios.seq_index as sequence_id, 
+                Tscenarios.scenario_rank, 
+                Tscenarios.scenario_proba_cond_seq, 
+                Tindexed.sequence, 
+                T_v_choice.name as v_call, 
+                T_d_gene.name as d_call, 
+                T_j_choice.name as j_call
+            FROM IgorBestScenarios Tscenarios 
+                JOIN IgorIndexedSeq Tindexed, 
+                    IgorER_v_choice T_v_choice, 
+                    IgorER_d_gene T_d_gene, 
+                    IgorER_j_choice T_j_choice
+            WHERE Tindexed.seq_index==Tscenarios.seq_index 
+                AND Tindexed.seq_index == 0 
+                AND Tscenarios.id_v_choice == T_v_choice.id 
+                AND Tscenarios.id_d_gene == T_d_gene.id 
+                AND Tscenarios.id_j_choice == T_j_choice.id;
+            """
+
+
+        cur = self.conn.cursor()
+        cur.execute(sqlSelect)
+        records = cur.fetchall()
+        return (records)
 
     def calc_IgorBestScenarios_average_of(self, scenario_function, indices_list=None):
         from .IgorIO import IgorScenario

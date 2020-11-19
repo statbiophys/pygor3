@@ -167,4 +167,4 @@ def run_igor_datadir():
         # print (line, end='')
         if line == '' and p.poll() != None:
             break
-    return ''.join(stdout)
+    return (''.join(stdout)).replace('\n','')

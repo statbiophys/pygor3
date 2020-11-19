@@ -755,13 +755,16 @@ class IgorTask:
             pass
         print("Alignments loaded in database in "+str(self.igor_fln_db))
 
-    def load_db_from_models(self):
+    def load_db_from_models(self, mdl=None):
         # self.load_IgorModel()
         try:
             if self.igor_db.Q_model_in_db():
                 print("WARNING: Overwriting previous model in database ", self.igor_fln_db)
                 self.igor_db.delete_IgorModel_Tables()
-            self.igor_db.load_IgorModel(self.mdl)
+            if mdl is None:
+                self.igor_db.load_IgorModel(self.mdl)
+            else:
+                self.igor_db.load_IgorModel(mdl)
         except Exception as e:
             print("Couldn't load model to database from IgorModel object")
             print("ERROR: ", e)
@@ -993,6 +996,13 @@ class IgorTask:
 
     def export_to_igorfiles(self):
         print("Export: ")
+
+    #### AIRR methods ###
+    def parse_scenarios_to_airr(self, igor_fln_output_scenarios, airr_fln_output_scenarios):
+        # 1. Read header of and make a list
+        open(igor_fln_output_scenarios)
+        # 2.
+        pass
 
 
 ### IGOR INPUT SEQUENCES  ####
@@ -1379,7 +1389,7 @@ class IgorModel:
         #IgorChain     = chain #"tcr_beta"
         if modelpath is None:
             try:
-                modelpath = run_igor_datadir()
+                modelpath = run_igor_datadir() + "/models"
             except Exception as e:
                 print("ERROR: getting default igor datadir.", e)
 
@@ -3129,6 +3139,15 @@ class IgorModel_Parms:
             event.update_name()
         self.gen_NameNickname_dict()
 
+    # FIXME: SCENARIO FROM CSV LINE IN GENERATED SEQUENCES
+    def get_scenario_from_line_CSV(self, str_line, file_header_list, sep=';'):
+        dicto = dict()
+        str_line_list = str_line.split(sep)
+        for str_header in file_header_list:
+            if str_header == 'seq_index':
+                pass
+        return dicto
+
 class IgorRec_Event:
     """Recombination event class containing event's name, type, realizations,
     etc... Similar to IGoR's C++ RecEvent class.
@@ -3709,14 +3728,21 @@ class IgorScenario:
 
         # n_d_5_del = self.mdlParms.Event_dict[strEv].loc[self.id_d_5_del]['value']
         # name_D = self.mdlParms.Event_dict[strEv].loc[self.id_d_gene]['name']
+        # header_list=['sequence_id', 'sequence', 'v_call', 'd_call', 'j_call', 'v_score', 'd_score', 'j_score'])
+        # sequence_id	sequence	rev_comp	productive	v_call	d_call	j_call	c_call	sequence_alignment	germline_alignment	junction	junction_aa	v_score	v_cigar	d_score	d_cigar	j_score	j_cigar	c_score	c_cigar	vj_in_frame	stop_codon	v_identity	v_evalue	d_identity	d_evalue	j_identity	j_evalue	v_sequence_start	v_sequence_end	v_germline_start	v_germline_end	d_sequence_start	d_sequence_end	d_germline_start	d_germline_end	j_sequence_start	j_sequence_end	j_germline_start	j_germline_end	junction_length	np1_length	np2_length	duplicate_count	consensus_count
+        airr_header_list = ["sequence_id", "sequence", "rev_comp", "productive", "v_call", "d_call", "j_call", "c_call",
+                            "sequence_alignment", "germline_alignment", "junction", "junction_aa", "v_score", "v_cigar", "d_score", "d_cigar", "j_score", "j_cigar", "c_score", "c_cigar", "vj_in_frame", "stop_codon", "v_identity", "v_evalue", "d_identity", "d_evalue", "j_identity", "j_evalue", "v_sequence_start", "v_sequence_end", "v_germline_start", "v_germline_end", "d_sequence_start", "d_sequence_end", "d_germline_start", "d_germline_end", "j_sequence_start", "j_sequence_end", "j_germline_start", "j_germline_end", "junction_length", "np1_length", "np2_length", "duplicate_count", "consensus_count"]
 
         from pygor3 import IgorModel_Parms
         mdl_parms = IgorModel_Parms()
         # mdl_parms = self.mdl.parms
+        # TODO: No general way, just select between VJ OR VDJ, SO RECHECK IN MODEL IF 'd_gene' is present and make arrangement.
+        airr_line_list = list()
         for event_nickname in scenario_col_list:
             event_realization_id = self.realizations_ids_dict[event_nickname]
             event_realization_value = mdl_parms.Event_dict[event_nickname].loc[event_realization_id]['value']
             event_realization_name = mdl_parms.Event_dict[event_nickname].loc[event_realization_id]['name']
+            airr_line_list.append(str(self.seq_index))
 
             bs_realiz = mdl_parms.realiz_dict_from_scenario(bs)
             mdl_parms.from_scenario()
