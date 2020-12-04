@@ -1,7 +1,12 @@
 import setuptools
 
+with open("README.md", "r") as fh:
+    long_description = fh.read()
+
 setuptools.setup(
     name='pygor3',
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     version='0.0.1',
     description='Python package to manipulate and run IGoR data files',
     license="GNU GPLv3",
