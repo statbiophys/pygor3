@@ -34,7 +34,7 @@ import subprocess
 
 from .utils import *
 from .IgorSQL import *
-
+import collections
 
 ### GENERIC FUNCTIONS
 # Generation of label for a simple identification of genomic template sequence.
@@ -1069,8 +1069,8 @@ class IgorIndexedSequence:
         """
         cls = IgorIndexedSequence()
         try:
-            cls.seq_index    = int  (sqlRecord[0])
-            cls.sequence     = str  (sqlRecord[1]).replace('\n','')
+            cls.seq_index = int(sqlRecord[0])
+            cls.sequence = str(sqlRecord[1]).replace('\n', '')
         except Exception as e:
             print(e)
             raise e
@@ -1371,6 +1371,8 @@ class IgorModel:
             self.marginals.read_model_marginals(model_marginals_file)
         if flag_xdata:
             self.generate_xdata()
+
+        self.sequence_construction_event_list = list()
 
     def __getitem__(self, key):
         return self.xdata[key]
@@ -2408,6 +2410,21 @@ class IgorModel:
     def get_event_realizations_DataFrame(self, event_nickname):
         return self.parms.Event_dict[event_nickname]
 
+    def get_event_realization_of_event(self, event_nickname, event_id):
+        if type(event_id) is list:
+            return list( map( lambda x: self.parms.get_Event(event_nickname).realizations[x], event_id) )
+        else:
+            return self.parms.get_Event(event_nickname).realizations[event_id]
+
+    def get_realizations_dict_from_scenario_dict(self, scenario_realization_dict:dict):
+        realization_dict = dict()
+        # print(scenario_realization_dict)
+        for event_nickname, event_id in scenario_realization_dict.items():
+            if not ( event_nickname == 'mismatcheslen' or event_nickname == 'mismatches' or event_nickname == 'errors')  :
+                realization_dict[event_nickname] = self.get_event_realization_of_event(event_nickname, event_id)
+
+        return realization_dict
+
     def set_realization_event_from_DataFrame(self, event_nickname, new_df):
         self.parms.set_event_realizations_from_DataFrame(event_nickname, new_df)
         self.marginals.initialize_uniform_from_model_parms(self.parms)
@@ -2416,6 +2433,182 @@ class IgorModel:
     def write_model(self, fln_model_parms, fln_model_marginals):
         self.parms.write_model_parms(filename=fln_model_parms)
         self.marginals.write_model_marginals(filename=fln_model_marginals, model_parms=self.parms)
+
+    # FIXME: DEPRECATED
+    # FIXME: Find a better way to get the order to construct a sequence.
+    def generate_sequence_construction_list(self):
+        """ Generate the list of events to reconstruct a sequence from an scenario self.sequence_construction_event_list """
+
+        sequence_arrengement_dict = dict()
+        # 1. 'V_gene'
+        V_gene_list = [event for event in self.parms.Event_list if event.seq_type == 'V_gene']
+
+        # 2. 'D_gene'
+        D_gene_list = [event for event in self.parms.Event_list if event.seq_type == 'D_gene']
+
+        # 3. 'J_gene'
+        J_gene_list = [event for event in self.parms.Event_list if event.seq_type == 'J_gene']
+
+        V_gene_list = sorted(V_gene_list,
+                             key=lambda event: 100 * event.priority - len(self.xdata[event.nickname].attrs['parents']),
+                             reverse=True)
+
+        J_gene_list = sorted(J_gene_list,
+                             key=lambda event: 100 * event.priority - len(self.xdata[event.nickname].attrs['parents']),
+                             reverse=True)
+
+        sequence_arrengement_dict['V_gene'] = V_gene_list
+        sequence_arrengement_dict['J_gene'] = J_gene_list
+        # since d_3_del and d_5_del have the same priority then
+        arrengement_list = list()
+        if len(D_gene_list) == 0:
+            VJ_gene_list = [event for event in self.parms.Event_list if event.seq_type == 'VJ_gene']
+            VJ_gene_list = sorted(VJ_gene_list,
+                                 key=lambda event: 100 * event.priority - len(self.xdata[event.nickname].attrs['parents']),
+                                 reverse=True)
+            sequence_arrengement_dict['VJ_gene'] = VJ_gene_list
+            arrengement_list = V_gene_list + VJ_gene_list + J_gene_list
+        else:
+            D_gene_list = sorted(D_gene_list,
+                                 key=lambda event: 100 * event.priority - len(self.xdata[event.nickname].attrs['parents']),
+                                 reverse=True)
+            sequence_arrengement_dict['D_gene'] = D_gene_list
+            VD_gene_list = [event for event in self.parms.Event_list if event.seq_type == 'VD_genes']
+            VD_gene_list = sorted(VD_gene_list,
+                                  key=lambda event: 100 * event.priority - len(self.xdata[event.nickname].attrs['parents']),
+                                  reverse=True)
+            sequence_arrengement_dict['VD_gene'] = VD_gene_list
+
+            DJ_gene_list = [event for event in self.parms.Event_list if event.seq_type == 'DJ_gene']
+            DJ_gene_list = sorted(DJ_gene_list,
+                                  key=lambda event: 100 * event.priority - len(self.xdata[event.nickname].attrs['parents']),
+                                  reverse=True)
+            sequence_arrengement_dict['DJ_gene'] = VD_gene_list
+
+            arrengement_list = V_gene_list + VD_gene_list + D_gene_list + DJ_gene_list + J_gene_list
+
+
+
+
+        self.sequence_construction_event_list = arrengement_list
+        return sequence_arrengement_dict # arrengement_list
+
+
+    def construct_sequence_VDJ_from_realization_dict(self, scen_realization_dict):
+        """return VDJ gene segment, which are the gene with the deletions of palindromic insertions"""
+        # print("scen_realization_dict : ", scen_realization_dict)
+        V_segment_dict = get_gene_segment(scen_realization_dict['v_choice'].value,
+                                     int_gene_3_del=scen_realization_dict['v_3_del'].value)
+        D_segment_dict = get_gene_segment(scen_realization_dict['d_gene'].value,
+                                     int_gene_5_del=scen_realization_dict['d_5_del'].value,
+                                     int_gene_3_del=scen_realization_dict['d_3_del'].value)
+        J_segment_dict = get_gene_segment(scen_realization_dict['j_choice'].value,
+                                     int_gene_5_del=scen_realization_dict['j_5_del'].value)
+
+        VD_segment_dict = collections.OrderedDict()
+        DJ_segment_dict = collections.OrderedDict()
+        VD_segment_dict['gene_segment'] = "".join([realiz.value for realiz in scen_realization_dict['vd_dinucl']])
+        DJ_segment_dict['gene_segment'] = "".join([realiz.value for realiz in scen_realization_dict['dj_dinucl']][::-1])
+
+
+        return V_segment_dict, VD_segment_dict, D_segment_dict, DJ_segment_dict, J_segment_dict
+
+    def construct_sequence_VJ_from_realization_dict(self, scen_realization_dict):
+        """return VJ sequence, which are the gene with the deletions of palindromic insertions"""
+
+        # print("scen_realization_dict : ", scen_realization_dict)
+        V_segment_dict = get_gene_segment(scen_realization_dict['v_choice'].value,
+                                     int_gene_3_del=scen_realization_dict['v_3_del'].value)
+        J_segment_dict = get_gene_segment(scen_realization_dict['j_choice'].value,
+                                     int_gene_5_del=scen_realization_dict['j_5_del'].value)
+
+        VJ_segment_dict = collections.OrderedDict()
+        VJ_segment_dict['gene_segment'] = "".join([realiz.value for realiz in scen_realization_dict['vj_dinucl']])
+        VJ_segment_dict['np1'] = None
+        VJ_segment_dict['np1_length'] = None
+        VJ_segment_dict['n1_length'] = None
+
+
+
+        return V_segment_dict, VJ_segment_dict, J_segment_dict
+
+
+    # TODO: MAKE A METHOD TO EXPORT A LINE FROM AN SCENARIO
+    def get_AIRR_VDJ_rearragement_dict_from_scenario(self, scenario, str_sequence, v_offset=0, pgen=None, junction=None, junction_aa=None):
+        # get_AIRR_VDJ_rearragement_dict_from_scenario(scenario, indexed_seq.seq_index, indexed_seq.sequence)
+        # airr_dict = dict()
+
+        from .AIRR import AIRR_VDJ_rearrangement
+
+        realizations_ids_dict = scenario.realizations_ids_dict
+        realization_dict = self.get_realizations_dict_from_scenario_dict(realizations_ids_dict)
+
+        v_segment, vd_segment, d_segment, dj_segment, j_segment = self.construct_sequence_VDJ_from_realization_dict(realization_dict)
+
+        airr_vdj = AIRR_VDJ_rearrangement(sequence_id=scenario.seq_index, sequence=str_sequence)
+
+        airr_vdj.v_data.call = realization_dict['v_choice'].name
+        airr_vdj.d_data.call = realization_dict['d_gene'].name
+        airr_vdj.j_data.call = realization_dict['j_choice'].name
+
+        airr_vdj.sequence_alignment = v_segment['gene_segment'] + vd_segment['gene_segment'] + d_segment['gene_segment'] + dj_segment['gene_segment'] + j_segment['gene_segment']
+
+        airr_vdj.np1 = v_segment['palindrome_3_end'] + vd_segment['gene_segment']
+        airr_vdj.np2 = dj_segment['gene_segment'] + j_segment['palindrome_5_end']
+
+        airr_vdj.pgen = pgen
+
+        airr_vdj.junction = junction
+        airr_vdj.junction_aa = junction_aa
+
+        airr_vdj.rev_comp = False
+
+        # FIXME: CORRECT CIGAR FORMAT TEMPORARY SOLUTION
+        airr_vdj.v_data.cigar = str(len(v_segment['gene_cut']))+"M"
+        airr_vdj.d_data.cigar = str(len(d_segment['gene_cut'])) + "M"
+        airr_vdj.j_data.cigar = str(len(j_segment['gene_cut'])) + "M"
+
+        airr_vdj.v_data.score = 5 * len(v_segment['gene_cut'])
+        airr_vdj.d_data.score = 5 * len(d_segment['gene_cut'])
+        airr_vdj.j_data.score = 5 * len(j_segment['gene_cut'])
+
+
+
+        # V
+        airr_vdj.v_data.sequence_start = 1
+        airr_vdj.v_data.sequence_end = len(v_segment['palindrome_5_end']) + len(v_segment['gene_cut'])
+        airr_vdj.v_data.germline_start = airr_vdj.v_data.sequence_start - v_offset - 1
+        airr_vdj.v_data.germline_end = airr_vdj.v_data.sequence_end - airr_vdj.v_data.sequence_start - 1
+        # = airr_vdj.v_data.germline_start + len(v_segment['palindrome_5_end']) + len(v_segment['gene_cut'])
+        airr_vdj.p3v_length = len(v_segment['palindrome_3_end'])
+
+        # VD
+        airr_vdj.n1_length = realization_dict['vd_ins'].value
+        airr_vdj.np1_length = airr_vdj.p3v_length + airr_vdj.n1_length
+        airr_vdj.np1 = vd_segment['gene_segment'] # This include the palindromic insertions
+
+        # D
+        airr_vdj.p5d_length = len(d_segment['palindrome_5_end'])
+        airr_vdj.d_data.germline_start = d_segment['gene_ini'] + 1
+        airr_vdj.d_data.germline_end = d_segment['gene_end'] + 1
+        airr_vdj.d_data.sequence_start = airr_vdj.np1_length + (airr_vdj.v_data.sequence_end - airr_vdj.v_data.sequence_start - 1 )
+        airr_vdj.d_data.sequence_end = airr_vdj.d_data.sequence_start + len(d_segment['gene_cut']) - 1
+        airr_vdj.p3d_length = len(d_segment['palindrome_3_end'])
+
+        # DJ
+        airr_vdj.n2_length = realization_dict['dj_ins'].value
+        airr_vdj.np2_length =  airr_vdj.p5d_length + airr_vdj.n2_length + airr_vdj.p3d_length
+        airr_vdj.np2 = dj_segment['gene_segment'] # This include the palindromic insertions
+
+        # J
+        airr_vdj.p5j_length = len(j_segment['palindrome_5_end'])
+        airr_vdj.j_data.germline_start = j_segment['gene_ini'] + 1
+        airr_vdj.j_data.germline_end = j_segment['gene_end'] + 1
+        airr_vdj.j_data.sequence_start = airr_vdj.np2_length + (airr_vdj.d_data.sequence_end - airr_vdj.d_data.sequence_start - 1)
+        airr_vdj.j_data.sequence_end = airr_vdj.j_data.sequence_start + len(j_segment['gene_cut']) - 1
+
+        return airr_vdj.to_dict()
+
 
 
 class IgorModel_Parms:
@@ -3134,6 +3327,8 @@ class IgorModel_Parms:
             #     print(e)
         return realizations_dict
 
+
+
     def update_events_name(self):
         for event in self.Event_list:
             event.update_name()
@@ -3199,6 +3394,7 @@ class IgorRec_Event:
     def add_realization(self):
         realization = IgorEvent_realization()
         self.realizations.append(realization)
+        self.realizations = sorted(self.realizations)
         self.update_name()
 
     @classmethod
@@ -3250,6 +3446,7 @@ class IgorRec_Event:
             dict_realiz['index'] = index
             realiz = IgorEvent_realization.from_dict(dict_realiz)
             self.realizations.append(realiz)
+            self.realizations = sorted(self.realizations)
         self.update_name()
 
     @classmethod
@@ -3261,6 +3458,7 @@ class IgorRec_Event:
     def add_realization(self, realization):
         """Add a realization to the RecEvent realizations list."""
         self.realizations.append(realization)
+        self.realizations = sorted(self.realizations)
         self.update_name()
 
     def update_name(self):
@@ -3327,22 +3525,25 @@ class IgorEvent_realization:
     """A small class storing for each RecEvent realization its name, value and
     corresponding index.
     """
+    __slots__ = ('id', 'name', 'value')
     def __init__(self):
+        self.id = "" #index
         self.name  = "" #name
         self.value = "" #value
-        self.id = "" #index
 
     def __lt__(self, other):
-        return self.id < other.index
+        return self.id < other.id
 
     def __gt__(self, other):
-        return self.id > other.index
+        return self.id > other.id
 
     def __str__(self):
         if self.name == "":
-            return self.value+";"+self.id
+            return "{value};{id}".format(value=self.value, id=self.id)
+            # return str(self.value)+";"+str(self.id)
         else:
-            return self.name+";"+self.value+";"+str(self.id)
+            return "{name};{value};{id}".format(name=self.name, value=self.value, id=self.id)
+            # return self.name+";"+str(self.value)+";"+str(self.id)
 
     def __repr__(self):
         return "Event_realization(" + str(self.id) + ")"

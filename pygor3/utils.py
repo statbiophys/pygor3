@@ -1,3 +1,4 @@
+import collections
 def from_fasta_to_dataframe(fln_fasta):
     # Fasta to dataframe
     from Bio import SeqIO
@@ -140,7 +141,8 @@ try:
 except ImportError as error:
     # Output expected ImportErrors.
     # print(error.__class__.__name__ + ": " + error.message)
-    print(error)
+    # FIXME: no error printing for autocomplete
+    # print(error)
     pass
 except Exception as exception:
     # Output unexpected Exceptions.
@@ -168,3 +170,67 @@ def run_igor_datadir():
         if line == '' and p.poll() != None:
             break
     return (''.join(stdout)).replace('\n','')
+
+
+class GeneSegment:
+    def __int__(self, gene_type=None):
+        self.gene_type = gene_type
+        self.palindrome_5_end = None
+        self.gene_ini = None
+        self.gene_end = None
+        self.gene_cut = None
+        self.palindrome_3_end = None
+        self.gene_segment = None
+
+class InsertSegment:
+    def __int__(self, gene_type=None):
+        self.gene_type = gene_type
+        self.palindrome_5_end = None
+        self.gene_ini = None
+        self.gene_end = None
+        self.gene_cut = None
+        self.palindrome_3_end = None
+        self.gene_segment = None
+
+def get_gene_segment(str_gene_template, int_gene_5_del=None, int_gene_3_del=None):
+    if int_gene_5_del is None:
+        int_gene_5_del = 0
+    if int_gene_3_del is None:
+        int_gene_3_del = 0
+
+    # print(str_gene_template, int_gene_5_del, int_gene_3_del)
+
+    int_ini = 0
+    int_end = len(str_gene_template)
+    str_gene_3_palindrome = ""
+    str_gene_5_palindrome = ""
+
+    if int_gene_5_del < 0:
+        int_ini = 0
+        str_gene_5_palindrome = dna_complementary( (str_gene_template[:-int_gene_5_del])[::-1] )
+    else:
+        int_ini = int_gene_5_del
+        str_gene_5_palindrome = ""
+
+    if int_gene_3_del < 0:
+        int_end = len(str_gene_template)
+        str_gene_3_palindrome = dna_complementary( (str_gene_template[int_gene_3_del:])[::-1] )
+    else:
+        int_end = len(str_gene_template) - int_gene_3_del
+        str_gene_3_palindrome = ""
+
+    segment_dict = collections.OrderedDict()
+    segment_dict['palindrome_5_end'] = str_gene_5_palindrome
+    segment_dict['gene_ini'] = int_ini
+    segment_dict['gene_end'] = int_end
+    segment_dict['gene_cut'] = str_gene_template[int_ini:int_end]
+    segment_dict['palindrome_3_end'] = str_gene_3_palindrome
+    segment_dict['gene_segment'] = str_gene_5_palindrome + str_gene_template[int_ini:int_end] + str_gene_3_palindrome
+    return segment_dict
+    # str_gene_segment = str_gene_5_palindrome + str_gene_template[int_ini:int_end] + str_gene_3_palindrome
+    # return str_gene_segment
+
+
+def dna_complementary(str_seq):
+    from Bio.Seq import Seq
+    return str(Seq(str_seq).complement())

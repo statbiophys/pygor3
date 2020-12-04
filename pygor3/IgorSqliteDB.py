@@ -56,6 +56,7 @@ class IgorSqliteDB:
         self.sql_BestScenarios_cols_list = None
         self.sqlcmd_ins_bs = None
         self.sql_IgorBestScenarios_cols_name_type_list = None
+        self.mdl = None
     
     #@classmethod
     def createSqliteDB(self, flnIgorDB):
@@ -246,6 +247,23 @@ class IgorSqliteDB:
                 print(data)
                 print(e)
                 pass
+
+    def fetch_IgorIndexedSeq_records(self):
+        """
+        Fetch seq_index and sequence from Igor database.
+        :param seq_index: string to specify the type of gene V, D or J
+        :return:
+        """
+
+        #print(gene_name)
+        sqlSelect = "SELECT seq_index, sequence FROM IgorIndexedSeq;"
+        #print(sqlSelect)
+        cur = self.conn.cursor()
+        cur.execute(sqlSelect)
+        #if strGene == 'D':
+        #    print(sqlSelect)
+        records = cur.fetchall()
+        return records
 
     def fetch_IgorIndexedSeq_By_seq_index(self, seq_index):
         """
@@ -525,6 +543,7 @@ class IgorSqliteDB:
         return (records)
 
     def get_IgorGenomicDataFrame_dict(self):
+        """return dataframes genomic_data """
         import pandas as pd
         genomic_data_dict = dict()
         V_records = self.fetch_IgorGenomicData_By_Gene("V")
@@ -624,13 +643,16 @@ class IgorSqliteDB:
         else:
             print(csvlist)
 
-    def fetch_IgorAlignments_By_seq_index(self, strGene, limit=None):
+    def fetch_IgorAlignments_By_seq_index(self, strGene, seq_index, limit=None):
         """
         Fetch IgorAlignments from database by seq_index.
         :param strGene: string to specify the type of gene V, D or J
         :param seq_index: IgorIndexedSequences index
         """
-        sqlSelect = "SELECT * FROM Igor"+strGene.upper()+"Alignments;"
+        sqlSelect = "SELECT * FROM Igor"+strGene.upper()+"Alignments WHERE seq_index=="+str(seq_index)+" ORDER BY score DESC"
+        if limit is not None:
+            sqlSelect = sqlSelect + " LIMIT " + str(limit)
+        sqlSelect = sqlSelect +";"
         cur = self.conn.cursor()
         cur.execute(sqlSelect)
         record = cur.fetchall()
@@ -1295,71 +1317,82 @@ class IgorSqliteDB:
             self.execute_query(sql_cmd_drop)
 
     def export_IgorBestScenarios_to_AIRR(self, flnAIRR_arrangement, mdl=None, sep='\t'):
-        """
-        sequence_id
-        v_call
-        d_call
-        j_call
-        sequence_alignment
-        junction
-        junction_aa
-        np1 # Nucleotide sequence of the combined N/P between VD or VJ
-        np2 # between DJ
-        v_cigar
-        d_cigar
-        j_cigar
-        """
-
+        """Export Igor best scenarios to airr rearrangement format"""
         if mdl is None:
             mdl = self.get_IgorModel()
+
+        from .AIRR import AIRR_VDJ_rearrangement
+        import airr
+
+        # FIXME: IF VDJ THEN:
+        airr_fields = AIRR_VDJ_rearrangement.list_of_fields()
+        airr_rearrangement_writer = airr.create_rearrangement(flnAIRR_arrangement, fields=airr_fields)
+        for seq_index, sequence in self.fetch_IgorIndexedSeq_records():
+            scenarios_list = self.get_IgorBestScenarios_By_seq_index_IgorModel(seq_index, mdl)
+            for scenario in scenarios_list:
+                v_best_aln = self.get_best_IgorAlignment_data_By_seq_index("V", seq_index)
+
+                airr_rearrangement_dict = mdl.get_AIRR_VDJ_rearragement_dict_from_scenario(scenario, sequence, v_offset=v_best_aln.offset)
+                airr_rearrangement_dict['scenario_rank'] = scenario.scenario_rank
+                airr_rearrangement_dict['scenario_proba_cond_seq'] = scenario.scenario_proba_cond_seq
+                airr_rearrangement_dict['pgen'] = self.fetch_IgorPgen_By_seq_index(seq_index)[1]
+                cdr3_record = self.fetch_IgorIndexedCDR3_By_seq_index(seq_index)
+                airr_rearrangement_dict['junction'] = cdr3_record[3]
+                airr_rearrangement_dict['junction_aa'] = cdr3_record[4]
+                airr_rearrangement_writer.write(airr_rearrangement_dict)
+
+        airr_rearrangement_writer.close()
+
+
+
 
         # n_d_5_del = self.mdlParms.Event_dict[strEv].loc[self.id_d_5_del]['value']
         # name_D = self.mdlParms.Event_dict[strEv].loc[self.id_d_gene]['name']
         # v_call d_call c_call v_score d_score j_score v_cigar j_evalue v_identity v_start v_end v_germ_start v_germ_end np1_seq np1_length np2_seq np2_length
 
-        from pygor3.IgorIO import IgorScenario
-        # OPEN FILE
-        for seq_index in self.fetch_IgorIndexedSeq_indexes():
-            scenarios = self.get_IgorBestScenarios_By_seq_index(seq_index)
-            sequence = self.fetch_IgorIndexedSeq_By_seq_index(seq_index)
-            for scenario in scenarios:
-                scenario.export_to_AIRR_line()
-
-
-        ### MAKE THE HEADER with name using nicknames
-        # Transform the nicknames with id
-        db_events_nickname_name_dict = dict()
-        for event in mdl.parms.Event_list:
-            if event.event_type == 'DinucMarkov':
-                db_events_nickname_name_dict[event.nickname] = event.name
-            else:
-                db_events_nickname_name_dict["id_" + event.nickname] = event.name
-        db_events_nickname_name_dict['mismatches'] = 'Mismatches'
-        print(db_events_nickname_name_dict)
-
-        list_bs_columns_db = [el[0] for el in self.get_columns_type_of_tables('IgorBestScenarios')[:-1]]
-        tmp_list = list()
-        for aaa in list_bs_columns_db:
-            if aaa in db_events_nickname_name_dict.keys():
-                tmp_list.append(db_events_nickname_name_dict[aaa])
-            else:
-                tmp_list.append(aaa)
-        # str_file_header
-        # str_file_header = sep.join(list_bs_columns_db)
-        str_file_header = sep.join(tmp_list) + "\n"
-
-        str_sql_columns_to_query = ",".join(list_bs_columns_db)
-        sqlSelect = "SELECT " + str_sql_columns_to_query + " FROM IgorBestScenarios;"
-        cur = self.conn.cursor()
-        cur.execute(sqlSelect)
-        records = cur.fetchall()
-
-        # str_file_header = "seq_index;gene_name;score;offset;insertions;deletions;mismatches;length;5_p_align_offset;3_p_align_offset" + "\n"
-        with open(flnIgorBestScenarios, "w") as ofile:
-            ofile.write(str_file_header)
-            for record in records:
-                csvline = sep.join(map(str, record)).replace("[", "{").replace("]", "}")
-                ofile.write(csvline + "\n")
+        # from pygor3.IgorIO import IgorScenario
+        # # OPEN FILE
+        # for seq_index in self.fetch_IgorIndexedSeq_indexes():
+        #     scenarios = self.get_IgorBestScenarios_By_seq_index(seq_index)
+        #     sequence = self.fetch_IgorIndexedSeq_By_seq_index(seq_index)
+        #     for scenario in scenarios:
+        #         scenario.export_to_AIRR_line()
+        #
+        #
+        # ### MAKE THE HEADER with name using nicknames
+        # # Transform the nicknames with id
+        # db_events_nickname_name_dict = dict()
+        # for event in mdl.parms.Event_list:
+        #     if event.event_type == 'DinucMarkov':
+        #         db_events_nickname_name_dict[event.nickname] = event.name
+        #     else:
+        #         db_events_nickname_name_dict["id_" + event.nickname] = event.name
+        # db_events_nickname_name_dict['mismatches'] = 'Mismatches'
+        # print(db_events_nickname_name_dict)
+        #
+        # list_bs_columns_db = [el[0] for el in self.get_columns_type_of_tables('IgorBestScenarios')[:-1]]
+        # tmp_list = list()
+        # for aaa in list_bs_columns_db:
+        #     if aaa in db_events_nickname_name_dict.keys():
+        #         tmp_list.append(db_events_nickname_name_dict[aaa])
+        #     else:
+        #         tmp_list.append(aaa)
+        # # str_file_header
+        # # str_file_header = sep.join(list_bs_columns_db)
+        # str_file_header = sep.join(tmp_list) + "\n"
+        #
+        # str_sql_columns_to_query = ",".join(list_bs_columns_db)
+        # sqlSelect = "SELECT " + str_sql_columns_to_query + " FROM IgorBestScenarios;"
+        # cur = self.conn.cursor()
+        # cur.execute(sqlSelect)
+        # records = cur.fetchall()
+        #
+        # # str_file_header = "seq_index;gene_name;score;offset;insertions;deletions;mismatches;length;5_p_align_offset;3_p_align_offset" + "\n"
+        # with open(flnIgorBestScenarios, "w") as ofile:
+        #     ofile.write(str_file_header)
+        #     for record in records:
+        #         csvline = sep.join(map(str, record)).replace("[", "{").replace("]", "}")
+        #         ofile.write(csvline + "\n")
 
 
 
@@ -1628,35 +1661,73 @@ class IgorSqliteDB:
         return scenarios_mdl_list
 
 
-    def fetch_AIRR_arrangement_By_seq_index(self, seq_index):
+    def fetch_AIRR_arrangement_By_seq_index(self, seq_index, mdl=None):
         sqlSelect = "SELECT * FROM IgorBestScenarios WHERE seq_index==" + str(
             seq_index) #+ " ORDER BY score DESC LIMIT 1"
 
-        sqlSelect_VDJ= """
-            SELECT Tscenarios.seq_index as sequence_id, 
-                Tscenarios.scenario_rank, 
-                Tscenarios.scenario_proba_cond_seq, 
-                Tindexed.sequence, 
-                T_v_choice.name as v_call, 
-                T_d_gene.name as d_call, 
-                T_j_choice.name as j_call
-            FROM IgorBestScenarios Tscenarios 
-                JOIN IgorIndexedSeq Tindexed, 
-                    IgorER_v_choice T_v_choice, 
-                    IgorER_d_gene T_d_gene, 
-                    IgorER_j_choice T_j_choice
-            WHERE Tindexed.seq_index==Tscenarios.seq_index 
-                AND Tindexed.seq_index == 0 
-                AND Tscenarios.id_v_choice == T_v_choice.id 
-                AND Tscenarios.id_d_gene == T_d_gene.id 
-                AND Tscenarios.id_j_choice == T_j_choice.id;
-            """
+        from .IgorIO import IgorScenario
+
+        # TODO: NOW AIRR SCENARIOS
+        # 1. Load model used for scenarios.
+        if mdl is None:
+            mdl = self.get_IgorModel()
+
+        change_dicto = dict()
+        for event in mdl.parms.Event_list:
+            if event.event_type == 'DinucMarkov':
+                change_dicto[event.nickname] = event.nickname
+            else:
+                change_dicto['id_'+event.nickname] = event.nickname
+
+        # 2. Get the list of columns
+        scenarios_col_list = self.get_columns_type_of_tables('IgorBestScenarios')
+        scenarios_db_list = list()
+        # So scenarios in database have ids, so for use the model I just want the realizations dont care about the rest
+        evento = mdl.parms.get_Event(event.nickname)
+        from .IgorIO import IgorRec_Event
+        evento = IgorRec_Event()
+        evento.realizations[realization_id]
+        # for the scenarios I only have
+        from collections import namedtuple
 
 
-        cur = self.conn.cursor()
-        cur.execute(sqlSelect)
-        records = cur.fetchall()
-        return (records)
+
+        for col, tipo in scenarios_col_list:
+            print(col, tipo)
+            #check in colname in mdl
+            if col in change_dicto:
+                change_dicto[col]
+
+        scenarios_list = self.get_IgorBestScenarios_By_seq_index_IgorModel()
+        # For each scenario in list pass it to airr
+        # genomics_dict = self.get_IgorGenomicDataFrame_dict()
+        # # 3. Make a map using the column list with model
+        #
+        # sqlSelect_VDJ= """
+        #     SELECT Tscenarios.seq_index as sequence_id,
+        #         Tscenarios.scenario_rank,
+        #         Tscenarios.scenario_proba_cond_seq,
+        #         Tindexed.sequence,
+        #         T_v_choice.name as v_call,
+        #         T_d_gene.name as d_call,
+        #         T_j_choice.name as j_call
+        #     FROM IgorBestScenarios Tscenarios
+        #         JOIN IgorIndexedSeq Tindexed,
+        #             IgorER_v_choice T_v_choice,
+        #             IgorER_d_gene T_d_gene,
+        #             IgorER_j_choice T_j_choice
+        #     WHERE Tindexed.seq_index==Tscenarios.seq_index
+        #         AND Tindexed.seq_index == 0
+        #         AND Tscenarios.id_v_choice == T_v_choice.id
+        #         AND Tscenarios.id_d_gene == T_d_gene.id
+        #         AND Tscenarios.id_j_choice == T_j_choice.id;
+        #     """
+        #
+        #
+        # cur = self.conn.cursor()
+        # cur.execute(sqlSelect)
+        # records = cur.fetchall()
+        # return (records)
 
     def calc_IgorBestScenarios_average_of(self, scenario_function, indices_list=None):
         from .IgorIO import IgorScenario

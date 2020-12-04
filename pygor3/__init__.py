@@ -83,9 +83,11 @@ sql_filepath = pkg_resources.resource_filename(__name__, sql_path)
 #from .IgorModel import *
 from .IgorIO import *
 from .IgorSqliteDB import *
-from .IgorSqliteDBBestScenarios import *
-from .IgorBestScenarios import *
+# from .IgorSqliteDBBestScenarios import *
+# from .IgorBestScenarios import *
 from . import imgt
+
+from .AIRR import *
 
 #__all__ = ["IgorModel"]
 

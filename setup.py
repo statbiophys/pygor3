@@ -16,7 +16,8 @@ setuptools.setup(
         "Click",
         "networkx",
         "requests",
-        "matplotlib"
+        "matplotlib",
+        "airr"
     ],
     packages=setuptools.find_packages(),
     entry_points= {

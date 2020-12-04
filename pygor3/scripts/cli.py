@@ -2,8 +2,8 @@ import click
 
 import os
 
-def get_env_vars(ctx, args, incomplete):
-    return [k for k in os.environ.keys() if incomplete in k]
+# def get_env_vars(ctx, args, incomplete):
+#     return [k for k in os.environ.keys() if incomplete in k]
 
 class RegisterReaderOption(click.Option):
     """ Mark this option as getting a _set option """
@@ -31,9 +31,8 @@ class RegisterWriterCommand(click.Command):
         return super(RegisterWriterCommand, self).parse_args(ctx, args)
 
 
-from pygor3.IgorIO import IgorTask
-
-pass_igortask = click.make_pass_decorator(IgorTask, ensure=True)
+# from pygor3.IgorIO import IgorTask
+# pass_igortask = click.make_pass_decorator(IgorTask, ensure=True)
 
 @click.group()
 def cli():
@@ -109,7 +108,7 @@ def common_options(f):
 
 ############## NO COMMON options ##############
 @click.option("-i", "--input-sequences", "igor_read_seqs", default=None, help="Input sequences in FASTA, TXT or CSV formats.")
-def run_read_seqs(igortask, igor_read_seqs, igor_species, igor_chain, igor_model, igor_model_path, igor_path_ref_genome, igor_wd, igor_batch, igor_fln_db,
+def run_read_seqs(igor_read_seqs, igor_species, igor_chain, igor_model, igor_model_path, igor_path_ref_genome, igor_wd, igor_batch, igor_fln_db,
         fln_genomicVs, fln_genomicDs, fln_genomicJs, fln_V_gene_CDR3_anchors, fln_J_gene_CDR3_anchors):
     """IGoR's call to read_seqs"""
     from pygor3 import IgorTask
@@ -185,7 +184,7 @@ def run_read_seqs(igortask, igor_read_seqs, igor_species, igor_chain, igor_model
 
 ############## NO COMMON options ##############
 @click.option("-i", "--input-sequences", "igor_read_seqs", default=None, help="Input sequences in FASTA, TXT or CSV formats.")
-def run_align(igortask, igor_read_seqs,
+def run_align(igor_read_seqs,
               igor_species, igor_chain, igor_model, igor_model_path, igor_path_ref_genome, igor_wd, igor_batch,
               igor_fln_db,
               fln_genomicVs, fln_genomicDs, fln_genomicJs, fln_V_gene_CDR3_anchors, fln_J_gene_CDR3_anchors):
@@ -397,8 +396,8 @@ def run_infer(igor_read_seqs, output_fln_prefix,
 
 ############## NO COMMON options ##############
 @click.option("-i", "--input-sequences", "igor_read_seqs", default=None, help="Input sequences in FASTA, TXT or CSV formats.")
-@click.option("-o", "--output-db", "output_db", default=None, help="Output database file.")
-def run_evaluate(igor_read_seqs, output_db,
+@click.option("-o", "--output-prefix", "output_fln_prefix", default=None, help="Output prefix for database file a scenarios file.")
+def run_evaluate(igor_read_seqs, output_fln_prefix,
             igor_species, igor_chain, igor_model, igor_model_path, igor_path_ref_genome, igor_wd, igor_batch, igor_fln_db,
             fln_genomicVs, fln_genomicDs, fln_genomicJs, fln_V_gene_CDR3_anchors, fln_J_gene_CDR3_anchors):
     """IGoR's call to evaluate input sequences"""
@@ -448,6 +447,7 @@ def run_evaluate(igor_read_seqs, output_db,
     output = igortask.run_evaluate(igor_read_seqs=igor_read_seqs)
     print(output)
 
+
     print("===== Saving files in database : =====")
     igortask.create_db()
     igortask.load_db_from_indexed_sequences()
@@ -460,9 +460,48 @@ def run_evaluate(igor_read_seqs, output_db,
     igortask.load_db_from_pgen()
 
     # Use the database to get bestscenarios
-    igortask.igor_db
 
 
+    if output_fln_prefix is not None:
+        import os
+        output_fln_db = output_fln_prefix + ".db"
+        output_fln_parms = output_fln_prefix + "_parms.txt"
+        output_fln_marginals = output_fln_prefix + "_marginals.txt"
+        output_fln_scenarios = output_fln_prefix+"_scenarios.csv"
+        output_fln_pgen = output_fln_prefix + "_pgen.csv"
+        output_fln_airr = output_fln_prefix + ".tsv"
+        # igortask.mdl.plot_Bayes_network(filename=output_fln_prefix + "_BN.pdf")
+        # igortask.mdl.export_plot_Pmarginals(output_fln_prefix + "_RM")
+        os.rename(igortask.igor_fln_db, output_fln_db)
+        os.rename(igortask.igor_fln_output_scenarios, output_fln_scenarios)
+        os.rename(igortask.igor_fln_output_pgen, output_fln_pgen)
+
+        # copy files
+        print("Database file : ", output_fln_db)
+        print("airr rearrangement : ", output_fln_airr)
+        igortask.igor_db.export_IgorBestScenarios_to_AIRR(output_fln_airr)
+    else:
+        import os
+        # igortask.mdl.write_model(output_fln_parms, output_fln_marginals)
+        print("Database file : ", igortask.igor_fln_db)
+        base_fln_output = igortask.igor_fln_db.split(".db")[0]
+        output_fln_prefix = base_fln_output
+        # output_fln_db = output_fln_prefix + ".db"
+        output_fln_parms = output_fln_prefix + "_parms.txt"
+        output_fln_marginals = output_fln_prefix + "_marginals.txt"
+        output_fln_scenarios = output_fln_prefix + "_scenarios.csv"
+        output_fln_pgen = output_fln_prefix + "_pgen.csv"
+        output_fln_airr = output_fln_prefix + ".tsv"
+
+        os.rename(igortask.igor_fln_output_scenarios, output_fln_scenarios)
+        print("scenarios file: ", output_fln_scenarios)
+        os.rename(igortask.igor_fln_output_pgen, output_fln_pgen)
+        print("pgen file: ", output_fln_pgen)
+        print("airr rearrangement : ", output_fln_airr)
+        igortask.igor_db.export_IgorBestScenarios_to_AIRR(output_fln_airr)
+        # igortask.mdl.plot_Bayes_network(filename=output_fln_prefix + "_BN.pdf")
+        # igortask.mdl.export_plot_Pmarginals(output_fln_prefix + "_RM")
+        # igortask.mdl.write_model(output_fln_parms, output_fln_marginals)
 
 
 
@@ -711,10 +750,12 @@ def run_get_pgen(igor_read_seqs, output_db,
 
 ############## NO COMMON options ##############
 @click.option("-N","N", default=None, help="Number of sequences to generate.")
+@click.option("-o", "--output-prefix", "fln_output_prefix", default=None, help="Prefix for models files.")
 def run_generate(N,
                  igor_species, igor_chain, igor_model, igor_model_path, igor_path_ref_genome, igor_wd, igor_batch,
                  igor_fln_db,
-                 fln_genomicVs, fln_genomicDs, fln_genomicJs, fln_V_gene_CDR3_anchors, fln_J_gene_CDR3_anchors):
+                 fln_genomicVs, fln_genomicDs, fln_genomicJs, fln_V_gene_CDR3_anchors, fln_J_gene_CDR3_anchors,
+                 fln_output_prefix):
     """IGoR's call to generate sequences"""
     ########################
     from pygor3 import IgorTask
@@ -756,11 +797,12 @@ def run_generate(N,
 
     print(igortask.to_dict())
     igortask.run_generate(N_seqs=N)
-
-
-
-
-
+    if fln_output_prefix is None:
+        igortask.igor_fln_generated_realizations_werr = None
+        igortask.igor_fln_generated_seqs_werr = None
+    else:
+        igortask.igor_fln_generated_realizations_werr = None
+        igortask.igor_fln_generated_seqs_werr = None
 
 
 # run_read_seqs.add_command(get_ref_genome)
@@ -1194,8 +1236,6 @@ def model_create(rec_type, fln_output_prefix,
         igortask.igor_model_marginals_file = fln_output_prefix + "_marginals.txt"
         igortask.mdl.parms.write_model_parms(igortask.igor_model_parms_file)
         igortask.mdl.marginals.write_model_marginals(igortask.igor_model_marginals_file, igortask.mdl.parms)
-
-
 
 
 
@@ -1869,6 +1909,11 @@ def database_rm(b_igor_reads, b_igor_model,
 @click.option("-D", "--set_database", "igor_fln_db", default=None, help="Igor database created with database script.")
 
 ############## NO COMMON options ##############
+@click.option("--airr-rearrangement", "b_airr_rearrangement", is_flag=True,
+              default=False, help='Export IGoR scenarios and pgen in tsv airr format file')
+@click.option("--airr-rearrangement_set", "fln_airr_rearrangement", cls=RegisterReaderOption,
+              default=None,
+              help='Export to airr file.')
 @click.option("--igor-all", "b_igor_all", is_flag=True,
               default=False,
               help='Export all available data in db with prefix.')
@@ -1952,7 +1997,8 @@ def database_rm(b_igor_reads, b_igor_model,
 @click.option("--igor-pgen_set", "fln_igor_pgen", cls=RegisterWriterOption,
               default=None,
               help="Export IGoR's pgen to filename prefix.")
-def database_export(b_igor_all, b_igor_reads, fln_igor_reads,
+def database_export(b_airr_rearrangement, fln_airr_rearrangement,
+                    b_igor_all, b_igor_reads, fln_igor_reads,
                     b_igor_genomes, fln_igor_genomes, b_igor_genomesCDR3, fln_igor_genomesCDR3,
                     b_igor_alignments, fln_igor_alignments,
                     b_igor_alignmentsCDR3, fln_igor_alignmentsCDR3,
@@ -2071,6 +2117,16 @@ def database_export(b_igor_all, b_igor_reads, fln_igor_reads,
         ii_db.write_IgorBestScenarios_to_CSV(igortask.igor_fln_output_scenarios)
 
     igortask.export_to_igorfiles()
+
+    if fln_airr_rearrangement is not None:
+        b_airr_rearrangement = True
+    else:
+        fln_prefix = igortask.igor_fln_db.split(".db")[0]
+        fln_airr_rearrangement =  fln_prefix + ".tsv"
+
+
+    if b_airr_rearrangement:
+        igortask.igor_db.export_IgorBestScenarios_to_AIRR(fln_airr_rearrangement)
 
     """
     igortask.load_db_from_indexed_cdr3()
@@ -2454,7 +2510,7 @@ def test(igor_species, igor_chain, igor_model, igor_model_path, igor_fln_db,
     igor_model_marginals = igor_model[1]
     igortask.igor_model_parms_file = igor_model[0]
     igortask.igor_model_marginals_file = igor_model[1]
-    # igortask.igor_fln_db = igor_fln_db
+    igortask.igor_fln_db = igor_fln_db
 
     Q_species_chain = (not (igor_species is None) and not (igor_chain is None))
     Q_model_files = (not (igor_model_parms is None) and not (igor_model_marginals is None))
@@ -2465,41 +2521,91 @@ def test(igor_species, igor_chain, igor_model, igor_model_path, igor_fln_db,
         igortask.igor_model_parms_file = igor_model_parms
         igortask.igor_model_marginals_file = igor_model_marginals
     elif igor_fln_db is not None:
-        igortask.create_db()
+        igortask.create_db(igor_fln_db=igor_fln_db)
     else:
         print("WARNING: No model provided!")
 
-    igortask.load_IgorModel()
+    # igortask.load_IgorModel()
+    igortask.load_mdl_from_db()
 
-    print(igortask.mdl.xdata)
-
-    import pygor3 as p3
-
-    igortask.igor_fln_output_scenarios = igor_fln_output_scenarios
-    mdl = igortask.mdl
-    sep=';'
-    with open(igor_fln_output_scenarios, 'r') as ofile:
-        header_line = ofile.readline().replace('\n', '')
-        header_list = header_line.split(sep)
-
-        scenario_ordered_list = list()
-        for ii, colname in enumerate(header_list):
-            if colname == 'seq_index':
-                scenario_ordered_list.append(colname)
-            elif colname == 'scenario_rank':
-                scenario_ordered_list.append(colname)
-            elif colname == 'scenario_proba_cond_seq':
-                scenario_ordered_list.append(colname)
-            elif colname == 'Errors':
-                scenario_ordered_list.append('Mismatches')
-            else:
-                scenario_ordered_list.append(mdl.parms.dictNameNickname[colname])
+    igortask.igor_db.export_IgorBestScenarios_to_AIRR("nose.tsv")
 
 
 
-        str_line = ofile.readline()
-        print(str_line)
-        p3.IgorScenario.load_FromLineBestScenario()
+
+
+    """
+    # V_gene_list
+    vregion, vdregion, dregion, djregion, jregion = igortask.mdl.construct_sequence_VDJ_from_realization_dict(realization_dict)
+    with open("teste.fasta", "w") as ofile:
+        print("scenario: ", scenario.to_dict())
+        str_fasta_offset = ""
+        ofile.write("> " + str(indexed_seq.seq_index) + " : \n")
+        str_gap = (0 - v_best_aln.offset)*'-'
+        ofile.write(str_gap+indexed_seq.sequence + "\n")
+
+        ofile.write("> vregion : \n")
+        ofile.write(str_fasta_offset + vregion + "\n")
+        str_fasta_offset = str_fasta_offset + "-"*len(vregion)
+
+        ofile.write("> vdregion : \n")
+        ofile.write(str_fasta_offset + vdregion + "\n")
+        str_fasta_offset = str_fasta_offset + "-" * len(vdregion)
+
+        ofile.write("> dregion : \n")
+        ofile.write(str_fasta_offset + dregion + "\n")
+        str_fasta_offset = str_fasta_offset + "-" * len(dregion)
+
+        ofile.write("> djregion : \n")
+        ofile.write(str_fasta_offset + djregion + "\n")
+        str_fasta_offset = str_fasta_offset + "-" * len(djregion)
+
+        ofile.write("> jregion : \n")
+        ofile.write(str_fasta_offset + jregion + "\n")
+        str_fasta_offset = str_fasta_offset + "-" * len(jregion)
+    
+    """
+
+
+    # igortask.mdl.get_AIRR_rearragement_dict_from_scenario()
+    # gene_seq = scenario['v_choice'].value
+    # gene_3_del = scenario['v_3_del'].value
+    #
+    # aaa = igortask.mdl.generate_sequence_construction_list()
+    # print(aaa)
+
+    # print([event.nickname for event in aaa])
+
+
+    # igortask.mdl.get_realizations_dict_from_scenario_dict(scenario_realization_dict)
+    # print(event_realization)
+
+    #
+    # igortask.igor_fln_output_scenarios = igor_fln_output_scenarios
+    # mdl = igortask.mdl
+    # sep=';'
+    # with open(igor_fln_output_scenarios, 'r') as ofile:
+    #     header_line = ofile.readline().replace('\n', '')
+    #     header_list = header_line.split(sep)
+    #
+    #     scenario_ordered_list = list()
+    #     for ii, colname in enumerate(header_list):
+    #         if colname == 'seq_index':
+    #             scenario_ordered_list.append(colname)
+    #         elif colname == 'scenario_rank':
+    #             scenario_ordered_list.append(colname)
+    #         elif colname == 'scenario_proba_cond_seq':
+    #             scenario_ordered_list.append(colname)
+    #         elif colname == 'Errors':
+    #             scenario_ordered_list.append('Mismatches')
+    #         else:
+    #             scenario_ordered_list.append(mdl.parms.dictNameNickname[colname])
+    #
+    #
+    #
+    #     str_line = ofile.readline()
+    #     print(str_line)
+    #     p3.IgorScenario.load_FromLineBestScenario()
 
 
 
