@@ -10,7 +10,7 @@ setuptools.setup(
     author_email="carlos.olivares@phys.ens.fr",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    version='0.0.1',
+    version='0.0.2',
     description='Python package to manipulate and run IGoR data files',
     license="GNU GPLv3",
     python_requires='>=3.5',
@@ -33,8 +33,8 @@ setuptools.setup(
             'pygor=pygor3.scripts.cli:cli',
             'pygor3-bs_pairwise_prob=pygor3.scripts.bs_pairwise_prob:main',
             'pygor3-observable=pygor3.scripts.observable:main',
-            'pygor3-scriptTest=pygor3.scripts.scriptTest:main',
-            'pygor3-scriptTest02=pygor3.scripts.scriptTest02:main',
+            #'pygor3-scriptTest=pygor3.scripts.scriptTest:main',
+            #'pygor3-scriptTest02=pygor3.scripts.scriptTest02:main',
             'pygor3-stas_from_bs=pygor3.scripts.stas_from_bs:main',
             'pygor3-load_database=pygor3.scripts.load_database:main',
             'pygor3-naive_align=pygor3.scripts.naive_align:main',
@@ -50,8 +50,8 @@ setuptools.setup(
             'pygor3-plot_marginals=pygor3.scripts.plot_marginals:main',
             #'igor-model_create=pygor3.scripts.model_create:main',
             #'igor-get_imgt_data=pygor3.scripts.get_imgt_data:main',
-            'pygor3-download_imgt_gene_templates=pygor3.scripts.download_imgt_gene_templates:main',
-            'pygor3-short_names_imgt_templates=pygor3.scripts.short_names_imgt_templates:main'
+            #'pygor3-download_imgt_gene_templates=pygor3.scripts.download_imgt_gene_templates:main',
+            #'pygor3-short_names_imgt_templates=pygor3.scripts.short_names_imgt_templates:main'
             #'igor-model_import=pygor3.model_import:main',
             #'igor-get_imgt_data=pygor3.get_imgt_data:main'
         ],
