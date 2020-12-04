@@ -5,6 +5,9 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name='pygor3',
+    url="https://github.com/alfaceor/pygor3",
+    author="Carlos Olivares",
+    author_email="carlos.olivares@phys.ens.fr",
     long_description=long_description,
     long_description_content_type="text/markdown",
     version='0.0.1',
