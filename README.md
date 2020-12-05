@@ -3,25 +3,154 @@ pygor3 is a python3 library to manipulate IGoR inputs/outputs and easyly make pl
 pygor3 repository
 synopsis
 
-# Installation
-0. (Optional) Install conda https://docs.conda.io/en/latest/ (or anaconda https://www.anaconda.com/) and create (or use ) a virtual environment
+## Installation
+1. (Optional) Install [conda](https://docs.conda.io/en/latest/) or 
+[anaconda](https://www.anaconda.com/) and create (or use ) a virtual environment.
+
+```bash
   $ conda create --name pygor3 python=3.7
   $ conda activate pygor3
+```
+2. Use the package manager [pip](https://pip.pypa.io/en/stable/)
 
-1. Install requirements:
+```bash
+(pygor3) $ pip install pygor3 
+```
 
-$ pip3 install -r requirements.txt
+## Command Line Usage
 
-2. Install pygor3 package from this directory
+### Download genomic data from IMGT
+Donwload gene templates from IMGT website [IMGT](http://www.imgt.org/)
 
-$ pip3 install -e .
+1. Get list of available species
 
-# simple usage.
+```bash
+$ pygor imgt-get-genomes --info
+--------------------------------
+http://www.imgt.org
+Downloading data from ... 
+List of IMGT available species:
 
-1. Download new gene templates from IGMT website:
-$ pygor3-cli imgt get-ref-genome -t VDJ --imgt-species Homo+sapiens --imgt-chain TRB
+Gallus+gallus
+Cercocebus+atys
+Mustela+putorius+furo
+Macaca+nemestrina
+Vicugna+pacos
+Mus+cookii
+Bos+taurus
+Canis+lupus+familiaris
+Ornithorhynchus+anatinus
+Macaca+mulatta
+Rattus+rattus
+Mus+minutoides
+Danio+rerio
+Oncorhynchus+mykiss
+Tursiops+truncatus
+Felis+catus
+Homo+sapiens
+Salmo+salar
+Macaca+fascicularis
+Mus+musculus
+Mus+saxicola
+Capra+hircus
+Sus+scrofa
+Mus+pahari
+Ovis+aries
+Equus+caballus
+Camelus+dromedarius
+Oryctolagus+cuniculus
+Papio+anubis+anubis
+Mus+spretus
+Rattus+norvegicus
+For more details access:
+http://www.imgt.org/download/GENE-DB/IMGTGENEDB-GeneList
+ 
+```
+
+2. Download genomic templates specifiying VJ or VDJ type of species and chain.
+ 
+```bash
+$ pygor imgt-get-genomes -t VDJ --imgt-species Homo+sapiens --imgt-chain TRB 
+```
+
+This will create a directory models with the following structure
+
+```
+models/
+└── Homo+sapiens
+    └── TRB
+        ├── models
+        └── ref_genome
+            ├── genomicDs.fasta
+            ├── genomicDs__imgt.fasta
+            ├── genomicDs__imgt.fasta_short
+            ├── genomicJs.fasta
+            ├── genomicJs__imgt.fasta
+            ├── genomicJs__imgt.fasta_short
+            ├── genomicJs__imgt.fasta_trim
+            ├── genomicVs.fasta
+            ├── genomicVs__imgt.fasta
+            ├── genomicVs__imgt.fasta_short
+            ├── genomicVs__imgt.fasta_trim
+            ├── J_gene_CDR3_anchors.csv
+            ├── J_gene_CDR3_anchors__imgt.csv
+            ├── J_gene_CDR3_anchors__imgt.csv_short
+            ├── V_gene_CDR3_anchors.csv
+            ├── V_gene_CDR3_anchors__imgt.csv
+            └── V_gene_CDR3_anchors__imgt.csv_short
+
+```
+Now to create a default model execute in the <species>/<chain>/ directory
+
+```console
+$ pygor model-create -M models/Homo+sapiens/TRB/ -t VDJ
+--------------------------------
+WARNING: No model provided!
+igortask.igor_model_dir_path:  models/Homo+sapiens/TRB/
+models/Homo+sapiens/TRB/
+Writing model parms in file  models/Homo+sapiens/TRB//models/model_parms.txt
+Writing model marginals in file  models/Homo+sapiens/TRB//models/model_marginals.txt
+
+```
+
+this will create a model_parms and model_marginals in the directory models/<species>/<chain>/models/
+
+```bash
+models/
+└── Homo+sapiens
+    └── TRB
+        ├── models
+        │   ├── model_marginals.txt
+        │   └── model_parms.txt
+        └── ref_genome
+            ├── genomicDs.fasta
+            ├── genomicDs__imgt.fasta
+            ├── genomicDs__imgt.fasta_short
+            ├── genomicJs.fasta
+            ├── genomicJs__imgt.fasta
+            ├── genomicJs__imgt.fasta_short
+            ├── genomicJs__imgt.fasta_trim
+            ├── genomicVs.fasta
+            ├── genomicVs__imgt.fasta
+            ├── genomicVs__imgt.fasta_short
+            ├── genomicVs__imgt.fasta_trim
+            ├── J_gene_CDR3_anchors.csv
+            ├── J_gene_CDR3_anchors__imgt.csv
+            ├── J_gene_CDR3_anchors__imgt.csv_short
+            ├── V_gene_CDR3_anchors.csv
+            ├── V_gene_CDR3_anchors__imgt.csv
+            └── V_gene_CDR3_anchors__imgt.csv_short
+
+```
+
+
+```python
+import pygor3 as p3
+mdl = p3.IgorModel(model_parms_file="model_parms.txt", model_marginals_file="model_marginals.txt")
+```
 
 2. Make a new model from a ref_genome directory
+
 
 $ pygor3-cli -M models/Homo+sapiens/TRB/ model create -t VDJ
 
