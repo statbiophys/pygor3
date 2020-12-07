@@ -1,438 +1,242 @@
-# pygor3
-pygor3 is a python3 library to manipulate IGoR inputs/outputs and easyly make plots and scripts tasks.
-pygor3 repository
-synopsis
+# Pygor3
+
+Pygor3 is a python3 framework to analyze, vizualize, generate 
+and infer V(D)J recombination [IGoR](https://github.com/statbiophys/IGoR) 's models. 
+Pygor3 provide a python interface to execute and encapsulate 
+IGoR’s input/outputs by using a sqlite3 database that 
+contains input sequences, alignments, model parameters, 
+conditional probabilities of the model Bayes network, 
+best scenarios and generation probabilities in a single db file.
+Pygor3 also has command line utilities to import/export 
+IGoR generated files to [AIRR standard format](https://docs.airr-community.org/en/latest/index.html).
+
+
 
 ## Installation
-1. (Optional) Install [conda](https://docs.conda.io/en/latest/) or 
+1. First install IGoR in your sytem [IGoR](https://github.com/statbiophys/IGoR) if you don't have it already.
+Pygor will use default IGoR's path to execute it.
+
+2. (Optional) Install [conda](https://docs.conda.io/en/latest/) or 
 [anaconda](https://www.anaconda.com/) and create (or use ) a virtual environment.
 
-```bash
-  $ conda create --name pygor3 python=3.7
-  $ conda activate pygor3
-```
-2. Use the package manager [pip](https://pip.pypa.io/en/stable/)
-
-```bash
-(pygor3) $ pip install pygor3 
-```
+    ```bash
+      $ conda create --name statbiophys python=3.7
+      $ conda activate statbiophys
+    ```
+3. Use the package manager [pip](https://pip.pypa.io/en/stable/)
+    
+    ```bash
+    (statbiophys) $ pip install pygor3 
+    ```
 
 ## Command Line Usage
 
-### Download genomic data from IMGT
-Donwload gene templates from IMGT website [IMGT](http://www.imgt.org/)
+### Quickstart
 
-1. Get list of available species
+#### New Model
+Now to create a model from scratch, donwload gene templates and anchors from IMGT website [IMGT](http://www.imgt.org/)
+A list of available species to download from IMGT can be query with imgt-get-genomes command and option --info.
 
-```bash
-$ pygor imgt-get-genomes --info
---------------------------------
-http://www.imgt.org
-Downloading data from ... 
-List of IMGT available species:
+    ```bash
+    $ pygor imgt-get-genomes --info
+    --------------------------------
+    http://www.imgt.org
+    Downloading data from ... 
+    List of IMGT available species:
+    
+    Gallus+gallus
+    Cercocebus+atys
+    Mustela+putorius+furo
+    Macaca+nemestrina
+    Vicugna+pacos
+    Mus+cookii
+    Bos+taurus
+    Canis+lupus+familiaris
+    Ornithorhynchus+anatinus
+    Macaca+mulatta
+    Rattus+rattus
+    Mus+minutoides
+    Danio+rerio
+    Oncorhynchus+mykiss
+    Tursiops+truncatus
+    Felis+catus
+    Homo+sapiens
+    Salmo+salar
+    Macaca+fascicularis
+    Mus+musculus
+    Mus+saxicola
+    Capra+hircus
+    Sus+scrofa
+    Mus+pahari
+    Ovis+aries
+    Equus+caballus
+    Camelus+dromedarius
+    Oryctolagus+cuniculus
+    Papio+anubis+anubis
+    Mus+spretus
+    Rattus+norvegicus
+    For more details access:
+    http://www.imgt.org/download/GENE-DB/IMGTGENEDB-GeneList
+     
+    ```
 
-Gallus+gallus
-Cercocebus+atys
-Mustela+putorius+furo
-Macaca+nemestrina
-Vicugna+pacos
-Mus+cookii
-Bos+taurus
-Canis+lupus+familiaris
-Ornithorhynchus+anatinus
-Macaca+mulatta
-Rattus+rattus
-Mus+minutoides
-Danio+rerio
-Oncorhynchus+mykiss
-Tursiops+truncatus
-Felis+catus
-Homo+sapiens
-Salmo+salar
-Macaca+fascicularis
-Mus+musculus
-Mus+saxicola
-Capra+hircus
-Sus+scrofa
-Mus+pahari
-Ovis+aries
-Equus+caballus
-Camelus+dromedarius
-Oryctolagus+cuniculus
-Papio+anubis+anubis
-Mus+spretus
-Rattus+norvegicus
-For more details access:
-http://www.imgt.org/download/GENE-DB/IMGTGENEDB-GeneList
+2. Download genomic templates using VJ or VDJ corresponding to the type of chain.
  
+    ```console
+    $ pygor imgt-get-genomes -t VDJ --imgt-species Homo+sapiens --imgt-chain TRB 
+    ```
+
+    This creates a directory **models** with the following structure will be created
+    
+    ```
+    models/
+    └── Homo+sapiens
+        └── TRB
+            ├── models
+            └── ref_genome
+                ├── genomicDs.fasta
+                ├── genomicDs__imgt.fasta
+                ├── genomicDs__imgt.fasta_short
+                ├── genomicJs.fasta
+                ├── genomicJs__imgt.fasta
+                ├── genomicJs__imgt.fasta_short
+                ├── genomicJs__imgt.fasta_trim
+                ├── genomicVs.fasta
+                ├── genomicVs__imgt.fasta
+                ├── genomicVs__imgt.fasta_short
+                ├── genomicVs__imgt.fasta_trim
+                ├── J_gene_CDR3_anchors.csv
+                ├── J_gene_CDR3_anchors__imgt.csv
+                ├── J_gene_CDR3_anchors__imgt.csv_short
+                ├── V_gene_CDR3_anchors.csv
+                ├── V_gene_CDR3_anchors__imgt.csv
+                └── V_gene_CDR3_anchors__imgt.csv_short
+    
+    ```
+
+3. Create a new initial default model, with uniform distribution for the conditional probabilities
+of Bayes network ("model_marginals.txt" file). Notice that in IGoR this file is called marginals,
+but it is not the marginal probability of a recombination event.
+    
+    ```console
+    $ pygor model-create -M models/Homo+sapiens/TRB/ -t VDJ
+    --------------------------------
+    igortask.igor_model_dir_path:  models/Homo+sapiens/TRB/
+    Writing model parms in file  models/Homo+sapiens/TRB//models/model_parms.txt
+    Writing model marginals in file  models/Homo+sapiens/TRB//models/model_marginals.txt
+    
+    ```
+   
+   A uniform model files will be created in files **model_parms.txt** and **model_marginals.txt** at directory path
+    ```bash
+    models/
+    └── Homo+sapiens
+        └── TRB
+            ├── models
+            │   ├── model_marginals.txt
+            │   └── model_parms.txt
+            └── ref_genome
+                ├── genomicDs.fasta
+                ├── genomicDs__imgt.fasta
+                ├── genomicDs__imgt.fasta_short
+                ├── genomicJs.fasta
+                ├── genomicJs__imgt.fasta
+                ├── genomicJs__imgt.fasta_short
+                ├── genomicJs__imgt.fasta_trim
+                ├── genomicVs.fasta
+                ├── genomicVs__imgt.fasta
+                ├── genomicVs__imgt.fasta_short
+                ├── genomicVs__imgt.fasta_trim
+                ├── J_gene_CDR3_anchors.csv
+                ├── J_gene_CDR3_anchors__imgt.csv
+                ├── J_gene_CDR3_anchors__imgt.csv_short
+                ├── V_gene_CDR3_anchors.csv
+                ├── V_gene_CDR3_anchors__imgt.csv
+                └── V_gene_CDR3_anchors__imgt.csv_short
+    
+    ```
+   
+   At this point you can use a set of non-productive sequence to infer a model within IGoR directly 
+   or by using pygor command
+   
+    ```console
+    $ pygor igor-infer -M models/Homo+sapiens/TRB/ -i sample_realizations.csv -o new_hs_trb
+    ```
+   This will output the following files
+   ```bash
+   new_hs_hb.db
+   new_hs_hb_BN.pdf
+   new_hs_hb_RM.pdf
+   new_hs_hb_marginals.txt
+   new_hs_hb_parms.txt
+   ```
+   where new_hs_trb.db is a database with the encapsulated information about the new model and 
+   the date used by IGoR to infer it, new_hs_hb_BN.pdf is a plot of the Bayesian network(BN) of inferred
+   model, new_hs_hb_RM.pdf are plots of the real marginals of events in BN, and finally the 
+   new_hs_hb_parms.txt and new_hs_marginals.txt the inferred model in IGoR's format.
+   
+   
+   
+#### Model evaluation
+With an inferred model we can evaluate the probability of a particular sequence to be generated (pgen) and
+get the most probable scenarios for the recombination of this sequence or generate synthetic sequences.
+
+IGoR is delivered with some default models, this models can be loaded with IGoR by using options
+--species (-s) and --chain (-c)
+    
+```    
+$ pygor model-plot -s human -c beta -o defau
+
+or
+
+$ pygor model-plot -M models/Homo+sapiens/TRB/ -o new_model
+
+or 
+
+$ pygor model-plot -D new_hs_hb.db -o new_model
+```
+This will output two pdf files with the Marginal Probabilities and Conditional probabilities of events
+
+![](BayesNetwork.png)
+![](GeneChoice_MP.png)
+![](GeneChoice_CP.png)
+
+
+```
+$pygor igor-evaluate -M -i input_sequence -o output
+```
+An tsv airr standard format is created with the rearragement. 
+
+```
+sequence_id	sequence	rev_comp	productive	v_call	d_call	j_call	sequence_alignment	germline_alignment	junction	junction_aa	v_cigar	d_cigar	j_cigar	v_score	v_identity	v_support	v_sequence_start	v_sequence_end	v_germline_start	v_germline_end	v_alignment_start	v_alignment_end	d_score	d_identity	d_support	d_sequence_start	d_sequence_end	d_germline_start	d_germline_end	d_alignment_start	d_alignment_end	j_score	j_identity	j_support	j_sequence_start	j_sequence_end	j_germline_start	j_germline_end	j_alignment_start	j_alignment_end	sequence_aa	vj_in_frame	stop_codon	complete_vdj	locus	sequence_alignment_aa	n1_length	np1	np1_aa	np1_length	n2_length	np2	np2_aa	np2_length	p3v_length	p5d_length	p3d_length	p5j_length	scenario_rank	scenario_proba_cond_seq	pgen	quality	quality_alignment
+0	CAGTCTCCCAGGTACAAAGTCACAAAGAGGGGACAGGATGTAACTCTCAGGTGTGATCCAATTTCGAGTCATGCAACCCTTTATTGGTATCAACAGGCCCTGGGGCAGGGCCCAGAGTTTCTGACTTACTTCAATTATGAAGCTCAACCAGACAAATCAGGGCTGCCCAGTGATCGGTTCTCTGCAGAGAGGCCTGAGGGATCCATCTCCACTCTGACGATTCAGCGCACAGAGCAGCGGGACTCAGCCATGTATCGCTGTGCTAGCAGCATTCCTCGGGCTGTCAGATACGCAGTATTTTGGCCCAGGCACCCGGCTGACAGTGCTCG	F		TRBV7-7*01	TRBD2*02	TRBJ2-3*01	GGTGCTGGAGTCTCCCAGTCTCCCAGGTACAAAGTCACAAAGAGGGGACAGGATGTAACTCTCAGGTGTGATCCAATTTCGAGTCATGCAACCCTTTATTGGTATCAACAGGCCCTGGGGCAGGGCCCAGAGTTTCTGACTTACTTCAATTATGAAGCTCAACCAGACAAATCAGGGCTGCCCAGTGATCGGTTCTCTGCAGAGAGGCCTGAGGGATCCATCTCCACTCTGACGATTCAGCGCACAGAGCAGCGGGACTCAGCCATGTATCGCTGTGCCAGCAGCATTCCTCGGGCTGTCAGATACGCAGTATTTTGGCCCAGGCACCCGGCTGACAGTGCTCG		TGTGCTAGCAGCATTCCTCGGGCTGTCAGATACGCAGTATTTT		285M	4M	45M	1425			2	285	16	283			20			290	292	10	13			225			7	50	6	50		6ATTCCT		6	4	CTGT		4	0	0	0	0	1	0.02729091.34834e-19		
+0	CAGTCTCCCAGGTACAAAGTCACAAAGAGGGGACAGGATGTAACTCTCAGGTGTGATCCAATTTCGAGTCATGCAACCCTTTATTGGTATCAACAGGCCCTGGGGCAGGGCCCAGAGTTTCTGACTTACTTCAATTATGAAGCTCAACCAGACAAATCAGGGCTGCCCAGTGATCGGTTCTCTGCAGAGAGGCCTGAGGGATCCATCTCCACTCTGACGATTCAGCGCACAGAGCAGCGGGACTCAGCCATGTATCGCTGTGCTAGCAGCATTCCTCGGGCTGTCAGATACGCAGTATTTTGGCCCAGGCACCCGGCTGACAGTGCTCG	F		TRBV7-7*01	TRBD2*01	TRBJ2-3*01	GGTGCTGGAGTCTCCCAGTCTCCCAGGTACAAAGTCACAAAGAGGGGACAGGATGTAACTCTCAGGTGTGATCCAATTTCGAGTCATGCAACCCTTTATTGGTATCAACAGGCCCTGGGGCAGGGCCCAGAGTTTCTGACTTACTTCAATTATGAAGCTCAACCAGACAAATCAGGGCTGCCCAGTGATCGGTTCTCTGCAGAGAGGCCTGAGGGATCCATCTCCACTCTGACGATTCAGCGCACAGAGCAGCGGGACTCAGCCATGTATCGCTGTGCCAGCAGCATTCCTCGGGCTGTCAGATACGCAGTATTTTGGCCCAGGCACCCGGCTGACAGTGCTCG		TGTGCTAGCAGCATTCCTCGGGCTGTCAGATACGCAGTATTTT		285M	4M	45M	1425			2	285	16	283			20			290	292	10	13			225			7	50	6	50		6ATTCCT		6	4	CTGT		4	0	0	0	0	2	0.02729091.34834e-19		
+
+
 ```
 
-2. Download genomic templates specifiying VJ or VDJ type of species and chain.
- 
-```bash
-$ pygor imgt-get-genomes -t VDJ --imgt-species Homo+sapiens --imgt-chain TRB 
-```
 
-This will create a directory models with the following structure
+## Documentation
 
-```
-models/
-└── Homo+sapiens
-    └── TRB
-        ├── models
-        └── ref_genome
-            ├── genomicDs.fasta
-            ├── genomicDs__imgt.fasta
-            ├── genomicDs__imgt.fasta_short
-            ├── genomicJs.fasta
-            ├── genomicJs__imgt.fasta
-            ├── genomicJs__imgt.fasta_short
-            ├── genomicJs__imgt.fasta_trim
-            ├── genomicVs.fasta
-            ├── genomicVs__imgt.fasta
-            ├── genomicVs__imgt.fasta_short
-            ├── genomicVs__imgt.fasta_trim
-            ├── J_gene_CDR3_anchors.csv
-            ├── J_gene_CDR3_anchors__imgt.csv
-            ├── J_gene_CDR3_anchors__imgt.csv_short
-            ├── V_gene_CDR3_anchors.csv
-            ├── V_gene_CDR3_anchors__imgt.csv
-            └── V_gene_CDR3_anchors__imgt.csv_short
-
-```
-Now to create a default model execute in the <species>/<chain>/ directory
-
-```console
-$ pygor model-create -M models/Homo+sapiens/TRB/ -t VDJ
---------------------------------
-WARNING: No model provided!
-igortask.igor_model_dir_path:  models/Homo+sapiens/TRB/
-models/Homo+sapiens/TRB/
-Writing model parms in file  models/Homo+sapiens/TRB//models/model_parms.txt
-Writing model marginals in file  models/Homo+sapiens/TRB//models/model_marginals.txt
-
-```
-
-this will create a model_parms and model_marginals in the directory models/<species>/<chain>/models/
-
-```bash
-models/
-└── Homo+sapiens
-    └── TRB
-        ├── models
-        │   ├── model_marginals.txt
-        │   └── model_parms.txt
-        └── ref_genome
-            ├── genomicDs.fasta
-            ├── genomicDs__imgt.fasta
-            ├── genomicDs__imgt.fasta_short
-            ├── genomicJs.fasta
-            ├── genomicJs__imgt.fasta
-            ├── genomicJs__imgt.fasta_short
-            ├── genomicJs__imgt.fasta_trim
-            ├── genomicVs.fasta
-            ├── genomicVs__imgt.fasta
-            ├── genomicVs__imgt.fasta_short
-            ├── genomicVs__imgt.fasta_trim
-            ├── J_gene_CDR3_anchors.csv
-            ├── J_gene_CDR3_anchors__imgt.csv
-            ├── J_gene_CDR3_anchors__imgt.csv_short
-            ├── V_gene_CDR3_anchors.csv
-            ├── V_gene_CDR3_anchors__imgt.csv
-            └── V_gene_CDR3_anchors__imgt.csv_short
-
-```
-
+All the command line interface commands can be used in a python environment, like jupyter notebook, by 
+exporting the pygor3 package
 
 ```python
 import pygor3 as p3
 mdl = p3.IgorModel(model_parms_file="model_parms.txt", model_marginals_file="model_marginals.txt")
 ```
 
-2. Make a new model from a ref_genome directory
+For further details checkout the [documentation]() and notebooks directory.
 
 
-$ pygor3-cli -M models/Homo+sapiens/TRB/ model create -t VDJ
 
-3. Explore default model
 
-$ pygor3-cli -M models/Homo+sapiens/TRB/ model plot
 
-4. Infer model
-$ pygor3-cli -M HumanTRB/ igor-infer -i test_seqs.csv -o myfile.db
 
-5. Evaluate model
-$ pygor3-cli -D myfile.db igor-evaluate -i test_seqs.csv -o mewdatabase.db
 
-# if -o option is None then use the same myfile.db, so the sequences to use should be 
 
-Show the tables in database:
-$ pygor3-cli db-ls -D myfile.db
 
-Delete elements in database:
-$ pygor3-cli db-rm -D myfile.db --sequences --model --alignments
 
-Extract elements in database:
-$ pygor3-cli db-extract -D myfile.db --sequences --model --alignments -o newfile.db
-
-Attach elements in database:
-$ pygor3-cli db-attacht -D myfile.db --sequences --model --alignments -i another.db
-
-
-
-
-
-
-## pygor3-load_database 
-
-Script to load genomes references and alignments in a single file
-
-usage: pygor3-load_database [-h] [-s SPECIES] [-c CHAIN] [-M MODEL_PATH]
-                            [-g PATH_REF_GENOME] [-w WORKING_DIRECTORY]
-                            [-b BATCH]
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -M MODEL_PATH, --model_path MODEL_PATH
-                        IGoR model directory path, this path include
-                        ref_genomes and model_parms
-  -g PATH_REF_GENOME, --path_ref_genome PATH_REF_GENOME
-                        Directory where genome references are stored:
-                        genomicDs.fasta, genomicJs.fasta, genomicVs.fasta,
-                        J_gene_CDR3_anchors.csv, V_gene_CDR3_anchors.csv
-  -w WORKING_DIRECTORY, --WD WORKING_DIRECTORY
-                        Path where files gonna be created.
-  -b BATCH, --batch BATCH
-                        Batchname to identify run. If not set random name is
-                        generated
-
-IGoR default models:
-  -s SPECIES, --species SPECIES
-                        Igor species
-  -c CHAIN, --chain CHAIN
-                        Igor chain
-
-
-## pygor3-load_database 
-
-usage: pygor3-naive_align [-h] [-o OUTPUT] [-D DATABASE]
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -o OUTPUT, --output OUTPUT
-                        filename of csv file to export data
-  -D DATABASE, --database DATABASE
-                        Igor database created with database script.
-
-
-# Scripts
-pygor3-model_export : Human readable tab-separated models in different files (http://physics.princeton.edu/~ccallan/TCRPaper/results/event_distributions.xls,) 
-Usage: pygor3-model_export [options]
-
-Options:
-  -h, --help            show this help message and exit
-  -s SPECIES, --species=SPECIES
-                        Igor species
-  -c CHAIN, --chain=CHAIN
-                        Igor chain
-  -b BATCH, --batch=BATCH
-                        Batchname to identify run. If not set random name is
-                        generated
-  -o OUTPUT, --output=OUTPUT
-                        filename of csv file to export data
-  -p MODEL_PARAMS, --model_params=MODEL_PARAMS
-                        IGoR model_params.txt
-  -m MODEL_MARGINALS, --model_marginals=MODEL_MARGINALS
-                        IGoR model_marginals.txt
-
-
-pygor3-plot_marginals : Export csv file with real probability marginals from IGoR models.
-Usage: pygor3-plot_marginals [options]
-
-Options:
-  -h, --help            show this help message and exit
-  -s SPECIES, --species=SPECIES
-                        Igor species
-  -c CHAIN, --chain=CHAIN
-                        Igor chain
-  -o OUTPUT, --output=OUTPUT
-                        filename of csv file to export data
-  -p MODEL_PARAMS, --model_params=MODEL_PARAMS
-                        IGoR model_params.txt
-  -m MODEL_MARGINALS, --model_marginals=MODEL_MARGINALS
-                        IGoR model_marginals.txt
-
-
-
-[dev]
-pygor3-pgen_sequences: Simple script to get the pgen of input sequences given an output filename, no batch required but optional.
-pygor3-infer: A script to run any model given gene templates Is incomplete only works for VDJ for the moment. I found a bug for VJ I'm solving it :|
-pygor3-bs_export: Given an IGoR batchname, species and chain it captures the model and convert the values of best scenarios to explicit values and not indexes.
-
-
-
-
-
-
-
-# pygor command line
-
-## Common options
-Usage: pygor [OPTIONS] COMMAND [ARGS]...
-
-Options:
-  -s, --set_igor_species TEXT     Species in IGoR's format: human, mouse
-  -c, --set_igor_chain TEXT       Chain in IGoR's format, e.g. alpha, beta,
-                                  TRB, TRA
-
-  -m, --set_igor_model <model_parms.txt> <model_marginals.txt>
-                                  IGoR model_params.txt and
-                                  model_marginals.txt filenames.
-
-  -M, --set_model_path <model_directory_path>
-                                  IGoR model directory path, this path include
-                                  ref_genomes and model_parms
-
-  -g, --set_path_ref_genome TEXT  Directory where genome references are
-                                  stored: genomicDs.fasta,  genomicJs.fasta,
-                                  genomicVs.fasta,  J_gene_CDR3_anchors.csv,
-                                  V_gene_CDR3_anchors.csv
-
-  -w, --set_wd TEXT               Sets the working directory to path
-                                  [default: ./]
-
-  -b, --set_batch TEXT            Sets batchname to identify run. If not set
-                                  random name is generated
-
-  -D, --set_database TEXT         Igor database created with database script.
-  --help                          Show this message and exit.
-
-Commands:
-  db-attach         Attach tables to database.
-  db-export         Export database model in igor formatted files
-  db-ls             List tables in database by groups and show number of...
-  db-rm             Delete tables in database by groups.
-  db-test           Manipulations of models
-  igor-align        IGoR's call to aligns
-  igor-evaluate     IGoR's call to evaluate input sequences
-  igor-generate     IGoR's call to generate sequences
-  igor-infer        IGoR's call to infer model from input sequences and...
-  igor-pgen         IGoR's call to calculate pgen of input sequences
-  igor-read-seqs    IGoR's call to read_seqs
-  igor-scenarios    IGoR's call to get best scenarios.
-  imgt-get-genomes  Get genomes from imgt website of specifing species and...
-  model-create      Make a new default model VJ or VDJ with uniform...
-  model-export      Export IGoR's models from txt (model_parms.txt,...
-  model-plot        Plot real marginals of the bayesian network events
-
-
-## pygor subcommands
-
-### pygor imgt
-
-Usage: pygor imgt-get-genomes [OPTIONS]
-
-  Get genomes from imgt website of specifing species and chain in imgt
-  format.
-
-Options:
-  --info                          List species and chain avialable in imgt
-                                  website.
-
-  -t, --recombination_type [VJ|VDJ]
-                                  Igor recombination type.
-  --imgt-species TEXT             IMGT species name for name specifications
-                                  run imgt --info.
-
-  --imgt-chain TEXT               IMGT chain name e.g. TRA, TRB.
-  --help                          Show this message and exit.
-
-
-### pygor model-create
-Usage: pygor model-create [OPTIONS]
-
-  Make a new default model VJ or VDJ with uniform probability distribution
-
-Options:
-  -t, --recombination_type [VJ|VDJ]
-                                  Igor recombination type.
-  --help                          Show this message and exit.
-
-
-### pygor model-plot
-Usage: pygor model-plot [OPTIONS]
-
-  Plot real marginals of the bayesian network events
-
-Options:
-  -o, --output-prefix TEXT  Prefix to pdf files with model plots.
-  --help                    Show this message and exit.
-
-
-### pygor model-export
-Usage: pygor model-export [OPTIONS]
-
-  Export IGoR's models from txt (model_parms.txt, model_marginals.txt) files
-  to db viceversa
-
-Options:
-  --from-txt TEXT...  Export Igor's model from txt files model_parms.txt and
-                      model_marginals.txt.
-
-  --from-db TEXT      Export Igor's model from database file.
-  --to-txt TEXT...    Output filename of Igor recombination model to
-                      <model_parms.txt> <model_marginals.txt>.
-
-  --to-db TEXT        Output filename of Igor recombination model to
-                      <model.db>.
-
-  --help              Show this message and exit.
-
-
-
-### pygor igor-evaluate
-Usage: pygor igor-evaluate [OPTIONS]
-
-  IGoR's call to evaluate input sequences
-
-Options:
-  -i, --input-sequences TEXT  Input sequences in FASTA, TXT or CSV formats.
-  -o, --output-db TEXT        Output database file.
-  --help                      Show this message and exit.
-
-
-
-
-### pygor db-attach
-Usage: pygor db-attach [OPTIONS]
-
-  Attach tables to database.
-
-Options:
-  --from-db TEXT                  Database copy source filename.
-  --from-batch TEXT               Database copy source filename.
-  --from-genome-dir TEXT          Database copy source filename.
-  --from-model-path TEXT          Database copy source filename.
-  --igor-model-dir <model.db>     IGoR model database file.
-  --igor-model-parms <model_parms.txt>
-                                  IGoR model parms (or params) file.
-  --igor-model-marginals <model_marginals.txt>
-                                  IGoR model marginals file.
-  --scenarios TEXT                If --from-db no need to add filename
-  --pgen TEXT                     If --from-db no need to add filename
-  --genomes TEXT                  Copy V, (D) and J genetic data to database
-  --genomesV TEXT                 Copy just V genomes tables to database.
-  --genomesD TEXT                 Copy just D genomes tables to database.
-  --genomesJ TEXT                 Copy just J genomes tables to database.
-  --genomesCDR3 TEXT              Copy just CDR3 anchors tables to database.
-  --alignments TEXT               Copy all available alignments tables to
-                                  database.
-
-  --alignmentsV TEXT              Copy V alignments tables to database.
-  --alignmentsD TEXT              Copy D alignments tables to database.
-  --alignmentsJ TEXT              Copy J alignments tables to database.
-  --alignmentsCDR3 TEXT           Copy indexed cdr3 table to database.
-  --help                          Show this message and exit.
 
 
 

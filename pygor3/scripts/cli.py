@@ -480,6 +480,7 @@ def run_evaluate(igor_read_seqs, output_fln_prefix,
         print("Database file : ", output_fln_db)
         print("airr rearrangement : ", output_fln_airr)
         igortask.igor_db.export_IgorBestScenarios_to_AIRR(output_fln_airr)
+        igortask.run_clean_batch()
     else:
         import os
         # igortask.mdl.write_model(output_fln_parms, output_fln_marginals)
@@ -797,12 +798,26 @@ def run_generate(N,
 
     print(igortask.to_dict())
     igortask.run_generate(N_seqs=N)
+    import os
     if fln_output_prefix is None:
         igortask.igor_fln_generated_realizations_werr = None
         igortask.igor_fln_generated_seqs_werr = None
     else:
         igortask.igor_fln_generated_realizations_werr = None
-        igortask.igor_fln_generated_seqs_werr = None
+        igortask.igor_fln_generated_seqs_werr = igortask.igor_wd + "/" + igortask.igor_batchname + "_generated/generated_seqs_werr.csv"
+        igortask.igor_fln_generated_realizations_werr = igortask.igor_wd + "/" + igortask.igor_batchname + "_generated/generated_realizations_werr.csv"
+        output_generated_sequences = fln_output_prefix+"_sequences.csv"
+        output_generated_realizations = fln_output_prefix + "_realizations.csv"
+        # output_generated_sequences_airr = fln_output_prefix + "_sequences.tsv"
+        # TODO: EXPORT IN AIRR REARRANGEMENT
+        os.rename(igortask.igor_fln_generated_seqs_werr, output_generated_sequences)
+        os.rename(igortask.igor_fln_generated_realizations_werr, output_generated_realizations)
+        igortask.run_clean_batch()
+
+
+
+
+
 
 
 # run_read_seqs.add_command(get_ref_genome)
@@ -1207,6 +1222,9 @@ def model_create(rec_type, fln_output_prefix,
         igortask.igor_model_marginals_file = igor_model_marginals
     elif igor_fln_db is not None:
         igortask.create_db()
+    elif igor_model_path is not None:
+        igortask.igor_model_dir_path = igor_model_path
+        igortask.update_model_filenames(model_path=igortask.igor_model_dir_path)
     else:
         print("WARNING: No model provided!")
     ########################
@@ -1228,7 +1246,7 @@ def model_create(rec_type, fln_output_prefix,
 
     print("igortask.igor_model_dir_path: ", igortask.igor_model_dir_path)
     if fln_output_prefix is None:
-        print(igortask.igor_model_dir_path)
+        # print(igortask.igor_model_dir_path)
         igortask.mdl.parms.write_model_parms(igortask.igor_model_parms_file)
         igortask.mdl.marginals.write_model_marginals(igortask.igor_model_marginals_file, igortask.mdl.parms)
     else:
@@ -1313,6 +1331,9 @@ def model_plot(fln_output_prefix,
         igortask.igor_model_marginals_file = igor_model_marginals
     elif igor_fln_db is not None:
         igortask.create_db()
+    elif igor_model_path is not None:
+        igortask.igor_model_dir_path = igor_model_path
+        igortask.update_model_filenames(model_path=igortask.igor_model_dir_path)
     else:
         print("WARNING: No model provided!")
     ########################
@@ -1907,11 +1928,13 @@ def database_rm(b_igor_reads, b_igor_model,
 @click.command("db-export", cls=RegisterWriterCommand)
 ############## COMMON options ##############
 @click.option("-D", "--set_database", "igor_fln_db", default=None, help="Igor database created with database script.")
-
+@click.option("-b", "--set_batch", "igor_batch", default=None,
+                    help='Sets batchname to identify run. If not set random name is generated')
 ############## NO COMMON options ##############
-@click.option("--airr-rearrangement", "b_airr_rearrangement", is_flag=True,
+@click.option("--airr-rearrangement", "b_airr_rearrangement", cls=RegisterReaderOption,
+              is_flag=True,
               default=False, help='Export IGoR scenarios and pgen in tsv airr format file')
-@click.option("--airr-rearrangement_set", "fln_airr_rearrangement", cls=RegisterReaderOption,
+@click.option("--airr-rearrangement_set", "fln_airr_rearrangement", cls=RegisterWriterOption,
               default=None,
               help='Export to airr file.')
 @click.option("--igor-all", "b_igor_all", is_flag=True,
@@ -2005,44 +2028,46 @@ def database_export(b_airr_rearrangement, fln_airr_rearrangement,
                     b_igor_model, fln_igor_model,
                     b_igor_scenarios, fln_igor_scenarios,
                     b_igor_pgen, fln_igor_pgen,
-                    igor_species, igor_chain, igor_model, igor_model_path, igor_path_ref_genome, igor_wd, igor_batch,
-                    igor_fln_db,
-                    fln_genomicVs, fln_genomicDs, fln_genomicJs, fln_V_gene_CDR3_anchors, fln_J_gene_CDR3_anchors):
+                    # igor_species, igor_chain, igor_model, igor_model_path, igor_path_ref_genome, igor_wd,
+                    igor_batch,
+                    # fln_genomicVs, fln_genomicDs, fln_genomicJs, fln_V_gene_CDR3_anchors, fln_J_gene_CDR3_anchors,
+                    igor_fln_db):
     """Export database model in igor formatted files"""
     # fln_prefix = "tmp_export_"
     ########################
+    print("db-export")
     from pygor3 import IgorTask
     igortask = IgorTask()
-    igortask.igor_path_ref_genome = igor_path_ref_genome
-    igortask.fln_genomicVs = fln_genomicVs
-    igortask.fln_genomicDs = fln_genomicDs
-    igortask.fln_genomicJs = fln_genomicJs
-    igortask.fln_V_gene_CDR3_anchors = fln_V_gene_CDR3_anchors
-    igortask.fln_J_gene_CDR3_anchors = fln_J_gene_CDR3_anchors
-
-    igortask.igor_species = igor_species
-    igortask.igor_chain = igor_chain
-    igor_model_parms = igor_model[0]
-    igor_model_marginals = igor_model[1]
-    igortask.igor_model_parms_file = igor_model[0]
-    igortask.igor_model_marginals_file = igor_model[1]
-    igortask.igor_model_dir_path = igor_model_path
-    igortask.igor_wd = igor_wd
+    # igortask.igor_path_ref_genome = igor_path_ref_genome
+    # igortask.fln_genomicVs = fln_genomicVs
+    # igortask.fln_genomicDs = fln_genomicDs
+    # igortask.fln_genomicJs = fln_genomicJs
+    # igortask.fln_V_gene_CDR3_anchors = fln_V_gene_CDR3_anchors
+    # igortask.fln_J_gene_CDR3_anchors = fln_J_gene_CDR3_anchors
+    #
+    # igortask.igor_species = igor_species
+    # igortask.igor_chain = igor_chain
+    # igor_model_parms = igor_model[0]
+    # igor_model_marginals = igor_model[1]
+    # igortask.igor_model_parms_file = igor_model[0]
+    # igortask.igor_model_marginals_file = igor_model[1]
+    # igortask.igor_model_dir_path = igor_model_path
+    # igortask.igor_wd = igor_wd
     igortask.igor_batchname = igor_batch
-    igortask.igor_fln_db = igor_fln_db
+    # igortask.igor_fln_db = igor_fln_db
 
-    Q_species_chain = (not (igor_species is None) and not (igor_chain is None))
-    Q_model_files = (not (igor_model_parms is None) and not (igor_model_marginals is None))
-    if Q_species_chain:
-        igortask.igor_species = igor_species
-        igortask.igor_chain = igor_chain
-    elif Q_model_files:
-        igortask.igor_model_parms_file = igor_model_parms
-        igortask.igor_model_marginals_file = igor_model_marginals
-    elif igor_fln_db is not None:
-        igortask.create_db()
-    else:
-        print("WARNING: No model provided!")
+    # Q_species_chain = (not (igor_species is None) and not (igor_chain is None))
+    # Q_model_files = (not (igor_model_parms is None) and not (igor_model_marginals is None))
+    # if Q_species_chain:
+    #     igortask.igor_species = igor_species
+    #     igortask.igor_chain = igor_chain
+    # elif Q_model_files:
+    #     igortask.igor_model_parms_file = igor_model_parms
+    #     igortask.igor_model_marginals_file = igor_model_marginals
+    # elif igor_fln_db is not None:
+    #     igortask.create_db()
+    # else:
+    #     print("WARNING: No model provided!")
     ########################
     print("batchname: ", igortask.igor_batchname)
     print("b_igor_reads, fln_igor_reads", b_igor_reads, fln_igor_reads)
@@ -2053,7 +2078,7 @@ def database_export(b_airr_rearrangement, fln_airr_rearrangement,
         return 0
 
     # TODO: IgorTask should help me to pass from batch to db and from db to batch and model_directory.
-    igor_fln_db = igortask.igor_fln_db
+    # igor_fln_db = igortask.igor_fln_db
     igortask.update_batch_filenames()
     path_mdl_data = igortask.igor_batchname + "_mdldata"
     igortask.update_model_filenames(model_path=path_mdl_data)
@@ -2061,7 +2086,8 @@ def database_export(b_airr_rearrangement, fln_airr_rearrangement,
 
     igortask.create_db(igor_fln_db)
     ii_db = igortask.igor_db
-    print("ii_db : ", ii_db, type(ii_db), type(igortask.igor_db))
+    print("igor_fln_db: "+igor_fln_db, "ii_db : ", ii_db, type(ii_db), type(igortask.igor_db))
+    ii_db.list_from_db()
     # import pygor3 as p3
     # ii_db = p3.IgorSqliteDB()
     ii_db.write_IgorIndexedSeq_to_CSV(igortask.igor_fln_indexed_sequences)
