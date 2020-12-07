@@ -200,7 +200,7 @@ This will output two pdf files with the Marginal Probabilities and Conditional p
 ![](BayesNetwork.png)
 ![](GeneChoice_MP.png)
 ![](GeneChoice_CP.png)
-
+ 
 
 ```
 $pygor igor-evaluate -M -i input_sequence -o output
