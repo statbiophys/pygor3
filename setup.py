@@ -3,6 +3,9 @@ import setuptools
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
+data_files_to_include = [('', ['README.md', 'LICENSE'])]
+
+
 setuptools.setup(
     name='pygor3',
     url="https://github.com/alfaceor/pygor3",
@@ -10,7 +13,7 @@ setuptools.setup(
     author_email="carlos.olivares@phys.ens.fr",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    version='0.0.2',
+    version='0.0.3',
     description='Python package to manipulate and run IGoR data files',
     license="GNU GPLv3",
     python_requires='>=3.5',
@@ -28,6 +31,13 @@ setuptools.setup(
         "airr"
     ],
     packages=setuptools.find_packages(),
+    package_data = {
+            'pygor3': ['demo/data/IgL/*.txt'],
+            # 'pygor3.demo.data': ['*'],
+            # 'pygor3.demo.data.IgL': ['*.txt']
+            },
+    data_files = data_files_to_include,
+    include_package_data=True,
     entry_points= {
         'console_scripts' : [
             'pygor=pygor3.scripts.cli:cli',

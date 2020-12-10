@@ -1446,8 +1446,16 @@ def database_import(fln_output_db,
     print(igortask.igor_fln_db)
     igortask.create_db(igor_fln_db=fln_output_db)
 
-    igortask.load_db_from_indexed_sequences()
-    igortask.load_db_from_indexed_cdr3()
+    try:
+        igortask.load_db_from_indexed_sequences()
+    except Exception as e:
+        print("WARNING: indexed_sequences not found.", e)
+
+    try:
+        igortask.load_db_from_indexed_cdr3()
+    except Exception as e:
+        print("WARNING: indexed_sequences not found.", e)
+
 
     import pygor3 as p3
     if (igortask.igor_species is not None) and (igortask.igor_chain is not None):
@@ -1493,11 +1501,22 @@ def database_import(fln_output_db,
             print("Couldn't load genome templates to database")
             print("ERROR: ", e)
 
-    igortask.load_db_from_alignments()
+    try:
+        igortask.load_db_from_alignments()
+    except Exception as e:
+        print("WARNING: No alignments found.", e)
 
-    igortask.load_db_from_bestscenarios()
+    try:
+        igortask.load_db_from_bestscenarios()
+    except Exception as e:
+        print("WARNING: No alignments found.", e)
 
-    igortask.load_db_from_pgen()
+    try:
+        igortask.load_db_from_pgen()
+    except Exception as e:
+        print("WARNING: No alignments found.", e)
+
+
 
 
 
@@ -2558,6 +2577,17 @@ def test(igor_species, igor_chain, igor_model, igor_model_path, igor_fln_db,
 
 
 
+@click.command("get-demo-data") #invoke_without_command=True)
+def get_demo_data():
+    """
+    Get demo data directory
+    """
+    from importlib import resources
+    import shutil
+    import os
+
+    with resources.path("pygor3", "demo") as path:
+        shutil.copytree(path, os.getcwd() + "/demo")
 
 
     """
@@ -2934,6 +2964,7 @@ def test(igor_species, igor_chain, igor_model, igor_model_path, igor_fln_db,
     #
     #
 
+cli.add_command(get_demo_data)
 cli.add_command(test)
 
 
