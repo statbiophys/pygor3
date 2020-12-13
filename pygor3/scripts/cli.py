@@ -302,6 +302,8 @@ def run_infer(igor_read_seqs, output_fln_prefix,
     elif Q_model_files:
         igortask.igor_model_parms_file = igor_model_parms
         igortask.igor_model_marginals_file = igor_model_marginals
+    elif igor_model_path is not None:
+        igortask.igor_model_dir_path = igor_model_path
     elif igor_fln_db is not None:
         igortask.create_db()
     else:
@@ -336,7 +338,7 @@ def run_infer(igor_read_seqs, output_fln_prefix,
         output_fln_parms = output_fln_prefix + "_parms.txt"
         output_fln_marginals = output_fln_prefix + "_marginals.txt"
         igortask.mdl.plot_Bayes_network(filename=output_fln_prefix+"_BN.pdf")
-        igortask.mdl.export_plot_Pmarginals(output_fln_prefix+"_RM")
+        igortask.mdl.export_plot_Pmarginals(output_fln_prefix+"_MP")
 
         os.rename(igortask.igor_fln_db, output_fln_db)
         igortask.mdl.write_model(output_fln_parms, output_fln_marginals)
@@ -1597,7 +1599,8 @@ def database_copy(fln_output_db, b_igor_reads,
 
     # Get list of tables in igortask.igor_db
     tablename_ctsql_dict = igortask.igor_db.get_dict_of_Igortablename_sql()
-    print("Tables in source database : ", tablename_ctsql_dict.keys())
+    print("**** Tables in source database : ", igor_fln_db) #, tablename_ctsql_dict.keys())
+    igortask.igor_db.list_from_db()
     if b_igor_reads and igortask.igor_db.Q_sequences_in_db():
         try:
             # Ask to sqlite_master for the way to create it in new database
@@ -1706,7 +1709,7 @@ def database_copy(fln_output_db, b_igor_reads,
             print("ERROR: igor-scenarios")
             print(e)
 
-    print("Tables in destiny database: ", fln_output_db)
+    print("**** Tables in destiny database: ", fln_output_db)
     output_db.list_from_db()
 
 
@@ -2577,7 +2580,68 @@ def database_naive_align(output_fln, seq_index, igor_fln_db):
 
 
 
+# TODO;
+def database_plot_pgen():
+    """Plot Pgen distribution"""
+    import pygor3 as p3
+    import numpy as np
 
+    igortask = p3.IgorTask()
+    igortask.igor_db.fetch_IgorPgen()
+
+    igortask.get_pgen_pd()
+
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    ###### BEGIN PLOT DECORATION VARIABLES
+    font = {'family': 'normal',
+            'weight': 'bold',
+            'size': 18}
+    plt.rc('font', **font)
+    plt.rc('text', usetex=True)
+    ###### END PLOT DECORATION VARIABLES
+    fig, ax = plt.subplots()
+    ax.set_xlabel("CDR3nt length")
+    ax.set_ylabel("counts")
+
+    from optparse import OptionParser
+
+    parser = OptionParser()
+    parser.add_option("-d", "--density", dest="density")
+    (options, args) = parser.parse_args()
+
+    for flnIGoRCDR3 in args:
+        # flnIGoRCDR3 = "Barb_indexed_CDR3.csv"
+        try:
+            lblHist = flnIGoRCDR3.split("_indexed_CDR3.csv")[0]
+        except:
+            lblHist = "No Title"
+            pass
+        dataCDR3 = pd.read_csv(flnIGoRCDR3, sep=';')  # , sep=";")
+        flnIGoRCDR3_hist = flnIGoRCDR3.split(".csv")[0] + "_hist" + ".csv"
+        flnIGoRCDR3_hist
+
+        dataCDR3LenArr = dataCDR3['CDR3nt'].dropna().map(len).values
+        hist, bin_edges = np.histogram(dataCDR3LenArr, bins=range(dataCDR3LenArr.min(), dataCDR3LenArr.max()))
+        xbins = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+        print
+        bin_edges[:-1].dtype
+        print
+        type(bin_edges[1:])
+        xbins
+        np.savetxt(flnIGoRCDR3_hist, zip(bin_edges[:-1], bin_edges[1:], hist), fmt='%d')
+        ax.plot(xbins, hist, marker='o', label=lblHist)
+
+    ax.legend()
+    fig.tight_layout()
+    plt.show()
+
+
+# TODO:
+def database_plot_CDR3_len():
+    """Plot CDR3 length distribution from alignments"""
+    pass
 
 
 
@@ -2589,6 +2653,9 @@ cli.add_command(database_attach)
 cli.add_command(database_rm)
 cli.add_command(database_export)
 cli.add_command(database_naive_align)
+# cli.add_command(database_plot_pgen)
+# cli.add_command(database_plot_CDR3_len)
+
 
 
 @click.command("test") #invoke_without_command=True)

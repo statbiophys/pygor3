@@ -44,7 +44,7 @@
 ###   import IgorSqliteDB
 ###   __all__ = ["IgorAlignment_data","IgorBestScenarios","IgorIndexedSequencesDB","IgorModel", "IgorSqliteDBBestScenarios", "IgorSqliteDB"]
 
-
+# __version__ =
 
 class RcParams(dict):
     #validate = { key : converter
