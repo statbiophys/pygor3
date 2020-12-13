@@ -251,6 +251,7 @@ class IgorTask:
             "fln_genomicDs": self.fln_genomicDs,
             "fln_genomicJs": self.fln_genomicJs,
             "fln_V_gene_CDR3_anchors": self.fln_V_gene_CDR3_anchors,
+            "fln_J_gene_CDR3_anchors": self.fln_J_gene_CDR3_anchors,
             "igor_wd": self.igor_wd,
             "igor_batchname": self.igor_batchname,
             "igor_model_parms_file": self.igor_model_parms_file,
@@ -387,7 +388,12 @@ class IgorTask:
     def update_ref_genome(self, igor_path_ref_genome=None):
         if igor_path_ref_genome is not None:
             self.igor_path_ref_genome = igor_path_ref_genome
-        self.genomes.update_fln_names() #fln_genomicVs = self.igor_path_ref_genome + ""
+        self.genomes.update_fln_names(path_ref_genome=self.igor_path_ref_genome) #fln_genomicVs = self.igor_path_ref_genome + ""
+        self.fln_genomicVs = self.genomes.fln_genomicVs
+        self.fln_genomicJs = self.genomes.fln_genomicJs
+        self.fln_genomicDs = self.genomes.fln_genomicDs
+        self.fln_V_gene_CDR3_anchors = self.genomes.fln_V_gene_CDR3_anchors
+        self.fln_J_gene_CDR3_anchors = self.genomes.fln_J_gene_CDR3_anchors
 
 
     def update_batch_filenames(self):
@@ -996,6 +1002,114 @@ class IgorTask:
 
     def export_to_igorfiles(self):
         print("Export: ")
+        #--- 1. Indexed Sequences
+        if self.igor_db.Q_sequences_in_db() and not (self.igor_fln_indexed_sequences is None):
+            try:
+                self.igor_db.write_IgorIndexedSeq_to_CSV(self.igor_fln_indexed_sequences)
+            except Exception as e:
+                print("ERROR: write_IgorIndexedSeq_to_CSV", e)
+        else:
+            print("No IgorIndexedSeq Table not exported")
+
+        #--- 2. Gene Templates
+        if self.igor_db.Q_ref_genome_in_db_by_gene("V") and not (self.fln_genomicVs is None):
+            try:
+                self.igor_db.write_IgorGeneTemplate_to_fasta("V", self.fln_genomicVs)
+            except Exception as e:
+                print("ERROR: write_IgorGeneTemplate_to_fasta V", e)
+        else:
+            print("No IgorGeneTemplate V Table")
+
+        if self.igor_db.Q_ref_genome_in_db_by_gene("J") and not (self.fln_genomicJs is None):
+            try:
+                self.igor_db.write_IgorGeneTemplate_to_fasta("J", self.fln_genomicJs)
+            except Exception as e:
+                print("ERROR: write_IgorGeneTemplate_to_fasta J", e)
+        else:
+            print("No IgorGeneTemplate J Table")
+
+        if self.igor_db.Q_ref_genome_in_db_by_gene("D") and not (self.fln_genomicDs is None):
+            try:
+                self.igor_db.write_IgorGeneTemplate_to_fasta("D", self.fln_genomicDs)
+            except Exception as e:
+                print("ERROR: write_IgorGeneTemplate_to_fasta D", e)
+        else:
+            print("No IgorGeneTemplate D Table")
+
+        if self.igor_db.Q_CDR3_Anchors_in_db("V") and not (self.fln_V_gene_CDR3_anchors is None):
+            try:
+                self.igor_db.write_IgorGeneAnchors_to_CSV("V", self.fln_V_gene_CDR3_anchors)
+            except Exception as e:
+                print("ERROR: write_IgorGeneAnchors_to_CSV V", e)
+        else:
+            print("No IgorGeneAnchors V Table")
+
+        if self.igor_db.Q_CDR3_Anchors_in_db("J") and not (self.fln_J_gene_CDR3_anchors is None):
+            try:
+                self.igor_db.write_IgorGeneAnchors_to_CSV("J", self.fln_J_gene_CDR3_anchors)
+            except Exception as e:
+                print("ERROR: write_IgorGeneAnchors_to_CSV J", e)
+        else:
+            print("No IgorGeneAnchors J Table")
+
+
+
+        #--- 3. Alignments
+        if self.igor_db.Q_align_in_db():
+            # b_igor_alignments
+            if self.igor_db.Q_align_in_db_by_gene("V") and not (self.igor_fln_align_V_alignments is None):
+                try:
+                    self.igor_db.write_IgorAlignments_to_CSV("V", self.igor_fln_align_V_alignments)
+                except Exception as e:
+                    print("ERROR: write_IgorAlignments_to_CSV V", e)
+
+            if self.igor_db.Q_align_in_db_by_gene("J") and not (self.igor_fln_align_J_alignments is None):
+                try:
+                    self.igor_db.write_IgorAlignments_to_CSV("J", self.igor_fln_align_J_alignments)
+                except Exception as e:
+                    print("ERROR: write_IgorAlignments_to_CSV J", e)
+
+            if self.igor_db.Q_align_in_db_by_gene("D") and not (self.igor_fln_align_D_alignments is None):
+                try:
+                    self.igor_db.write_IgorAlignments_to_CSV("D", self.igor_fln_align_D_alignments)
+                except Exception as e:
+                    print("ERROR: write_IgorAlignments_to_CSV D", e)
+            try:
+                self.igor_db.write_IgorIndexedCDR3_to_CSV(self.igor_fln_indexed_CDR3)
+            except Exception as e:
+                print("WARNING: No indexed CDR3 files found", self.igor_fln_indexed_CDR3)
+                print(e)
+                pass
+
+        # --- 4. Export Igor Model
+        if self.igor_db.Q_model_in_db():
+            if (not (self.igor_model_parms_file is None)) and (not (self.igor_model_marginals_file is None)):
+                try:
+                    self.igor_db.write_IgorModel_to_TXT(self.igor_model_parms_file, self.igor_model_marginals_file)
+                except Exception as e:
+                    print("ERROR: write_IgorModel_to_TXT ",e)
+            else:
+                print("ERROR: igor_model_parms_file or igor_model_marginals_file not specified.")
+        else:
+            print("No Models Tables")
+
+        # --- 5. Export Igor Model
+        if self.igor_db.Q_IgorPgen_in_db() and not (self.igor_fln_output_pgen is None):
+            try:
+                self.igor_db.write_IgorPgen_to_CSV(self.igor_fln_output_pgen)
+            except Exception as e:
+                print("ERROR: write_IgorPgen_to_CSV ", e)
+
+        # --- 6. Export Igor Model
+        # b_igor_scenarios
+        if self.igor_db.Q_IgorBestScenarios_in_db() and not (self.igor_fln_output_scenarios is None):
+            try:
+                self.igor_db.write_IgorBestScenarios_to_CSV(self.igor_fln_output_scenarios)
+            except Exception as e:
+                print("ERROR: write_IgorBestScenarios_to_CSV ", e)
+
+        # 1.1 if Alignments
+
 
     #### AIRR methods ###
     def parse_scenarios_to_airr(self, igor_fln_output_scenarios, airr_fln_output_scenarios):

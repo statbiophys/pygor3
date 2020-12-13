@@ -33,6 +33,23 @@ Pygor will use default IGoR's path to execute it.
 
 ### Quickstart
 
+#### Get demo sample data
+Get a copy of demo sequences in current directory
+
+```
+$ pygor demo-get-data
+```
+This command creates a directory demo with the following structure
+
+```
+demo/
+└── data
+    └── IgL
+        ├── RISQ01_01_sorted_memory_ALL_out_Nofunctional.txt
+        └── RISQ01_01_sorted_naive_ALL_out_Nofunctional.txt
+
+```
+
 #### New Model
 Now to create a model from scratch, donwload gene templates and anchors from IMGT website [IMGT](http://www.imgt.org/)
 A list of available species to download from IMGT can be query with imgt-get-genomes command and option --info.
@@ -157,7 +174,7 @@ but it is not the marginal probability of a recombination event.
     ```
    
    At this point you can use a set of non-productive sequence to infer a model within IGoR directly 
-   or by using pygor command
+   or by using pygor command.
    
     ```console
     $ pygor igor-infer -M models/Homo+sapiens/TRB/ -i sample_realizations.csv -o new_hs_trb

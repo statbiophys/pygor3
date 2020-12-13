@@ -321,6 +321,12 @@ class IgorSqliteDB:
         # if strGene == 'D':
         #    print(sqlSelect)
         records = cur.fetchall()
+
+        import pathlib
+        import os
+        directory_name = os.path.dirname(flnIgorIndexedSeq)
+        pathlib.Path(directory_name).mkdir(parents=True, exist_ok=True)
+
         with open(flnIgorIndexedSeq, "w") as ofile:
             ofile.write("seq_index" + sep + "sequence" + "\n")
             for record in records:
@@ -406,6 +412,10 @@ class IgorSqliteDB:
         cur.execute(sqlSelect)
         records = cur.fetchall()
         # str_file_header = "seq_index" + sep + "sequence" + "\n"
+        import pathlib
+        import os
+        directory_name = os.path.dirname(flnGeneTemplate)
+        pathlib.Path(directory_name).mkdir(parents=True, exist_ok=True)
         with open(flnGeneTemplate, "w") as ofile:
             # ofile.write(str_file_header)
             for record in records:
@@ -502,6 +512,12 @@ class IgorSqliteDB:
         cur = self.conn.cursor()
         cur.execute(sqlSelect)
         records = cur.fetchall()
+
+        import pathlib
+        import os
+        directory_name = os.path.dirname(flnGeneAnchors)
+        pathlib.Path(directory_name).mkdir(parents=True, exist_ok=True)
+
         str_file_header = "gene;anchor_index;function\n"
         with open(flnGeneAnchors, "w") as ofile:
             ofile.write(str_file_header)
@@ -797,6 +813,11 @@ class IgorSqliteDB:
         cur.execute(sqlSelect)
         records = cur.fetchall()
 
+        import pathlib
+        import os
+        directory_name = os.path.dirname(flnGeneTemplate)
+        pathlib.Path(directory_name).mkdir(parents=True, exist_ok=True)
+
         str_file_header = "seq_index"+sep+"gene_name"+sep+"score"+sep+"offset"+sep+"insertions"+sep+"deletions"+sep+"mismatches"+sep+"length"+sep+"5_p_align_offset"+sep+"3_p_align_offset" + "\n"
         with open(flnGeneTemplate, "w") as ofile:
             ofile.write(str_file_header)
@@ -888,6 +909,11 @@ class IgorSqliteDB:
         # if strGene == 'D':
         #    print(sqlSelect)
         records = cur.fetchall()
+
+        import pathlib
+        import os
+        directory_name = os.path.dirname(flnIgorIndexedCDR3)
+        pathlib.Path(directory_name).mkdir(parents=True, exist_ok=True)
 
         str_file_header = "seq_index;v_anchor;j_anchor;CDR3;CDR3_aa" + "\n"
         with open(flnIgorIndexedCDR3, "w") as ofile:
@@ -1303,6 +1329,11 @@ class IgorSqliteDB:
         cur.execute(sqlSelect)
         records = cur.fetchall()
 
+        import pathlib
+        import os
+        directory_name = os.path.dirname(flnIgorBestScenarios)
+        pathlib.Path(directory_name).mkdir(parents=True, exist_ok=True)
+
         # str_file_header = "seq_index;gene_name;score;offset;insertions;deletions;mismatches;length;5_p_align_offset;3_p_align_offset" + "\n"
         with open(flnIgorBestScenarios, "w") as ofile:
             ofile.write(str_file_header)
@@ -1323,6 +1354,11 @@ class IgorSqliteDB:
 
         from .AIRR import AIRR_VDJ_rearrangement
         import airr
+
+        import pathlib
+        import os
+        directory_name = os.path.dirname(flnAIRR_arrangement)
+        pathlib.Path(directory_name).mkdir(parents=True, exist_ok=True)
 
         # FIXME: IF VDJ THEN:
         airr_fields = AIRR_VDJ_rearrangement.list_of_fields()
@@ -1443,6 +1479,10 @@ class IgorSqliteDB:
 
     def write_IgorPgen_to_CSV(self, flnIgorPgen, sep=';'):
         print("Writing Pgen to file: ", flnIgorPgen)
+        import pathlib
+        import os
+        directory_name = os.path.dirname(flnIgorPgen)
+        pathlib.Path(directory_name).mkdir(parents=True, exist_ok=True)
         str_header = "seq_index"+sep+"Pgen_estimate\n"
         with open(flnIgorPgen, "w") as ofile:
             # seq_index,Pgen_estimate
@@ -1816,6 +1856,12 @@ class IgorSqliteDB:
             if len(tables_list) > 0: flag_db = True
 
         return flag_db
+
+    def Q_CDR3_Anchors_in_db(self, strGene):
+        flag_table = False
+        tables_list = self.get_list_of_tables_with_name('Igor' + strGene + 'GeneCDR3Anchors')
+        if len(tables_list) == 1: flag_table = True
+        return flag_table
 
     def Q_ref_genome_in_db_by_gene(self, strGene):
         flag_table = False
