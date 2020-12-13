@@ -504,6 +504,7 @@ def run_evaluate(igor_read_seqs, output_fln_prefix,
         os.rename(igortask.igor_fln_output_scenarios, output_fln_scenarios)
         os.rename(igortask.igor_fln_output_pgen, output_fln_pgen)
 
+        igortask.igor_db.connect_db(output_fln_db)
         # copy files
         print("Database file : ", output_fln_db)
         print("airr rearrangement : ", output_fln_airr)

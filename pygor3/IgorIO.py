@@ -2613,9 +2613,11 @@ class IgorModel:
         # print("scen_realization_dict : ", scen_realization_dict)
         V_segment_dict = get_gene_segment(scen_realization_dict['v_choice'].value,
                                      int_gene_3_del=scen_realization_dict['v_3_del'].value)
+
         D_segment_dict = get_gene_segment(scen_realization_dict['d_gene'].value,
                                      int_gene_5_del=scen_realization_dict['d_5_del'].value,
                                      int_gene_3_del=scen_realization_dict['d_3_del'].value)
+
         J_segment_dict = get_gene_segment(scen_realization_dict['j_choice'].value,
                                      int_gene_5_del=scen_realization_dict['j_5_del'].value)
 
@@ -2638,9 +2640,7 @@ class IgorModel:
 
         VJ_segment_dict = collections.OrderedDict()
         VJ_segment_dict['gene_segment'] = "".join([realiz.value for realiz in scen_realization_dict['vj_dinucl']])
-        VJ_segment_dict['np1'] = None
-        VJ_segment_dict['np1_length'] = None
-        VJ_segment_dict['n1_length'] = None
+
 
 
 
@@ -2722,6 +2722,78 @@ class IgorModel:
         airr_vdj.j_data.sequence_end = airr_vdj.j_data.sequence_start + len(j_segment['gene_cut']) - 1
 
         return airr_vdj.to_dict()
+
+
+    def get_AIRR_VJ_rearragement_dict_from_scenario(self, scenario, str_sequence, v_offset=0, pgen=None, junction=None, junction_aa=None):
+        """
+        Return airr rearragement from scenario.
+        """
+        # get_AIRR_VDJ_rearragement_dict_from_scenario(scenario, indexed_seq.seq_index, indexed_seq.sequence)
+        # airr_dict = dict()
+
+        from .AIRR import AIRR_VDJ_rearrangement
+
+        realizations_ids_dict = scenario.realizations_ids_dict
+        realization_dict = self.get_realizations_dict_from_scenario_dict(realizations_ids_dict)
+
+        # FIXME: HERE
+        v_segment, vj_segment, j_segment = self.construct_sequence_VJ_from_realization_dict(realization_dict)
+
+        airr_vj = AIRR_VDJ_rearrangement(sequence_id=scenario.seq_index, sequence=str_sequence)
+
+        airr_vj.v_data.call = realization_dict['v_choice'].name
+        airr_vj.d_data.call = None #realization_dict['d_gene'].name
+        airr_vj.j_data.call = realization_dict['j_choice'].name
+
+        airr_vj.sequence_alignment = v_segment['gene_segment'] + vj_segment['gene_segment'] + j_segment['gene_segment']
+
+        airr_vj.np1 = v_segment['palindrome_3_end'] + vj_segment['gene_segment'] + j_segment['palindrome_5_end']
+        airr_vj.np2 = None
+
+        airr_vj.pgen = pgen
+
+        airr_vj.junction = junction
+        airr_vj.junction_aa = junction_aa
+
+        airr_vj.rev_comp = False
+
+        # FIXME: CORRECT CIGAR FORMAT TEMPORARY SOLUTION
+        airr_vj.v_data.cigar = str(len(v_segment['gene_cut']))+"M"
+        airr_vj.d_data.cigar = None #str(len(d_segment['gene_cut'])) + "M"
+        airr_vj.j_data.cigar = str(len(j_segment['gene_cut'])) + "M"
+
+        airr_vj.v_data.score = 5 * len(v_segment['gene_cut'])
+        airr_vj.d_data.score = None #5 * len(d_segment['gene_cut'])
+        airr_vj.j_data.score = 5 * len(j_segment['gene_cut'])
+
+
+
+        # V
+        airr_vj.v_data.sequence_start = 1
+        airr_vj.v_data.sequence_end = len(v_segment['palindrome_5_end']) + len(v_segment['gene_cut'])
+        airr_vj.v_data.germline_start = airr_vj.v_data.sequence_start - v_offset - 1
+        airr_vj.v_data.germline_end = airr_vj.v_data.sequence_end - airr_vj.v_data.sequence_start - 1
+        # = airr_vdj.v_data.germline_start + len(v_segment['palindrome_5_end']) + len(v_segment['gene_cut'])
+        airr_vj.p3v_length = len(v_segment['palindrome_3_end'])
+
+        # FIXME: WHY i NEED TO PUT IT FIRST?
+        airr_vj.p5j_length = len(j_segment['palindrome_5_end'])
+
+        # VJ
+        airr_vj.n1_length = realization_dict['vj_ins'].value
+        airr_vj.np1_length = airr_vj.p3v_length + airr_vj.n1_length + airr_vj.p5j_length
+        airr_vj.np1 = vj_segment['gene_segment']  # This include the palindromic insertions
+
+        # J
+
+        airr_vj.j_data.germline_start = j_segment['gene_ini'] + 1
+        airr_vj.j_data.germline_end = j_segment['gene_end'] + 1
+        airr_vj.j_data.sequence_start = airr_vj.np1_length + (
+                    airr_vj.v_data.sequence_end - airr_vj.v_data.sequence_start - 1)
+        airr_vj.j_data.sequence_end = airr_vj.j_data.sequence_start + len(j_segment['gene_cut']) - 1
+
+        return airr_vj.to_dict()
+
 
 
 

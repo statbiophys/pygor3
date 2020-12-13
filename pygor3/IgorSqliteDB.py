@@ -522,9 +522,10 @@ class IgorSqliteDB:
         with open(flnGeneAnchors, "w") as ofile:
             ofile.write(str_file_header)
             for record in records:
-                ofile.write(str(record[0]) + sep)
-                ofile.write(str(record[1]) + sep)
-                ofile.write(str(record[2]) + '\n')
+                if not record[1] is None:
+                    ofile.write(str(record[0]) + sep)
+                    ofile.write(str(record[1]) + sep)
+                    ofile.write(str(record[2]) + '\n')
 
     def delete_IgorGeneAnchors_Tables(self):
         """
@@ -1360,27 +1361,48 @@ class IgorSqliteDB:
         directory_name = os.path.dirname(flnAIRR_arrangement)
         pathlib.Path(directory_name).mkdir(parents=True, exist_ok=True)
 
-        # FIXME: IF VDJ THEN:
-        airr_fields = AIRR_VDJ_rearrangement.list_of_fields()
-        airr_rearrangement_writer = airr.create_rearrangement(flnAIRR_arrangement, fields=airr_fields)
-        for seq_index, sequence in self.fetch_IgorIndexedSeq_records():
-            scenarios_list = self.get_IgorBestScenarios_By_seq_index_IgorModel(seq_index, mdl)
-            for scenario in scenarios_list:
-                v_best_aln = self.get_best_IgorAlignment_data_By_seq_index("V", seq_index)
+        # IF VDJ THEN:
+        b_D_gene = ( len([ event.event_type  for event in mdl.parms.Event_list if event.nickname == 'd_gene']) > 0 )
 
-                airr_rearrangement_dict = mdl.get_AIRR_VDJ_rearragement_dict_from_scenario(scenario, sequence, v_offset=v_best_aln.offset)
-                airr_rearrangement_dict['scenario_rank'] = scenario.scenario_rank
-                airr_rearrangement_dict['scenario_proba_cond_seq'] = scenario.scenario_proba_cond_seq
-                airr_rearrangement_dict['pgen'] = self.fetch_IgorPgen_By_seq_index(seq_index)[1]
-                cdr3_record = self.fetch_IgorIndexedCDR3_By_seq_index(seq_index)
-                airr_rearrangement_dict['junction'] = cdr3_record[3]
-                airr_rearrangement_dict['junction_aa'] = cdr3_record[4]
-                airr_rearrangement_writer.write(airr_rearrangement_dict)
+        if b_D_gene:
+            airr_fields = AIRR_VDJ_rearrangement.list_of_fields()
+            airr_rearrangement_writer = airr.create_rearrangement(flnAIRR_arrangement, fields=airr_fields)
+            for seq_index, sequence in self.fetch_IgorIndexedSeq_records():
+                scenarios_list = self.get_IgorBestScenarios_By_seq_index_IgorModel(seq_index, mdl)
+                for scenario in scenarios_list:
+                    v_best_aln = self.get_best_IgorAlignment_data_By_seq_index("V", seq_index)
 
-        airr_rearrangement_writer.close()
+                    airr_rearrangement_dict = mdl.get_AIRR_VDJ_rearragement_dict_from_scenario(scenario, sequence, v_offset=v_best_aln.offset)
+                    airr_rearrangement_dict['scenario_rank'] = scenario.scenario_rank
+                    airr_rearrangement_dict['scenario_proba_cond_seq'] = scenario.scenario_proba_cond_seq
+                    airr_rearrangement_dict['pgen'] = self.fetch_IgorPgen_By_seq_index(seq_index)[1]
+                    cdr3_record = self.fetch_IgorIndexedCDR3_By_seq_index(seq_index)
+                    airr_rearrangement_dict['junction'] = cdr3_record[3]
+                    airr_rearrangement_dict['junction_aa'] = cdr3_record[4]
+                    airr_rearrangement_writer.write(airr_rearrangement_dict)
 
+            airr_rearrangement_writer.close()
 
+        else:
+            # FIXME: IF VJ THEN:
+            airr_fields = AIRR_VDJ_rearrangement.list_of_fields()
+            airr_rearrangement_writer = airr.create_rearrangement(flnAIRR_arrangement, fields=airr_fields)
+            for seq_index, sequence in self.fetch_IgorIndexedSeq_records():
+                scenarios_list = self.get_IgorBestScenarios_By_seq_index_IgorModel(seq_index, mdl)
+                for scenario in scenarios_list:
+                    v_best_aln = self.get_best_IgorAlignment_data_By_seq_index("V", seq_index)
 
+                    airr_rearrangement_dict = mdl.get_AIRR_VJ_rearragement_dict_from_scenario(scenario, sequence,
+                                                                                               v_offset=v_best_aln.offset)
+                    airr_rearrangement_dict['scenario_rank'] = scenario.scenario_rank
+                    airr_rearrangement_dict['scenario_proba_cond_seq'] = scenario.scenario_proba_cond_seq
+                    airr_rearrangement_dict['pgen'] = self.fetch_IgorPgen_By_seq_index(seq_index)[1]
+                    cdr3_record = self.fetch_IgorIndexedCDR3_By_seq_index(seq_index)
+                    airr_rearrangement_dict['junction'] = cdr3_record[3]
+                    airr_rearrangement_dict['junction_aa'] = cdr3_record[4]
+                    airr_rearrangement_writer.write(airr_rearrangement_dict)
+
+            airr_rearrangement_writer.close()
 
         # n_d_5_del = self.mdlParms.Event_dict[strEv].loc[self.id_d_5_del]['value']
         # name_D = self.mdlParms.Event_dict[strEv].loc[self.id_d_gene]['name']
@@ -1503,7 +1525,9 @@ class IgorSqliteDB:
     ###### return IGoR Model
     def get_IgorModel(self):
         from .IgorIO import IgorModel
-        mdl = IgorModel.load_from_parms_marginals_object( self.get_IgorModel_Parms(), self.get_IgorModel_Marginals() )
+        mdl_parms = self.get_IgorModel_Parms()
+        mdl_marginals = self.get_IgorModel_Marginals()
+        mdl = IgorModel.load_from_parms_marginals_object( mdl_parms, mdl_marginals )
         return mdl
 
     def get_IgorModel_Marginals(self):
@@ -1528,7 +1552,7 @@ class IgorSqliteDB:
             records = self.execute_select_query("SELECT * FROM IgorMM_"+event_nickname+";")
 
             print(event_nickname) # , records)
-            events_tmp = [x[3:] for x in col_names if x != 'P']
+            events_tmp = [x[3:] for x in col_names if x != 'P'] # remove the 3 characters 'id_'
             marginals.network_dict[event_nickname] = events_tmp
             df = pd.DataFrame(np.array(records), columns=events_tmp+['P'])
             dimensions = list()
@@ -1536,7 +1560,28 @@ class IgorSqliteDB:
                 dim_ev = len(df[event_name].unique())
                 dimensions.append(dim_ev)
 
-            marginals.marginals_dict[event_nickname] = df['P'].to_numpy().reshape(dimensions)
+            np_marginals = df['P'].to_numpy().reshape(dimensions)
+
+            # FIXME TRANSPOSE WITH DIMENSIONS
+            axes_for_transpose = list()
+            aux_axes_for_transpose = list()
+
+            new_dict_list = list()
+            aux_new_dict_list = list()
+            for ii, str_event in enumerate(events_tmp):
+                if not str_event == event_nickname:
+                    axes_for_transpose.append(ii)
+                    new_dict_list.append(str_event)
+                else:
+                    aux_axes_for_transpose.append(ii)
+                    aux_new_dict_list.append(str_event)
+
+            marginals.network_dict[event_nickname] = new_dict_list + aux_new_dict_list
+            marginals.marginals_dict[event_nickname] = np.transpose(np_marginals, tuple(axes_for_transpose+aux_axes_for_transpose))
+
+            # FIXME:
+            # 1. GEt position of event_nickname in list marginals.network_dict[event_nickname]
+            # and put it at the end. marginals.network_dict[event_nickname]
 
         return marginals
 
