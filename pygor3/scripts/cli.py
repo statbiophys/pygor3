@@ -2672,8 +2672,8 @@ cli.add_command(database_naive_align)
 
 @click.option("-D", "--set_database", "igor_fln_db", default=None, help="Igor database created with database script.")
 ############## COMMON options ##############
-@click.option("--igor-scenarios", "igor_fln_output_scenarios", default=None, help="igor generated scenarios filename.", required=True)
-@click.option("--airr-scenarios", "airr_fln_output_scenarios", default=None, help="AIRR formatted scenarios filename.", required=True)
+@click.option("--igor-scenarios", "igor_fln_output_scenarios", default=None, help="igor generated scenarios filename.", required=False)
+@click.option("--airr-scenarios", "airr_fln_output_scenarios", default=None, help="AIRR formatted scenarios filename.", required=False)
 ############## NO COMMON options ##############
 def test(igor_species, igor_chain, igor_model, igor_model_path, igor_fln_db,
          igor_fln_output_scenarios, airr_fln_output_scenarios):
@@ -2708,8 +2708,20 @@ def test(igor_species, igor_chain, igor_model, igor_model_path, igor_fln_db,
 
     # igortask.load_IgorModel()
     igortask.load_mdl_from_db()
+    pgen_records = igortask.igor_db.fetch_IgorPgen()
+    import numpy as np
+    np_pgen_records = np.array(pgen_records)
+    np_log_pgens = np.log(np_pgen_records[:, 1])
+    hist, bin_edges = np.histogram(np_log_pgens)
+    bins = 0.5*(bin_edges[:-1]+ bin_edges[1:])
+    import matplotlib.pyplot as plt
+    fig, ax = plt.subplots()
+    ax.set_xlabel("$\log(Pgen)$")
+    ax.set_ylabel("Counts")
+    ax.plot(bins, hist, marker='o')
+    plt.show()
 
-    igortask.igor_db.export_IgorBestScenarios_to_AIRR("nose.tsv")
+    # igortask.igor_db.export_IgorBestScenarios_to_AIRR("nose.tsv")
 
 
 
@@ -3107,7 +3119,7 @@ def demo_get_data():
     #
 
 cli.add_command(demo_get_data)
-# cli.add_command(test)
+cli.add_command(test)
 
 
 if __name__ == '__main__':
