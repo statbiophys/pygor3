@@ -263,11 +263,11 @@ model_marginals.txt
 
 ```    
 
-$ pygor model-plot -M models/Homo+sapiens/TRB/ -o new_model
+$ pygor model-plot -M models/Homo+sapiens/IGL/ -o IgL_plot
 
 or 
 
-$ pygor model-plot -D new_hs_hb.db -o new_model
+$ pygor model-plot -D new_IgL_naive.db -o IgL_plot
 ```
 This will output two pdf files with the Marginal Probabilities and Conditional probabilities of events
 
