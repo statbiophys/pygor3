@@ -160,6 +160,26 @@ A list of available species to download from IMGT can be query with imgt-get-gen
     
     ```
 
+    ---
+    **Important Note**
+    It is important to review carefully your downloaded genes templates. Pygor automatically rename to long
+    IMGT descriptions to a short one. For instance
+    
+    D86996|IGLV(I)-56*01|Homo sapiens|P|V-REGION|12276..12571|296 nt|1| | | | |296+0=296| | |
+    
+    D86996|IGLV(I)-56*01|Homo sapiens|P|V-REGION|12576..12876|301 nt|1| | | | |301+0=301| | |
+    
+    Are renamed as :
+    
+    IGLV(I)-56*01
+     
+    IGLV(I)-56*01 
+    
+    For these cases, is important to rename it or remove it manually, before  create a new model.
+    For simplicity in this demo we remove the second IGLV(I)-56*01
+    
+    ---
+
 3. Create a new initial default model, with uniform distribution for the conditional probabilities
 of Bayes network ("model_marginals.txt" file). Notice that in IGoR this file is called marginals,
 but it is not the marginal probability of a recombination event.
@@ -391,7 +411,7 @@ or generate synthetic sequences. Please notice that in "new_IgL_naive_mdl.db" co
 only the model and genomes information, which is necessary for the alignment and evaluation for IGoR.
 
 ```console
-$ pygor igor-evaluate -D new_IgL_naive_mdl.db -i data/IgL/IgL_seqs_naive_Functional.txt  -o IgL_naive_evaluated
+$ pygor igor-evaluate -D new_IgL_naive_mdl.db -i data/IgL/IgL_seqs_naive_Functional_small.txt  -o IgL_naive_evaluated
 ```
 
 

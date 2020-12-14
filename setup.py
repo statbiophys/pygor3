@@ -13,7 +13,7 @@ setuptools.setup(
     author_email="carlos.olivares@phys.ens.fr",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    version='0.0.3',
+    version='0.0.5',
     description='Python package to manipulate and run IGoR data files',
     license="GNU GPLv3",
     python_requires='>=3.5',
