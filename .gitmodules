@@ -1,3 +1,6 @@
 [submodule "IGoR"]
 	path = IGoR
 	url = https://github.com/statbiophys/IGoR.git
+[submodule "PyIR"]
+	path = PyIR
+	url = https://github.com/crowelab/PyIR
