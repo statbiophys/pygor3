@@ -15,8 +15,23 @@ def calc_average(db:p3.IgorSqliteDB, observable_function):
         print(sigma, len(db.fetch_IgorIndexedSeq_indexes()))
 
 
-# from  optparse import OptionParser
+def observable():
+    """
+    Get a observable file or database, dataframe, etc ...
+    return the result of the observable defined
+    """
+    obs_task = p3.IgorTask()
+    print(obs_task.to_dict())
+    obs_task.run_generate(20)
+    obs_task.load_IgorModel()
+    pass
+
 def main():
+    observable()
+
+
+# from  optparse import OptionParser
+def main_old():
     #parser = OptionParser()
     #parser.add_option("-s", "--species", dest="species", help='Igor species')
     #parser.add_option("-c", "--chain", dest="chain", help='Igor chain')

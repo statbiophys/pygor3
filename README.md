@@ -1,8 +1,8 @@
 # Pygor3
 
 Pygor3 is a python3 framework to analyze, vizualize, generate 
-and infer V(D)J recombination [IGoR](https://github.com/statbiophys/IGoR) 's models. 
-Pygor3 provide a python interface to execute and encapsulate 
+and infer V(D)J recombination models using the [IGoR](https://github.com/statbiophys/IGoR) software. 
+Pygor3 provides a python interface to execute and encapsulate 
 IGoR’s input/outputs by using a sqlite3 database that 
 contains input sequences, alignments, model parameters, 
 conditional probabilities of the model Bayes network, 
@@ -14,7 +14,7 @@ IGoR generated files to [AIRR standard format](https://docs.airr-community.org/e
 
 ## Installation
 1. First install IGoR in your sytem [IGoR](https://github.com/statbiophys/IGoR) if you don't have it already.
-Pygor will use default IGoR's path to execute it.
+Pygor will use default IGoR's path to execute it's commands.
 
 2. (Optional) Install [conda](https://docs.conda.io/en/latest/) or 
 [anaconda](https://www.anaconda.com/) and create (or use ) a virtual environment.
@@ -34,7 +34,7 @@ Pygor will use default IGoR's path to execute it.
 ### Quickstart
 
 #### Get demo sample data
-Get a copy of demo sequences in current directory
+Download a copy of demo sequences in current directory
 
 ```console
 $ pygor demo-get-data
@@ -57,7 +57,7 @@ demo/
 
 #### New Model
 Now to create a model from scratch, donwload gene templates and anchors from IMGT website [IMGT](http://www.imgt.org/)
-A list of available species to download from IMGT can be query with imgt-get-genomes command and option --info.
+A list of available species to download from IMGT can be queried with imgt-get-genomes command and option --info.
 
     ```console
     $ pygor imgt-get-genomes --info
@@ -132,7 +132,7 @@ A list of available species to download from IMGT can be query with imgt-get-gen
 
     ```
 
-    This creates a directory **models** with the following structure will be created
+    This command creates a directory **models** with the following structure
     
     ```
     models/
@@ -162,8 +162,8 @@ A list of available species to download from IMGT can be query with imgt-get-gen
 
     ---
     **Important Note**
-    It is important to review carefully your downloaded genes templates. Pygor automatically rename to long
-    IMGT descriptions to a short one. For instance
+    It is important to review carefully your downloaded genes templates. Pygor automatically rename from long
+    IMGT descriptions to a short ones. For instance
     
     D86996|IGLV(I)-56*01|Homo sapiens|P|V-REGION|12276..12571|296 nt|1| | | | |296+0=296| | |
     
@@ -196,7 +196,7 @@ but it is not the marginal probability of a recombination event.
     Writing model marginals in file  models/Homo+sapiens/IGL//models/model_marginals.txt    
     ```
    
-   A uniform model files will be created in files **model_parms.txt** and **model_marginals.txt** at directory path
+   Initial models with uniform parameters model files will be created in files **model_parms.txt** and **model_marginals.txt** at directory path
     ```console
     models/
     └── Homo+sapiens
@@ -224,7 +224,7 @@ but it is not the marginal probability of a recombination event.
     ```
    
    At this point you can use a set of non-productive sequence to infer a model within IGoR directly 
-   or by using pygor command.
+   or by using pygor command (the simpler option).
    
     ```console
     $ pygor igor-infer -M models/Homo+sapiens/IGL/ -i data/IgL/IgL_seqs_naive_Nofunctional.txt -o new_IgL_naive
@@ -277,8 +277,8 @@ This will output two pdf files with the Marginal Probabilities and Conditional p
  
 
 #### Database files
-The .db files can contain all the information in IGoR's standard files in a single sqilite database file,
-and can be examinated with any sqlite client, like sqlite3 or sqlibrowser
+The .db files can contain all the information in IGoR's standard files in a single sqlite database file,
+and can be examinated with any sqlite client, like sqlite3 or sqlitebrowser
 
 ```console
 $ sqlite3 new_IgL_naive.db 
@@ -297,7 +297,7 @@ IgorIndexedCDR3       IgorMM_vj_dinucl
 
 ```
 
-However, pygor has its own methods to maniputate data a database file. 
+Pygor has its own methods to maniputate data a database file. 
 For instance, db-ls list the contents of the database and the number of records
 
 ```console
@@ -407,7 +407,7 @@ IgorMM_vj_dinucl  :  16
 #### Model evaluation
 Once we have an inferred model we can evaluate the probability of a particular sequence to be 
 generated (pgen) and get the most probable scenarios for the recombination of input sequences 
-or generate synthetic sequences. Please notice that in "new_IgL_naive_mdl.db" contains 
+or generate synthetic sequences. We can evaluate sequences using the following files: model_parms.txt, model_marginals.txt, genomicXs.fasta, and X_gene_CDR3_anchors.csv or we can just use a database file with all this information like above. For instance the "new_IgL_naive_mdl.db" file, in the example above, contains 
 only the model and genomes information, which is necessary for the alignment and evaluation for IGoR.
 
 ```console

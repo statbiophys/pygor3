@@ -131,7 +131,10 @@ class IgorSqliteDB:
             return record
             # self.conn.close()
         except sqlite3.Error as e:
-            print("sqlite3.ERROR : ", e)
+            # raise e
+            e_message = "sqlite3.ERROR : " + str(self.igor_fln_db)
+            import sys
+            raise type(e)(str(e) + '\n' + e_message).with_traceback(sys.exc_info()[2])
 
     def execute_select_query_fetchone(self, str_query):
         """
@@ -1525,10 +1528,16 @@ class IgorSqliteDB:
     ###### return IGoR Model
     def get_IgorModel(self):
         from .IgorIO import IgorModel
-        mdl_parms = self.get_IgorModel_Parms()
-        mdl_marginals = self.get_IgorModel_Marginals()
-        mdl = IgorModel.load_from_parms_marginals_object( mdl_parms, mdl_marginals )
-        return mdl
+        try:
+            mdl_parms = self.get_IgorModel_Parms()
+            mdl_marginals = self.get_IgorModel_Marginals()
+            mdl = IgorModel.load_from_parms_marginals_object( mdl_parms, mdl_marginals )
+            return mdl
+        except Exception as e:
+            # raise e
+            e_message = "ERROR: IgorSqliteDB.get_IgorModel " + str(self.igor_fln_db)
+            import sys
+            raise type(e)(str(e) + '\n' + e_message).with_traceback(sys.exc_info()[2])
 
     def get_IgorModel_Marginals(self):
         print("-"*5, "Marginals", "-"*5)
@@ -1591,50 +1600,60 @@ class IgorSqliteDB:
         return [colname[0] for colname in col_names]
 
     def get_IgorModel_Parms(self):
-        from .IgorIO import IgorModel_Parms
-        mdl_parms = IgorModel_Parms()
-        # tb_IgorMP_Event_list_columns = self.execute_select_query(
-        #     "SELECT name FROM pragma_table_info('IgorMP_Event_list');")
-        # tb_IgorMP_Event_list_columns = [aa[0] for aa in tb_IgorMP_Event_list_columns]
-        # event_type, seq_type, seq_side, priority, nickname
+        try:
+            from .IgorIO import IgorModel_Parms
+            mdl_parms = IgorModel_Parms()
+            # tb_IgorMP_Event_list_columns = self.execute_select_query(
+            #     "SELECT name FROM pragma_table_info('IgorMP_Event_list');")
+            # tb_IgorMP_Event_list_columns = [aa[0] for aa in tb_IgorMP_Event_list_columns]
+            # event_type, seq_type, seq_side, priority, nickname
 
-        mdl_parms.Event_list = self.get_Event_list()
-        dict_nickname_name = mdl_parms.get_event_dict('nickname', 'name')
-        mdl_parms.Edges = list()
-        for edge in self.get_Edges():
-            mdl_parms.Edges.append( [dict_nickname_name[edge[0]], dict_nickname_name[edge[1]] ])
+            mdl_parms.Event_list = self.get_Event_list()
+            dict_nickname_name = mdl_parms.get_event_dict('nickname', 'name')
+            mdl_parms.Edges = list()
+            for edge in self.get_Edges():
+                mdl_parms.Edges.append( [dict_nickname_name[edge[0]], dict_nickname_name[edge[1]] ])
 
-        mdl_parms.ErrorRate_dict = self.get_ErrorRate_dict()
+            mdl_parms.ErrorRate_dict = self.get_ErrorRate_dict()
 
-        mdl_parms.gen_EventDict_DataFrame()
-        return mdl_parms
+            mdl_parms.gen_EventDict_DataFrame()
+            return mdl_parms
+        except Exception as e:
+            e_message = "ERROR: IgorSqliteDB.get_IgorModel_Parms " + str(self.igor_fln_db)
+            import sys
+            raise type(e)(str(e) + '\n' + e_message).with_traceback(sys.exc_info()[2])
 
     def get_Event_list(self):
-        from .IgorIO import IgorRec_Event
-        from .IgorIO import IgorEvent_realization
-        sql_cmd = "SELECT event_type, seq_type, seq_side, priority, nickname, realizations_table FROM IgorMP_Event_list;"
-        Event_list = list()
-        for rec in self.execute_select_query(sql_cmd):
-            event = IgorRec_Event(*rec[:-1])
-            str_realization_table = rec[-1]
-            realization_dbrecords = self.execute_select_query("SELECT * FROM " + str_realization_table + ";")
-            for realization_dbrec in realization_dbrecords:
-                realization = IgorEvent_realization()
-                if event.event_type == "GeneChoice":
-                    realization.id = int(realization_dbrec[0])
-                    realization.value = realization_dbrec[1]
-                    realization.name = realization_dbrec[2]
-                elif event.event_type == "DinucMarkov":
-                    realization.id = int(realization_dbrec[0])
-                    realization.value = realization_dbrec[1]
-                else:
-                    realization.id = int(realization_dbrec[0])
-                    realization.value = int(realization_dbrec[1])
-                event.add_realization(realization)
-            #print(event)
-            Event_list.append(event)
+        try:
+            from .IgorIO import IgorRec_Event
+            from .IgorIO import IgorEvent_realization
+            sql_cmd = "SELECT event_type, seq_type, seq_side, priority, nickname, realizations_table FROM IgorMP_Event_list;"
+            Event_list = list()
+            for rec in self.execute_select_query(sql_cmd):
+                event = IgorRec_Event(*rec[:-1])
+                str_realization_table = rec[-1]
+                realization_dbrecords = self.execute_select_query("SELECT * FROM " + str_realization_table + ";")
+                for realization_dbrec in realization_dbrecords:
+                    realization = IgorEvent_realization()
+                    if event.event_type == "GeneChoice":
+                        realization.id = int(realization_dbrec[0])
+                        realization.value = realization_dbrec[1]
+                        realization.name = realization_dbrec[2]
+                    elif event.event_type == "DinucMarkov":
+                        realization.id = int(realization_dbrec[0])
+                        realization.value = realization_dbrec[1]
+                    else:
+                        realization.id = int(realization_dbrec[0])
+                        realization.value = int(realization_dbrec[1])
+                    event.add_realization(realization)
+                #print(event)
+                Event_list.append(event)
 
-        return Event_list
+            return Event_list
+        except Exception as e:
+            e_message = "ERROR: IgorSqliteDB.get_Event_list " + str(self.igor_fln_db)
+            import sys
+            raise type(e)(str(e) + '\n' + e_message).with_traceback(sys.exc_info()[2])
 
     def get_Edges(self):
         sql_cmd = "SELECT parent_event, child_event FROM IgorMP_Edges;"

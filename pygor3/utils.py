@@ -172,6 +172,33 @@ def run_igor_datadir():
     return (''.join(stdout)).replace('\n','')
 
 
+
+def get_default_models_paths(IgorSpecie, IgorChain, modelpath=None):  # rcParams['paths.igor_models']):
+    """
+    :return IgorModel loaded with the default location for specie and chain
+    """
+    # IGoR run parameters
+    # IgorSpecie    = specie #"mouse"
+    # IgorChain     = chain #"tcr_beta"
+    if modelpath is None:
+        try:
+            modelpath = run_igor_datadir() + "/models"
+            print("modelpath : ", modelpath)
+        except Exception as e:
+            print("ERROR: getting default igor datadir.", e)
+
+    IgorModelPath = modelpath + "/" + IgorSpecie + "/" + IgorChain + "/"
+    print("Loading default IGoR model from path : ", IgorModelPath)
+    # FIXME: FIND A WAY TO GENERALIZE THIS WITH SOMEKIND OF STANDARD NAME
+    flnModelParms = IgorModelPath + "models/model_parms.txt"
+    flnModelMargs = IgorModelPath + "models/model_marginals.txt"
+    print("Parms filename: ", flnModelParms)
+    print("Margs filename: ", flnModelMargs)
+    print("-" * 50)
+    return flnModelParms, flnModelMargs
+
+
+
 class GeneSegment:
     def __int__(self, gene_type=None):
         self.gene_type = gene_type

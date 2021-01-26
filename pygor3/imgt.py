@@ -99,6 +99,11 @@ def makeDirectories(gene: str, specie: str, modelspath=None):
 def get_gene_template(specie: str, gene: str, modelspath=None, filename=None, imgt_genedb=imgt_params['url.genedb']):
     """
     Download genomic template according to specie and gene from imgt database
+
+    :param species: Species name in IMGT nomenclature.
+    :type species: str
+    :param gene: IMGT gene nomenclature like TRAV, IGHJ, etc.
+    :type species: str
     :return : string of the requested link
     """
     try:
@@ -117,7 +122,15 @@ def download_gene_template(specie: str, gene: str, modelspath=None, filename=Non
     Create a file in IGoR default format
     and returns output filename.
     :param specie: IMGT specie nomenclature use "+" instead of a space " " Mus+musculus
+    :type species: str
     :param gene: IMGT gene nomenclature like TRAV, IGHJ, etc
+    :type species: str
+    :param modelspath: root paths for all models.
+    :type modelspath: str, optional
+    :param filename: gene template fasta filename.
+    :type filename: str, optional
+    :param imgt_genedb: Url of IMGT GeneDB web application.
+    :type imgt_genedb: str
     """
     # 3. Write it in a fasta file.
     records = get_gene_template(specie, gene, imgt_genedb=imgt_genedb)
@@ -139,6 +152,7 @@ def download_gene_template(specie: str, gene: str, modelspath=None, filename=Non
     fln_dict["fln"+gene[-1]+"Genome"] = flnGenome
     fln_dict['ref_genes_path'] = ref_genes_path
     fln_dict['modelspath'] = modelspath
+    fln_dict['records'] = records
     return fln_dict
 
 def genKey(seqDescription):
@@ -212,7 +226,7 @@ def download_Vgene_anchors(specie: str, chain: str, flnVGenome, modelspath=None,
     urlV_2CYS = get_genedb_query81_imgtlabel(specie, chain + "V", imgtlabel="2nd-CYS", imgt_genedb=imgt_genedb)
     dictV_2CYS = genAnchDict(urlV_2CYS)
 
-    flnAnchors = ref_genes_path +  "V_gene_CDR3_anchors__imgt.csv"
+    flnAnchors = ref_genes_path + "V_gene_CDR3_anchors__imgt.csv"
     ofileAnch = open(flnAnchors, "w")
     ofileAnch.write("gene;anchor_index;function" + "\n")
     CSVDELIM = ";"
@@ -237,6 +251,46 @@ def download_Vgene_anchors(specie: str, chain: str, flnVGenome, modelspath=None,
     fln_dict['ref_genes_path'] = ref_genes_path
     fln_dict['modelspath'] = modelspath
     return fln_dict
+
+def download_Vgene_anchors_bk(specie: str, chain: str, modelspath=None, imgt_genedb=imgt_params['url.genedb']):
+    #records = get_gene_template(specie, gene, imgt_genedb=imgt_genedb)
+    if modelspath is None:
+        modelspath = "models"
+    makeDirectories(chain, specie, modelspath=modelspath)
+    ref_genes_path = modelspath + "/" + specie + "/" + chain + "/ref_genome/"
+
+    # generate dictionaries with the anchors
+    # 2nd-CYS
+    urlV_2CYS = get_genedb_query81_imgtlabel(specie, chain + "V", imgtlabel="2nd-CYS", imgt_genedb=imgt_genedb)
+    dictV_2CYS = genAnchDict(urlV_2CYS)
+
+    flnAnchors = ref_genes_path + "V_gene_CDR3_anchors__imgt.csv"
+    return dictV_2CYS
+    # ofileAnch = open(flnAnchors, "w")
+    # CSVDELIM = ";"
+    # ofileAnch.write("gene"+CSVDELIM+"anchor_index"+CSVDELIM+"function" + "\n")
+
+    # Vrecords = SeqIO.parse(flnVGenome, "fasta")
+    # for rec in Vrecords:
+    #     key = genKey(rec.description)
+    #     # Initiate to avoid bad designation.
+    #     posV_2CYS = -1
+    #     if key in dictV_2CYS.keys():
+    #         posV_2CYS = dictV_2CYS[key] - getStartPos(rec.description)
+    #         posAnch = posV_2CYS
+    #         seqFunc = getFunction(rec.description)
+    #         ofileAnch.write(rec.description + CSVDELIM + str(posAnch) + CSVDELIM+str(seqFunc)+"\n")
+    #     else:
+    #         print("No anchor is found for : " + rec.description)
+    #
+    # ofileAnch.close()
+    # fln_dict = dict()
+    # fln_dict['flnVGenome'] = flnVGenome
+    # fln_dict['flnVAnchors'] = flnAnchors
+    # fln_dict['ref_genes_path'] = ref_genes_path
+    # fln_dict['modelspath'] = modelspath
+    # return fln_dict
+
 
 def download_Jgene_anchors(specie: str, chain: str, flnJGenome, modelspath=None, imgt_genedb=imgt_params['url.genedb']):
     # records = get_gene_template(specie, gene, imgt_genedb=imgt_genedb)
@@ -366,6 +420,14 @@ def download_ref_genome_VDJ(species: str, chain: str, **kwargs):
     # print(kwargs)
 
 def download_ref_genome_VJ(species: str, chain: str, **kwargs):
+    """Download gene templates and anchors from IMGT and creates
+    different files with original and short names.
+
+    :param species: Species name in IMGT nomenclature,
+    :type species: str
+    :param chain: Chain name in IMGT nomenclature,
+    :type chain: str
+    """
     dictVGenome = download_gene_template(species, chain + 'V', **kwargs)
     dictJGenome = download_gene_template(species, chain + 'J', **kwargs)
 
@@ -432,6 +494,63 @@ def download_ref_genome_VJ(species: str, chain: str, **kwargs):
     shutil.copy(dict_J["genomics"], J_path + "/genomicJs.fasta")
     shutil.copy(dict_V["anchors"], V_path + "/V_gene_CDR3_anchors.csv")
     shutil.copy(dict_J["anchors"], J_path + "/J_gene_CDR3_anchors.csv")
+
+
+# FIXME: WORKING ON THIS
+def download_ref_genome(species: str, chain: str, **kwargs):
+    dictVGenome = download_gene_template(species, chain + 'V', **kwargs)
+    dictJGenome = download_gene_template(species, chain + 'J', **kwargs)
+    pass
+
+def get_dict_from_imgt_description(str_description):
+    """
+    Return an OderedDict with following the fields
+    The IMGT FASTA header of nucleotide IMGT  reference sequences contains 15 fields separated by '|':
+    1. IMGT/LIGM-DB accession number(s)
+    2. IMGT gene and allele name
+    3. species
+    4. IMGT allele functionality
+    5. exon(s), region name(s), or extracted label(s)
+    6. start and end positions in the IMGT/LIGM-DB accession number(s)
+    7. number of nucleotides in the IMGT/LIGM-DB accession number(s)
+    8. codon start, or 'NR' (not relevant) for non coding labels
+    9. +n: number of nucleotides (nt) added in 5' compared to the corresponding label extracted from IMGT/LIGM-DB
+    10. +n or -n: number of nucleotides (nt) added or removed in 3' compared to the corresponding label extracted from IMGT/LIGM-DB
+    11. +n, -n, and/or nS: number of added, deleted, and/or substituted nucleotides to correct sequencing errors, or 'not corrected' if non corrected sequencing errors
+    12. number of amino acids (AA): this field indicates that the sequence is in amino acids
+    13. number of characters in the sequence: nt (or AA)+IMGT gaps=total
+    14. partial (if it is)
+    15. reverse complementary (if it is)
+    """
+
+    description_field_list = ["accession_number",  # 1
+             "allele_name",  # 2
+             "species",  # 3
+             "function",  # 4
+             "exon_region_name_label",  # 5
+             "start_end",  # 6
+             "n_nt",  # 7
+             "codon_start",  # 8
+             "n_nt_added_5p", # 9
+             "n_nt_added_removed_3p", # 10
+             "n_nt_added_deleted_substituted",  # 11
+             "n_aa",  # 12
+             "n_char_plus_gaps",  # 13
+             "partial",  # 14
+             "reverse_complementary"  # 15
+             ]
+    from collections import OrderedDict
+    dicto = OrderedDict()
+    description_list = str_description.split("|")
+    print(len(description_field_list), description_field_list)
+    print(len(description_list), description_list)
+    dicto["description"] = str_description
+    for ii, elem in enumerate(description_field_list):
+        print(ii, elem, description_list[ii])
+        dicto[elem] = description_list[ii]
+
+    return dicto
+
 
 
 def make_VDJ_model():
