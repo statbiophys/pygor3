@@ -22,14 +22,15 @@ class IgorSqliteDB:
     """
     Class to create and load table or database with sequences
     """
-    def __init__(self): #=None):
+    def __init__(self, igor_fln_db=None): #=None):
         # if flnIgorSQL is None:
         #     self.flnIgorSQL = "IgorDB.sql" # FIXME : VERY BAD WRAPP WITH INIT
         # else:
         #     self.flnIgorSQL = flnIgorSQL
+
         self.flnIgorSQL = "" # FIXME: this shouldn't be need it!
 
-        self.flnIgorDB  = "" #flnIgorDB
+        self.fln_db  = None #flnIgorDB
         
         self.flnIgorIndexedSeq = ""
         self.flnIgorIndexedCDR3 = ""
@@ -50,7 +51,10 @@ class IgorSqliteDB:
 
         self.flnIgorBestScenarios = ""
         self.flnIgorPgen = ""
-        
+
+        if igor_fln_db is not None:
+            self.fln_db = igor_fln_db
+
         self.conn               = None
 
         self.sql_BestScenarios_cols_list = None
@@ -64,7 +68,7 @@ class IgorSqliteDB:
         """
         Create a SQLite database with the flnIgorDB sql script.
         """
-        self.flnIgorDB = flnIgorDB
+        self.fln_db = flnIgorDB
         self.conn = None
         try:
             self.conn = sqlite3.connect(flnIgorDB)
@@ -83,7 +87,7 @@ class IgorSqliteDB:
         Connect (or create if not exits) with filename
         """
         cls = IgorSqliteDB()
-        cls.flnIgorDB = flnIgorDB
+        cls.fln_db = flnIgorDB
         cls.connect_db()
         return cls
 
@@ -92,8 +96,8 @@ class IgorSqliteDB:
         Connect (or create if not exits) to database
         """
         if flnIgorDB is not None:
-            self.flnIgorDB = flnIgorDB
-        self.conn = sqlite3.connect(self.flnIgorDB)
+            self.fln_db = flnIgorDB
+        self.conn = sqlite3.connect(self.fln_db)
 
     def close_db(self):
         self.conn.close()
@@ -106,7 +110,7 @@ class IgorSqliteDB:
         Execute sql script in the SQLite database .
         """
         try:
-            self.conn = sqlite3.connect(self.flnIgorDB)
+            self.conn = sqlite3.connect(self.fln_db)
             cur = self.conn.cursor()
             cur.executescript(str_query)
             self.conn.commit()
@@ -121,7 +125,7 @@ class IgorSqliteDB:
         Execute sql script in the SQLite database .
         """
         try:
-            self.conn = sqlite3.connect(self.flnIgorDB)
+            self.conn = sqlite3.connect(self.fln_db)
             cur = self.conn.cursor()
             cur.execute(str_query)
             # self.conn.commit()
@@ -132,7 +136,7 @@ class IgorSqliteDB:
             # self.conn.close()
         except sqlite3.Error as e:
             # raise e
-            e_message = "sqlite3.ERROR : " + str(self.igor_fln_db)
+            e_message = "sqlite3.ERROR : " + str(self.fln_db)
             import sys
             raise type(e)(str(e) + '\n' + e_message).with_traceback(sys.exc_info()[2])
 
@@ -141,7 +145,7 @@ class IgorSqliteDB:
         Execute sql script in the SQLite database .
         """
         try:
-            self.conn = sqlite3.connect(self.flnIgorDB)
+            self.conn = sqlite3.connect(self.fln_db)
             cur = self.conn.cursor()
             cur.execute(str_query)
             #self.conn.commit()
@@ -157,7 +161,7 @@ class IgorSqliteDB:
         # TODO: create database in base of IgorSQL scripts
         self.conn = None
         try:
-            self.conn = sqlite3.connect(self.flnIgorDB)
+            self.conn = sqlite3.connect(self.fln_db)
             qry = sqlcmd_ct['indexed_sequences']
             cur = self.conn.cursor()
             cur.executescript(qry)
@@ -375,7 +379,8 @@ class IgorSqliteDB:
         data = tuple([gene_id, str(bioRecord.description).strip(), str(bioRecord.seq)])
         try:
             cur = self.conn.cursor()
-            cur.execute(sql, data)
+            if data is not None:
+                cur.execute(sql, data)
             self.conn.commit()
         except sqlite3.Error as e:
             print(e)
@@ -409,21 +414,25 @@ class IgorSqliteDB:
         return (record)
 
     def write_IgorGeneTemplate_to_fasta(self, strGene, flnGeneTemplate, sep=";"):
-        print("Saving gene templates to file: ", flnGeneTemplate)
-        sqlSelect = "SELECT * FROM Igor"+strGene.upper()+"GeneTemplate;"
-        cur = self.conn.cursor()
-        cur.execute(sqlSelect)
-        records = cur.fetchall()
-        # str_file_header = "seq_index" + sep + "sequence" + "\n"
-        import pathlib
-        import os
-        directory_name = os.path.dirname(flnGeneTemplate)
-        pathlib.Path(directory_name).mkdir(parents=True, exist_ok=True)
-        with open(flnGeneTemplate, "w") as ofile:
-            # ofile.write(str_file_header)
-            for record in records:
-                ofile.write(">" + str(record[1]) + "\n")
-                ofile.write(str(record[2]) + "\n")
+        try:
+            print("Saving gene templates to file: ", flnGeneTemplate)
+            sqlSelect = "SELECT * FROM Igor"+strGene.upper()+"GeneTemplate;"
+            cur = self.conn.cursor()
+            cur.execute(sqlSelect)
+            records = cur.fetchall()
+            # str_file_header = "seq_index" + sep + "sequence" + "\n"
+            import pathlib
+            import os
+            directory_name = os.path.dirname(flnGeneTemplate)
+            pathlib.Path(directory_name).mkdir(parents=True, exist_ok=True)
+            with open(flnGeneTemplate, "w") as ofile:
+                # ofile.write(str_file_header)
+                for record in records:
+                    ofile.write(">" + str(record[1]) + "\n")
+                    ofile.write(str(record[2]) + "\n")
+
+        except Exception as e:
+            raise e
 
     def delete_IgorGeneTemplate_Tables(self):
         """
@@ -472,6 +481,8 @@ class IgorSqliteDB:
 
         try:
             data[0] = self.fetch_IgorGeneTemplate_By_gene_name(strGene, data[0])[0]
+        except TypeError:
+            pass
         except Exception as e:
             print("data : ", data)
             print("ERROR : ", e)
@@ -485,7 +496,7 @@ class IgorSqliteDB:
             elif len(data) == 3:
                 cur.execute(sql, data)
             else:
-                print(data)
+                pass #print(data)
 
         except sqlite3.Error as e:
             print(len(data), data)
@@ -500,8 +511,11 @@ class IgorSqliteDB:
         records = cur.fetchall()
         return (records)
 
-    def write_IgorGeneAnchors_to_CSV(self, strGene, flnGeneAnchors, sep=';'):
-        print("Saving IGoR's "+strGene+" gene anchors ")
+    def write_IgorGeneAnchors_to_CSV(self, strGene:str, flnGeneAnchors, sep=';'):
+        """Export Gene anchors to csv IGoR file
+        :param strGene: Gene letter
+        """
+        print("Saving IGoR's "+strGene+" gene anchors to file: ", flnGeneAnchors)
         sqlcmd_select_template = """
                     SELECT gene.gene_name,
                             anch.anchor_index, anch.function 
@@ -521,7 +535,7 @@ class IgorSqliteDB:
         directory_name = os.path.dirname(flnGeneAnchors)
         pathlib.Path(directory_name).mkdir(parents=True, exist_ok=True)
 
-        str_file_header = "gene;anchor_index;function\n"
+        str_file_header = "gene"+sep+"anchor_index"+sep+"function\n"
         with open(flnGeneAnchors, "w") as ofile:
             ofile.write(str_file_header)
             for record in records:
@@ -581,7 +595,7 @@ class IgorSqliteDB:
             df_D = pd.DataFrame.from_records(D_records, columns=columnas)
             genomic_data_dict["D"] = df_D
         except Exception as e:
-            print("No D genes were found in database ", self.flnIgorDB)
+            print("No D genes were found in database ", self.fln_db)
             print("WARNING: ", e)
             pass
 

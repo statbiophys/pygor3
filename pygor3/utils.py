@@ -1,6 +1,99 @@
 import collections
-def from_fasta_to_dataframe(fln_fasta):
-    # Fasta to dataframe
+import os
+import xarray as xr
+import numpy as np
+import pandas as pd
+from typing import TextIO, Generator, Union  # Generator[str]
+from pathlib import Path
+
+# Write functions
+def write_sequences_to_file(sequences: Union[pd.DataFrame, np.ndarray, list, str],
+                            fln_sequences: Union[str, Path], sep=';'):
+    """
+    Write sequence to csv file from a dataframe, numpy array, list or single sequence.
+    :param sequences: Sequences to write in a csv file.
+    :param fln_sequences: CSV filename to output sequences.
+    """
+    try:
+        if type(sequences) == pd.DataFrame:
+            sequences.to_csv(fln_sequences, sep=sep)
+
+        elif type(sequences) == np.ndarray:
+            # np.savetxt(fln_sequences, sequences, delimiter=sep, fmt="%s")
+            np_output = np.dstack((np.arange(0, sequences.size), sequences))[0]
+            np.savetxt(fln_sequences, np_output, "%d"+sep+"%s",
+                       header="seq_index"+sep+"sequence")
+
+        elif type(sequences) == list:  # or type(sequences)==type(Generator[str]):
+            with open(fln_sequences, 'w') as ofile:
+                for ii, sequence in enumerate(sequences):
+                    ofile.write("{:d}"+sep+"{}\n".format(ii, sequence))
+        elif type(sequences) == str:
+            # Use regex to generate sequences with that form
+            sequence = sequences
+            with open(fln_sequences, 'w') as ofile:
+                ofile.write("0"+sep+sequence+"\n")
+
+        else:
+            print("Format not supported")
+
+        return fln_sequences
+    except Exception as e:
+        raise e
+
+def write_ref_genome_files_from_dataframe(df_Gene_ref_genome, fln_fasta, fln_anchor=None):
+    write_genetemplate_dataframe_to_fasta(fln_fasta, df_Gene_ref_genome)
+    try:
+        write_geneanchors_dataframe_to_csv(fln_anchor, df_Gene_ref_genome)
+    except Exception as e:
+        pass
+
+def write_genetemplate_dataframe_to_fasta(fln_fasta:Union[str, Path, TextIO], df_genomic):
+    """Write dataframe to fasta file
+    :param fln_fasta: Fasta output filename.
+    :param df_genomic: Pandas dataframe with columns 'name' for description and 'value' for sequence.
+    """
+    try:
+        if df_genomic is not None:
+            with open(fln_fasta, "w") as ofile:
+                for idx, row in df_genomic.iterrows():
+                    fasta_one_sequence = ">" + str(row['name']) + "\n" + str(row['value']) + "\n"
+                    ofile.write(fasta_one_sequence)
+    except Exception as e:
+        raise e
+
+def write_geneanchors_dataframe_to_csv(fln_anchor:Union[str, Path, TextIO], df_ref_genome, sep = ';'):
+    """
+    Write gene anchors in csv file from a ref_genome dataframe
+    :param fln_anchor: csv output filename.
+    :param df_genomic: Pandas dataframe with columns 'name' for description and 'value' for sequence.
+    """
+    try:
+        not_na = ~df_ref_genome['anchor_index'].isna()
+        df_anchors = df_ref_genome[not_na].copy()
+        df_tmp = df_anchors['anchor_index'].apply(lambda x: int(x))
+        df_anchors['anchor_index'] = df_tmp.copy()
+        try:
+            if 'function' in df_anchors.columns:
+                df_anchors['function'].fillna("", inplace=True)
+                df_anchors.to_csv(fln_anchor, sep=sep, index=False, columns=['name', 'anchor_index', 'function'])
+            elif 'gfunction' in df_anchors.columns:
+                df_anchors['gfunction'].fillna("", inplace=True)
+                df_anchors.to_csv(fln_anchor, sep=sep, index=False, columns=['name', 'anchor_index', 'gfunction'])
+            else:
+                df_anchors.to_csv(fln_anchor, sep=sep, index=False, columns=['name', 'anchor_index'])
+        except Exception as e:
+            print("Not function in anchors file!")
+            raise e
+    except Exception as e:
+        raise e
+
+
+# Get functions
+def get_dataframe_from_fasta(fln_fasta):
+    """Return dataframe from fasta file
+    :param fln_fasta: Fasta filename.
+    """
     from Bio import SeqIO
     import pandas as pd
     genes_name_list = list()
@@ -12,6 +105,162 @@ def from_fasta_to_dataframe(fln_fasta):
     df_genes.index.name = 'id'
     return df_genes
 
+def get_ref_genome_dataframe_from(df_genomic, df_anchors=None, sep=';'):
+    import pandas as pd
+    if df_anchors is not None:
+        df_ref_genome = df_genomic.set_index('name').join(df_anchors.set_index('gene')).reset_index()
+        df_ref_genome.index.name = 'id'
+    else:
+        df_ref_genome = df_genomic
+    return df_ref_genome
+
+def get_dataframe_from_fasta_and_csv_anchors(fln_fasta, fln_anchor_csv=None, sep=';'):
+    import pandas as pd
+    df_genomic = get_dataframe_from_fasta(fln_fasta)
+    if fln_anchor_csv is not None:
+        df_anchors = pd.read_csv(fln_anchor_csv, sep=sep)
+        df_ref_genome = get_ref_genome_dataframe_from(df_genomic, df_anchors)
+    else:
+        df_ref_genome = df_genomic
+    return df_ref_genome
+
+def get_default_ref_genomes_species_chain(IgorSpecie:str, IgorChain:str, modelspath=None, ref_genome_path=None):
+    """
+    Return a dictionary with the paths of the genomic references ref_genome files.
+    :param IgorSpecie: Species directory name in IGoR's directory structure
+    :param IgorChain: Chain directory name in IGoR's directory structure
+    :return: dictionary with the default names and paths for IGoR.
+    """
+    if modelspath is None:
+        try:
+            modelspath = run_igor_datadir() + "/models"
+            print("modelpath : ", modelspath)
+        except Exception as e:
+            print("ERROR: getting default igor datadir.", e)
+
+    IgorModelPath = modelspath + "/" + IgorSpecie + "/" + IgorChain + "/"
+    if ref_genome_path is None:
+        ref_genome_path = IgorModelPath + "/" + "ref_genome"
+
+    ref_genome_fln_dict = dict()
+    # check if file exist then make the assignment
+    ref_genome_path = ref_genome_path + "/"
+    ref_genome_fln_dict['fln_genomicVs'] = ref_genome_path + "genomicVs.fasta"
+    ref_genome_fln_dict['fln_genomicJs'] = ref_genome_path + "genomicJs.fasta"
+    ref_genome_fln_dict['fln_genomicDs'] = ref_genome_path + "genomicDs.fasta"
+
+    ref_genome_fln_dict['fln_V_gene_CDR3_anchors'] = ref_genome_path + "V_gene_CDR3_anchors.csv"
+    ref_genome_fln_dict['fln_J_gene_CDR3_anchors'] = ref_genome_path + "J_gene_CDR3_anchors.csv"
+
+    return ref_genome_fln_dict
+
+def get_default_fln_names_for_model_dir(model_dir_path, ref_genome_path=None, models_path=None):
+    """
+    Return a dict with default names for files
+    :param model_dir_path: Root of species chain directory. Example model_dir_path="human/tcr_beta/"
+    """
+    model_dir_path = model_dir_path + "/"
+    if ref_genome_path is None:
+        ref_genome_path = model_dir_path + "ref_genome"
+    ref_genome_fln_dict = get_default_ref_genome_fln_paths(ref_genome_path=ref_genome_path)
+
+    if models_path is None:
+        models_path = model_dir_path + "models"
+    models_fln_dict = get_default_models_fln_paths(models_path=models_path)
+
+    return {**ref_genome_fln_dict, **models_fln_dict}
+
+def get_default_ref_genome_fln_paths(ref_genome_path="ref_genome"):
+    """
+    Get default filenames for genome template references.
+    :param ref_genome_path: Default ref_genome directory name
+    """
+
+    ref_genome_fln_dict = dict()
+    ref_genome_path = ref_genome_path + "/"
+    ref_genome_fln_dict['fln_genomicVs'] = ref_genome_path + "genomicVs.fasta"
+    ref_genome_fln_dict['fln_genomicJs'] = ref_genome_path + "genomicJs.fasta"
+    ref_genome_fln_dict['fln_genomicDs'] = ref_genome_path + "genomicDs.fasta"
+
+    ref_genome_fln_dict['fln_V_gene_CDR3_anchors'] = ref_genome_path + "V_gene_CDR3_anchors.csv"
+    ref_genome_fln_dict['fln_J_gene_CDR3_anchors'] = ref_genome_path + "J_gene_CDR3_anchors.csv"
+
+    return ref_genome_fln_dict
+
+def get_default_models_fln_paths(models_path="models"):
+    """
+    Get default filenames for models directory.
+    :param models_path: models directory name
+    """
+    models_fln_dict = dict()
+    models_path = models_path + "/"
+    models_fln_dict['fln_model_parms'] = models_path + "model_parms.txt"
+    models_fln_dict['fln_model_marginals'] = models_path + "model_marginals.txt"
+
+    return models_fln_dict
+
+def get_default_models_paths_species_chain(IgorSpecie, IgorChain, modelpath=None):  # rcParams['paths.igor_models']):
+    """
+    :return IgorModel loaded with the default location for specie and chain
+    """
+    # IGoR run parameters
+    # IgorSpecie    = specie #"mouse"
+    # IgorChain     = chain #"tcr_beta"
+    if modelpath is None:
+        try:
+            modelpath = run_igor_datadir() + "/models"
+            print("modelpath : ", modelpath)
+        except Exception as e:
+            print("ERROR: getting default igor datadir.", e)
+
+    IgorModelPath = modelpath + "/" + IgorSpecie + "/" + IgorChain + "/"
+    # print("Loading default IGoR model from path : ", IgorModelPath)
+    # FIXME: FIND A WAY TO GENERALIZE THIS WITH SOMEKIND OF STANDARD NAME
+    flnModelParms = IgorModelPath + "models/model_parms.txt"
+    flnModelMargs = IgorModelPath + "models/model_marginals.txt"
+    # print("Parms filename: ", flnModelParms)
+    # print("Margs filename: ", flnModelMargs)
+    # print("-" * 50)
+    return flnModelParms, flnModelMargs
+
+def join_genomics_anchors_dataframes(df_genes_templates, df_genes_anchors):
+    df_genetemplates = df_genes_templates.copy()
+    df_genetemplates['id'] = df_genetemplates.index.get_level_values('id')
+    df_genetemplates.set_index('name', inplace=True)
+    df_geneanchors = df_genes_anchors.copy() #.set_index('gene').copy()
+
+    df_all = df_genetemplates.join(df_geneanchors)
+
+    df_all['name'] = df_all.index.get_level_values('name')
+    df_all.set_index('id', inplace=True)
+
+    columnas = df_all.columns.to_list()
+    ini_cols = ['name', 'value', 'anchor_index']
+    other_cols = list()
+    for col in columnas:
+        if not col in ini_cols:
+            other_cols.append(col)
+    new_order = ini_cols + other_cols
+    df_all = df_all[new_order]
+
+    return df_all.copy()
+
+
+def make_igor_directories(gene: str, specie: str, modelspath=None):
+    """
+    Make directories for all models path root gene species
+    :param gene: Gene name
+    :param specie: species
+    """
+    if modelspath is None:
+        modelspath = "models"
+
+    os.system("mkdir -p " + modelspath)
+    os.system("mkdir -p " + modelspath + "/" + specie)
+    os.system("mkdir -p " + modelspath + "/" + specie + "/" + gene)
+    os.system("mkdir -p " + modelspath + "/" + specie + "/" + gene + "/ref_genome")
+    os.system("mkdir -p " + modelspath + "/" + specie + "/" + gene + "/ref_genome")
+    os.system("mkdir -p " + modelspath + "/" + specie + "/" + gene + "/models")
 
 
 # // A, C, G, T, R, Y, K, M, S, W, B, D, H, V, N
@@ -32,8 +281,6 @@ heavy_pen_nuc44_vect = [
 1, 1, 1, -14, -13, 1, 1, -13, 1, -13, -12, -12, -12, 0.5, 0,
 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
-import xarray as xr
-import numpy as np
 list_nt_lbl = ['A', 'C', 'G', 'T', 'R', 'Y', 'K', 'M', 'S', 'W', 'B', 'D', 'H', 'V', 'N']
 da_heavy_pen_nuc44_vect = xr.DataArray(np.array(heavy_pen_nuc44_vect).reshape(15, 15), \
                                dims=('x', 'y'))
@@ -160,6 +407,7 @@ def run_igor_datadir():
 
     cmd = igor_exec_path + " -getdatadir"
 
+    # FIXME: ADD A WITH TO SUBPROCESS with subprocess.Popen(...) as p and a p.kill()
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     stdout = []
     while True:
@@ -172,30 +420,6 @@ def run_igor_datadir():
     return (''.join(stdout)).replace('\n','')
 
 
-
-def get_default_models_paths(IgorSpecie, IgorChain, modelpath=None):  # rcParams['paths.igor_models']):
-    """
-    :return IgorModel loaded with the default location for specie and chain
-    """
-    # IGoR run parameters
-    # IgorSpecie    = specie #"mouse"
-    # IgorChain     = chain #"tcr_beta"
-    if modelpath is None:
-        try:
-            modelpath = run_igor_datadir() + "/models"
-            print("modelpath : ", modelpath)
-        except Exception as e:
-            print("ERROR: getting default igor datadir.", e)
-
-    IgorModelPath = modelpath + "/" + IgorSpecie + "/" + IgorChain + "/"
-    print("Loading default IGoR model from path : ", IgorModelPath)
-    # FIXME: FIND A WAY TO GENERALIZE THIS WITH SOMEKIND OF STANDARD NAME
-    flnModelParms = IgorModelPath + "models/model_parms.txt"
-    flnModelMargs = IgorModelPath + "models/model_marginals.txt"
-    print("Parms filename: ", flnModelParms)
-    print("Margs filename: ", flnModelMargs)
-    print("-" * 50)
-    return flnModelParms, flnModelMargs
 
 
 

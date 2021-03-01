@@ -111,7 +111,7 @@ def main():
 
     db = p3.IgorSqliteDB()
     # db.flnIgorDB = task.igor_wd+"/"+task.igor_batchname+".db"
-    db.flnIgorDB = args.database
+    db.fln_db = args.database
     db.connect_db()
 
     seq_index = args.seq_index
@@ -126,7 +126,7 @@ def main():
     # print(align_dict)
 
     if args.output is None:
-        batchname = db.flnIgorDB.split(".db")[0]
+        batchname = db.fln_db.split(".db")[0]
         fln_output = batchname + '__' + str(indexed_sequence.seq_index) + '_'+ args.gene +'_na.fasta'
         # fln_output = args.database.split(".db")[0]+"_na.csv"
     else:

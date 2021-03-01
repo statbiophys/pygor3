@@ -419,7 +419,7 @@ def run_evaluate(igor_read_seqs, output_fln_prefix,
 
         igor_model_path = path_mdl_data
         print(igortask_input.to_dict())
-        igortask_input.export_to_igorfiles()
+        igortask_input.db_export_to_igorfiles()
         igortask_input.igor_db.close_db()
         b_clean_igortask_input = True
 
@@ -1267,12 +1267,12 @@ def model_create(rec_type, fln_output_prefix,
         # igortask.igor_model_dir_path
         igortask.update_model_filenames(igor_model_dir_path=igortask.igor_model_dir_path)
         igortask.load_IgorRefGenome()
-        igortask.make_model_default_VJ_from_genomes()
+        igortask.make_model_default_VJ_from_genomes_dir()
     elif rec_type == 'VDJ':
         igortask.update_model_filenames(igor_model_dir_path=igortask.igor_model_dir_path)
         # print(igortask.to_dict())
         igortask.load_IgorRefGenome()
-        igortask.make_model_default_VDJ_from_genomes()
+        igortask.make_model_default_VDJ_from_genomes_dir()
         # print(igortask.igor_model_dir_path)
     else:
         print("Model type ", rec_type)
@@ -1609,7 +1609,7 @@ def database_copy(fln_output_db, b_igor_reads,
             # Create table in database destiny.
             output_db.execute_query(tablename_ctsql_dict[tablename_to_copy])
             # Copy table
-            fln_source_db = igortask.igor_db.flnIgorDB
+            fln_source_db = igortask.igor_db.fln_db
             output_db.copytable_from_source(tablename_to_copy, fln_source_db)
         except Exception as e:
             print("ERROR: igor-reads")
@@ -1627,7 +1627,7 @@ def database_copy(fln_output_db, b_igor_reads,
                     # Create table in database destiny.
                     output_db.execute_query(tablename_ctsql_dict[tablename_to_copy])
                     # Copy table
-                    fln_source_db = igortask.igor_db.flnIgorDB
+                    fln_source_db = igortask.igor_db.fln_db
                     output_db.copytable_from_source(tablename_to_copy, fln_source_db)
         except Exception as e:
             print("ERROR: igor-genomes")
@@ -1645,7 +1645,7 @@ def database_copy(fln_output_db, b_igor_reads,
                     # Create table in database destiny.
                     output_db.execute_query(tablename_ctsql_dict[tablename_to_copy])
                     # Copy table
-                    fln_source_db = igortask.igor_db.flnIgorDB
+                    fln_source_db = igortask.igor_db.fln_db
                     output_db.copytable_from_source(tablename_to_copy, fln_source_db)
         except Exception as e:
             print("ERROR: igor-genomes")
@@ -1663,7 +1663,7 @@ def database_copy(fln_output_db, b_igor_reads,
                     # Create table in database destiny.
                     output_db.execute_query(tablename_ctsql_dict[tablename_to_copy])
                     # Copy table
-                    fln_source_db = igortask.igor_db.flnIgorDB
+                    fln_source_db = igortask.igor_db.fln_db
                     output_db.copytable_from_source(tablename_to_copy, fln_source_db)
         except Exception as e:
             print("ERROR: igor-model")
@@ -1684,7 +1684,7 @@ def database_copy(fln_output_db, b_igor_reads,
                     # Create table in database destiny.
                     output_db.execute_query(tablename_ctsql_dict[tablename_to_copy])
                     # Copy table
-                    fln_source_db = igortask.igor_db.flnIgorDB
+                    fln_source_db = igortask.igor_db.fln_db
                     output_db.copytable_from_source(tablename_to_copy, fln_source_db)
         except Exception as e:
             print("ERROR: igor-pgen")
@@ -1704,7 +1704,7 @@ def database_copy(fln_output_db, b_igor_reads,
                     # Create table in database destiny.
                     output_db.execute_query(tablename_ctsql_dict[tablename_to_copy])
                     # Copy table
-                    fln_source_db = igortask.igor_db.flnIgorDB
+                    fln_source_db = igortask.igor_db.fln_db
                     output_db.copytable_from_source(tablename_to_copy, fln_source_db)
         except Exception as e:
             print("ERROR: igor-scenarios")
@@ -2155,11 +2155,18 @@ def database_export(b_airr_rearrangement, fln_airr_rearrangement,
 
     igortask.create_db(igor_fln_db)
     ii_db = igortask.igor_db
-    print("igor_fln_db: "+igor_fln_db, "ii_db : ", ii_db, type(ii_db), type(igortask.igor_db))
     ii_db.list_from_db()
-    # import pygor3 as p3
-    # ii_db = p3.IgorSqliteDB()
-    ii_db.write_IgorIndexedSeq_to_CSV(igortask.igor_fln_indexed_sequences)
+    print("igor_fln_db: " + igor_fln_db, "ii_db : ",
+          ii_db, type(ii_db), type(igortask.igor_db))
+
+    try:
+        # import pygor3 as p3
+        # ii_db = p3.IgorSqliteDB()
+        igortask.db_export_IgorIndexedSeq()
+        ii_db.write_IgorIndexedSeq_to_CSV(igortask.igor_fln_indexed_sequences)
+    except Exception as e:
+        print(igortask)
+        raise e
 
     ################################################3
     try:
@@ -2182,9 +2189,17 @@ def database_export(b_airr_rearrangement, fln_airr_rearrangement,
         if ii_db.Q_ref_genome_in_db_by_gene("V"):
             igortask.fln_genomicVs = igortask.genomes.fln_genomicVs
             ii_db.write_IgorGeneTemplate_to_fasta("V", igortask.fln_genomicVs)
+            try:
+                ii_db.write_IgorGeneAnchors_to_CSV("V", igortask.fln_V_gene_CDR3_anchors)
+            except Exception as e:
+                pass
         if ii_db.Q_ref_genome_in_db_by_gene("J"):
             igortask.fln_genomicJs = igortask.genomes.fln_genomicJs
             ii_db.write_IgorGeneTemplate_to_fasta("J", igortask.fln_genomicJs)
+            try:
+                ii_db.write_IgorGeneAnchors_to_CSV("J", igortask.fln_J_gene_CDR3_anchors)
+            except Exception as e:
+                pass
         if ii_db.Q_ref_genome_in_db_by_gene("D"):
             igortask.fln_genomicDs = igortask.genomes.fln_genomicDs
             ii_db.write_IgorGeneTemplate_to_fasta("D", igortask.fln_genomicDs)
@@ -2313,12 +2328,12 @@ def database_naive_align(output_fln, seq_index, igor_fln_db):
         #### STARTS HERE
         db = p3.IgorSqliteDB()
         # db.flnIgorDB = task.igor_wd+"/"+task.igor_batchname+".db"
-        db.flnIgorDB = igortask.igor_db.flnIgorDB #args.database
+        db.fln_db = igortask.igor_db.fln_db #args.database
         db.connect_db()
 
         # Make a loop over all sequences
         if output_fln is None:
-            fln_output = db.flnIgorDB.split(".db")[0] + "_na.csv"
+            fln_output = db.fln_db.split(".db")[0] + "_na.csv"
         else:
             fln_output = output_fln
 
@@ -2507,7 +2522,7 @@ def database_naive_align(output_fln, seq_index, igor_fln_db):
         #### naive align with id seq_index
         db = p3.IgorSqliteDB()
 
-        db.flnIgorDB = igortask.igor_fln_db
+        db.fln_db = igortask.igor_fln_db
         db.connect_db()
 
         #seq_index = args.seq_index
@@ -2556,7 +2571,7 @@ def database_naive_align(output_fln, seq_index, igor_fln_db):
             pass
 
         if output_fln is None:
-            batchname = db.flnIgorDB.split(".db")[0]
+            batchname = db.fln_db.split(".db")[0]
             fln_output = batchname + '__' + str(indexed_sequence.seq_index) + '_na.fasta'
             # fln_output = args.database.split(".db")[0]+"_na.csv"
         else:

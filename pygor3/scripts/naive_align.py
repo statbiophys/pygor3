@@ -176,7 +176,7 @@ def main():
 
     db = p3.IgorSqliteDB()
     #db.flnIgorDB = task.igor_wd+"/"+task.igor_batchname+".db"
-    db.flnIgorDB = args.database
+    db.fln_db = args.database
     db.connect_db()
 
     # Make a loop over all sequences

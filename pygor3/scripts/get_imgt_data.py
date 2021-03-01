@@ -28,7 +28,7 @@ def main():
             if options.specie == None:
                 print("Specie option is missing: --specie Mus+musculus")
             else:
-                imgt.makeDirectories(options.gene, options.specie)
+                imgt.make_igor_directories(options.gene, options.specie)
                 imgt.write_V_TemplateFiles(options.gene, options.specie)
                 imgt.write_D_TemplateFiles(options.gene, options.specie)
                 imgt.write_J_TemplateFiles(options.gene, options.specie)
@@ -43,7 +43,7 @@ def main():
             if options.specie == None:
                 print("Specie option is missing: --specie Mus+musculus")
             else:
-                imgt.makeDirectories(options.gene, options.specie)
+                imgt.make_igor_directories(options.gene, options.specie)
                 imgt.write_V_TemplateFiles(options.gene, options.specie)
                 imgt.write_J_TemplateFiles(options.gene, options.specie)
                 imgt.writeModelVJ_parms(options.gene, options.specie)

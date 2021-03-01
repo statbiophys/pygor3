@@ -7,6 +7,8 @@ import requests
 from bs4 import BeautifulSoup
 from Bio import SeqIO
 
+from .utils import *
+
 try:
     from StringIO import StringIO # Python 2
 except ImportError:
@@ -85,16 +87,6 @@ def load_records_from_fasta(filename:str):
     # flnGenomicJs = DIR_REF_GENOME + "genomicJs.fasta"
     return list(SeqIO.parse(filename, "fasta"))
 
-def makeDirectories(gene: str, specie: str, modelspath=None):
-    if modelspath is None:
-        modelspath = "models"
-
-    os.system("mkdir -p " + modelspath)
-    os.system("mkdir -p " + modelspath + "/" + specie)
-    os.system("mkdir -p " + modelspath + "/" + specie + "/" + gene)
-    os.system("mkdir -p " + modelspath + "/" + specie + "/" + gene + "/ref_genome")
-    os.system("mkdir -p " + modelspath + "/" + specie + "/" + gene + "/ref_genome")
-    os.system("mkdir -p " + modelspath + "/" + specie + "/" + gene + "/models")
 
 def get_gene_template(specie: str, gene: str, modelspath=None, filename=None, imgt_genedb=imgt_params['url.genedb']):
     """
@@ -117,7 +109,7 @@ def get_gene_template(specie: str, gene: str, modelspath=None, filename=None, im
     except Exception as e:
         raise e
 
-def download_gene_template(specie: str, gene: str, modelspath=None, filename=None, imgt_genedb=imgt_params['url.genedb']):
+def download_gene_template(specie: str, gene: str, ref_genes_path=None, modelspath=None, filename=None, imgt_genedb=imgt_params['url.genedb']):
     """
     Create a file in IGoR default format
     and returns output filename.
@@ -136,16 +128,24 @@ def download_gene_template(specie: str, gene: str, modelspath=None, filename=Non
     records = get_gene_template(specie, gene, imgt_genedb=imgt_genedb)
 
     if gene[-1] in ['V', 'D', 'J']:
-        ref_genes_path = ""
-        if modelspath is None:
-            modelspath = "models"
+        if ref_genes_path is None:
+            ref_genes_path = ""
+
+            if modelspath is None:
+                modelspath = "models"
+
             gene_dir = gene[:-1]
-            makeDirectories(gene_dir, specie, modelspath=modelspath)
+            make_igor_directories(gene_dir, specie, modelspath=modelspath)
             ref_genes_path = modelspath + "/" + specie + "/" + gene_dir + "/ref_genome/"
+        else:
+            # create directory
+            ref_genes_path = ref_genes_path + "/"
+            os.system("mkdir -p " + ref_genes_path)
 
         if filename is None :
             filename = ref_genes_path + "genomic" + gene[-1] + "s__imgt.fasta"
             #filename = modelspath + "genomic__" + specie + "_" + gene + ".fasta"
+
     #flnGenomicJs = DIR_REF_GENOME + "genomicJs.fasta"
     flnGenome = save_records2fasta(records, filename)
     fln_dict = dict()
@@ -207,19 +207,27 @@ def get_gene_anchors(specie: str, gene: str, imgtlabel: str, modelspath=None, fi
     except Exception as e:
         raise e
 
-def download_genes_anchors(specie: str, chain: str, flnVGenome, flnJGenome, modelspath=None, imgt_genedb=imgt_params['url.genedb']):
-    # For this method anchors will be in the same directory modelspath+"/"+specie+"/"+chain+
-    V_dict = download_Vgene_anchors(specie, chain, flnVGenome, modelspath=modelspath, imgt_genedb=imgt_genedb)
-    J_dict = download_Jgene_anchors(specie, chain, flnJGenome, modelspath=modelspath, imgt_genedb=imgt_genedb)
+def download_genes_anchors(specie: str, chain: str, flnVGenome, flnJGenome, ref_genes_path=None, modelspath=None, imgt_genedb=imgt_params['url.genedb']):
+    """
+    Download gene anchors from IMGT website in a IGoR structure directory (modelspath+"/"+specie+"/"+chain)
+    """
+
+    V_dict = download_Vgene_anchors(specie, chain, flnVGenome, ref_genes_path=ref_genes_path, modelspath=modelspath, imgt_genedb=imgt_genedb)
+    J_dict = download_Jgene_anchors(specie, chain, flnJGenome, ref_genes_path=ref_genes_path, modelspath=modelspath, imgt_genedb=imgt_genedb)
     Anchors_dict = {**V_dict, **J_dict}
     return Anchors_dict
 
-def download_Vgene_anchors(specie: str, chain: str, flnVGenome, modelspath=None, imgt_genedb=imgt_params['url.genedb']):
+def download_Vgene_anchors(specie: str, chain: str, flnVGenome, ref_genes_path=None, modelspath=None, imgt_genedb=imgt_params['url.genedb'], sep=';'):
     #records = get_gene_template(specie, gene, imgt_genedb=imgt_genedb)
-    if modelspath is None:
-        modelspath = "models"
-    makeDirectories(chain, specie, modelspath=modelspath)
-    ref_genes_path = modelspath + "/" + specie + "/" + chain + "/ref_genome/"
+    if ref_genes_path is None:
+        ref_genes_path = ""
+        if modelspath is None:
+            modelspath = "models"
+        make_igor_directories(chain, specie, modelspath=modelspath)
+        ref_genes_path = modelspath + "/" + specie + "/" + chain + "/ref_genome/"
+    else:
+        ref_genes_path = ref_genes_path + "/"
+
 
     # generate dictionaries with the anchors
     # 2nd-CYS
@@ -227,9 +235,10 @@ def download_Vgene_anchors(specie: str, chain: str, flnVGenome, modelspath=None,
     dictV_2CYS = genAnchDict(urlV_2CYS)
 
     flnAnchors = ref_genes_path + "V_gene_CDR3_anchors__imgt.csv"
+    CSVDELIM = sep
     ofileAnch = open(flnAnchors, "w")
-    ofileAnch.write("gene;anchor_index;function" + "\n")
-    CSVDELIM = ";"
+    ofileAnch.write("gene"+CSVDELIM+"anchor_index"+CSVDELIM+"gfunction" + "\n")
+
 
     Vrecords = SeqIO.parse(flnVGenome, "fasta")
     for rec in Vrecords:
@@ -256,7 +265,7 @@ def download_Vgene_anchors_bk(specie: str, chain: str, modelspath=None, imgt_gen
     #records = get_gene_template(specie, gene, imgt_genedb=imgt_genedb)
     if modelspath is None:
         modelspath = "models"
-    makeDirectories(chain, specie, modelspath=modelspath)
+    make_igor_directories(chain, specie, modelspath=modelspath)
     ref_genes_path = modelspath + "/" + specie + "/" + chain + "/ref_genome/"
 
     # generate dictionaries with the anchors
@@ -292,13 +301,17 @@ def download_Vgene_anchors_bk(specie: str, chain: str, modelspath=None, imgt_gen
     # return fln_dict
 
 
-def download_Jgene_anchors(specie: str, chain: str, flnJGenome, modelspath=None, imgt_genedb=imgt_params['url.genedb']):
+def download_Jgene_anchors(specie: str, chain: str, flnJGenome, ref_genes_path=None, modelspath=None, imgt_genedb=imgt_params['url.genedb']):
     # records = get_gene_template(specie, gene, imgt_genedb=imgt_genedb)
-    if modelspath is None:
-        modelspath = "models"
+    if ref_genes_path is None:
+        ref_genes_path = ""
+        if modelspath is None:
+            modelspath = "models"
+            make_igor_directories(chain, specie, modelspath=modelspath)
+        ref_genes_path = modelspath + "/" + specie + "/" + chain + "/ref_genome/"
+    else:
+        ref_genes_path = ref_genes_path + "/"
 
-    makeDirectories(chain, specie, modelspath=modelspath)
-    ref_genes_path = modelspath + "/" + specie + "/" + chain + "/ref_genome/"
 
     # J-PHE
     urlJ_PHE = get_genedb_query81_imgtlabel(specie, chain + "J", imgtlabel="J-PHE", imgt_genedb=imgt_genedb)
@@ -347,6 +360,12 @@ def download_Jgene_anchors(specie: str, chain: str, flnJGenome, modelspath=None,
 
 ############ Donwload all genetic information if VDJ or VJ
 def download_ref_genome_VDJ(species: str, chain: str, **kwargs):
+    """
+    Return a dictionary with genomics dataframes and also save files in a IGoR directory structure.
+    :param species: IMGT species name
+    :param chain: IMGT chain receptor name
+    :return : dictionary of pandas DataFrame with
+    """
     dictVGenome = download_gene_template(species, chain + 'V', **kwargs)
     dictDGenome = download_gene_template(species, chain + 'D', **kwargs)
     dictJGenome = download_gene_template(species, chain + 'J', **kwargs)
@@ -417,6 +436,14 @@ def download_ref_genome_VDJ(species: str, chain: str, **kwargs):
     shutil.copy(dict_D["genomics"], D_path + "/genomicDs.fasta")
     shutil.copy(dict_V["anchors"], V_path + "/V_gene_CDR3_anchors.csv")
     shutil.copy(dict_J["anchors"], J_path + "/J_gene_CDR3_anchors.csv")
+
+    from .utils import get_dataframe_from_fasta_and_csv_anchors
+    df_genomics_dict = dict()
+    df_genomics_dict['V'] = get_dataframe_from_fasta_and_csv_anchors(dict_V["genomics"], dict_V["anchors"])
+    df_genomics_dict['D'] = get_dataframe_from_fasta_and_csv_anchors(dict_D["genomics"])
+    df_genomics_dict['J'] = get_dataframe_from_fasta_and_csv_anchors(dict_J["genomics"], dict_J["anchors"])
+    return df_genomics_dict
+
     # print(kwargs)
 
 def download_ref_genome_VJ(species: str, chain: str, **kwargs):
@@ -427,6 +454,12 @@ def download_ref_genome_VJ(species: str, chain: str, **kwargs):
     :type species: str
     :param chain: Chain name in IMGT nomenclature,
     :type chain: str
+    :param modelspath: root paths for all models.
+    :type modelspath: str, optional
+    :param filename: gene template fasta filename.
+    :type filename: str, optional
+    :param imgt_genedb: Url of IMGT GeneDB web application.
+    :type imgt_genedb: str
     """
     dictVGenome = download_gene_template(species, chain + 'V', **kwargs)
     dictJGenome = download_gene_template(species, chain + 'J', **kwargs)
@@ -495,9 +528,18 @@ def download_ref_genome_VJ(species: str, chain: str, **kwargs):
     shutil.copy(dict_V["anchors"], V_path + "/V_gene_CDR3_anchors.csv")
     shutil.copy(dict_J["anchors"], J_path + "/J_gene_CDR3_anchors.csv")
 
+    from .utils import get_dataframe_from_fasta_and_csv_anchors
+    df_genomics_dict = dict()
+    df_genomics_dict['V'] = get_dataframe_from_fasta_and_csv_anchors(dict_V["genomics"], dict_V["anchors"])
+    df_genomics_dict['J'] = get_dataframe_from_fasta_and_csv_anchors(dict_J["genomics"], dict_J["anchors"])
+    return df_genomics_dict
+
 
 # FIXME: WORKING ON THIS
 def download_ref_genome(species: str, chain: str, **kwargs):
+    """
+    FIXME: IN DEV
+    """
     dictVGenome = download_gene_template(species, chain + 'V', **kwargs)
     dictJGenome = download_gene_template(species, chain + 'J', **kwargs)
     pass

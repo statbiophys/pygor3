@@ -20,22 +20,22 @@ igor_align_dict_options = {
     '--all':
         {'active': True, 'value': '',
          'dict_options':
-             tmp_dict_options
+             tmp_dict_options.copy()
          },
     '--V':
         {'active': False, 'value': '',
          'dict_options':
-             tmp_dict_options
+             tmp_dict_options.copy()
          },
     '--D':
         {'active': False, 'value': '',
          'dict_options':
-             tmp_dict_options
+             tmp_dict_options.copy()
          },
     '--J':
         {'active': False, 'value': '',
          'dict_options':
-             tmp_dict_options
+             tmp_dict_options.copy()
          }
 }
 igor_align_dict_options['--V']['dict_options']['---thresh']['value'] = '50'
@@ -176,5 +176,7 @@ def update_igor_batch_dict(igor_wd, igor_batchname):
     igor_batch_dict['output_scenarios']['filename'] = tmp_prefix + "_output/" + "best_scenarios_counts.csv"
     igor_batch_dict['output_coverage']['filename'] = tmp_prefix + "_output/" + "coverage.csv"
 
+igor_options = {
 
+}
 
