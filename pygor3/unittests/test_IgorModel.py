@@ -337,6 +337,7 @@ class MyTestCase(unittest.TestCase):
         self.assertIsInstance(mdl.marginals, IgorModel_Marginals)
 
     def test_IgorModel_anchors(self):
+        # TODO: ADD ANCHORS TO IGORMODEL
         species = "human"
         chain  = "tcr_beta"
         mdl = IgorModel.load_default(species, chain)
@@ -344,6 +345,7 @@ class MyTestCase(unittest.TestCase):
         print("mdl.genomic_dataframe_dict['D']: ", mdl.genomic_dataframe_dict['D'])
         print("mdl.genomic_dataframe_dict['J']: ", mdl.genomic_dataframe_dict['J'])
         print("mdl.anchors_CDR3_V: ", mdl.anchors_CDR3_V)
+
         mdl.generate_xdata()
 
         # To access the anchors use mdl.V_anchors

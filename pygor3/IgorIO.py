@@ -109,7 +109,8 @@ def run_command_print(cmd):
 def run_command_no_output(cmd):
     """from http://blog.kagesenshi.org/2008/02/teeing-python-subprocesspopen-output.html
     """
-    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    # p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    p = subprocess.run(cmd, shell=True, capture_output=True, text=True)
     return p
 
 
@@ -670,14 +671,16 @@ class IgorRefGenome:
 
     def clean_empty_anchors(self):
         try:
-            tmp_df = self.df_V_ref_genome[self.df_V_ref_genome['anchor_index'].notna()]
+            tmp_df = self.df_V_ref_genome[self.df_V_ref_genome['anchor_index'].notna()].copy()
             tmp_df.reset_index(inplace=True)
+            # tmp_df['anchor_index'].applymap(int, inplace=True)
             tmp_df = tmp_df.drop(columns=['id'])
             tmp_df.index.name='id'
             self.df_V_ref_genome = tmp_df.copy()
 
-            tmp_df = self.df_J_ref_genome[self.df_J_ref_genome['anchor_index'].notna()].reset_index()
+            tmp_df = self.df_J_ref_genome[self.df_J_ref_genome['anchor_index'].notna()].copy()
             tmp_df.reset_index(inplace=True)
+            # tmp_df['anchor_index'].applymap(int, inplace=True)
             tmp_df = tmp_df.drop(columns=['id'])
             tmp_df.index.name = 'id'
             self.df_J_ref_genome = tmp_df.copy()
@@ -1638,69 +1641,71 @@ class IgorModel_Parms:
         ref_genome = IgorRefGenome.load_from_dataframe_genomics_dict(df_genomics_dict)
         return ref_genome
 
-    def get_ref_genome(self)->IgorRefGenome:
-        # FIXME: IN DEV
-        """Return IgorRefGenome genomes"""
-        # Get all gene choice events from self (IgorModel_Parms
-        tmp_dir = tempfile.TemporaryDirectory(prefix='ref_genome', dir='.')
-        try:
-            fln_genomicVs = tmp_dir.name + "/" + "genomicVs.fasta"
-            fln_genomicDs = tmp_dir.name + "/" + "genomicDs.fasta"
-            fln_genomicJs = tmp_dir.name + "/" + "genomicJs.fasta"
-            fln_V_gene_CDR3_anchors = tmp_dir.name + "/" + "V_gene_CDR3_anchors.csv"
-            fln_J_gene_CDR3_anchors = tmp_dir.name + "/" + "J_gene_CDR3_anchors.csv"
 
-            GeneChoice_list = [event for event in self.Event_list if event.event_type == 'GeneChoice']
-            event_V = [event for event in GeneChoice_list if event.seq_type == 'V_gene'][0]
-
-            df_genetemplates = self.Event_dict[event_V.nickname].copy()
-            df_genetemplates = df_genetemplates[['name', 'value']]
-            df_genetemplates['id'] = df_genetemplates.index.get_level_values('id')
-            df_genetemplates.set_index('name', inplace=True)
-
-            event_V.export_realizations_to_fasta(fln_genomicVs)
-            event_J = [event for event in GeneChoice_list if event.seq_type == 'J_gene'][0]
-            event_J.export_realizations_to_fasta(fln_genomicJs)
-            try:
-                event_D = [event for event in GeneChoice_list if event.seq_type == 'D_gene'][0]
-                event_D.export_realizations_to_fasta(fln_genomicDs)
-            except Exception as e:
-                pass
-
-            # V Anchors
-            try:
-                self.df_V_ref_genome.to_csv(fln_V_gene_CDR3_anchors, columns=['name', 'anchor_index', 'function'],
-                                            sep=';', index=False)
-            except KeyError:
-                self.df_V_ref_genome.to_csv(fln_V_gene_CDR3_anchors, columns=['name', 'anchor_index'],
-                                            sep=';', index=False)
-            except Exception as e:
-                raise e
-
-            # J Anchors
-            try:
-                self.df_J_ref_genome.to_csv(fln_J_gene_CDR3_anchors, columns=['name', 'anchor_index', 'function'],
-                                            sep=';', index=False)
-            except KeyError:
-                self.df_J_ref_genome.to_csv(fln_J_gene_CDR3_anchors, columns=['name', 'anchor_index'],
-                                            sep=';', index=False)
-            except Exception as e:
-                raise e
-
-            # FIXME: IN DEV ADD ANCHORS
-            # gene;anchor_index;function
-
-            ref_genome = IgorRefGenome.load_from_path(tmp_dir.name)
-
-        except Exception as e:
-            raise e
-        else:
-            return ref_genome
-        finally:
-            tmp_dir.cleanup()
-
-
-        return ref_genome
+    # # FIXME: deprecated method
+    # def get_ref_genome(self)->IgorRefGenome:
+    #     # FIXME: IN DEV
+    #     """Return IgorRefGenome genomes"""
+    #     # Get all gene choice events from self (IgorModel_Parms
+    #     tmp_dir = tempfile.TemporaryDirectory(prefix='ref_genome', dir='.')
+    #     try:
+    #         fln_genomicVs = tmp_dir.name + "/" + "genomicVs.fasta"
+    #         fln_genomicDs = tmp_dir.name + "/" + "genomicDs.fasta"
+    #         fln_genomicJs = tmp_dir.name + "/" + "genomicJs.fasta"
+    #         fln_V_gene_CDR3_anchors = tmp_dir.name + "/" + "V_gene_CDR3_anchors.csv"
+    #         fln_J_gene_CDR3_anchors = tmp_dir.name + "/" + "J_gene_CDR3_anchors.csv"
+    #
+    #         GeneChoice_list = [event for event in self.Event_list if event.event_type == 'GeneChoice']
+    #         event_V = [event for event in GeneChoice_list if event.seq_type == 'V_gene'][0]
+    #
+    #         df_genetemplates = self.Event_dict[event_V.nickname].copy()
+    #         df_genetemplates = df_genetemplates[['name', 'value']]
+    #         df_genetemplates['id'] = df_genetemplates.index.get_level_values('id')
+    #         df_genetemplates.set_index('name', inplace=True)
+    #
+    #         event_V.export_realizations_to_fasta(fln_genomicVs)
+    #         event_J = [event for event in GeneChoice_list if event.seq_type == 'J_gene'][0]
+    #         event_J.export_realizations_to_fasta(fln_genomicJs)
+    #         try:
+    #             event_D = [event for event in GeneChoice_list if event.seq_type == 'D_gene'][0]
+    #             event_D.export_realizations_to_fasta(fln_genomicDs)
+    #         except Exception as e:
+    #             pass
+    #
+    #         # V Anchors
+    #         try:
+    #             self.df_V_ref_genome.to_csv(fln_V_gene_CDR3_anchors, columns=['name', 'anchor_index', 'function'],
+    #                                         sep=';', index=False)
+    #         except KeyError:
+    #             self.df_V_ref_genome.to_csv(fln_V_gene_CDR3_anchors, columns=['name', 'anchor_index'],
+    #                                         sep=';', index=False)
+    #         except Exception as e:
+    #             raise e
+    #
+    #         # J Anchors
+    #         try:
+    #             self.df_J_ref_genome.to_csv(fln_J_gene_CDR3_anchors, columns=['name', 'anchor_index', 'function'],
+    #                                         sep=';', index=False)
+    #         except KeyError:
+    #             self.df_J_ref_genome.to_csv(fln_J_gene_CDR3_anchors, columns=['name', 'anchor_index'],
+    #                                         sep=';', index=False)
+    #         except Exception as e:
+    #             raise e
+    #
+    #         # FIXME: IN DEV ADD ANCHORS
+    #         # gene;anchor_index;function
+    #
+    #         ref_genome = IgorRefGenome.load_from_path(tmp_dir.name)
+    #
+    #     except Exception as e:
+    #         raise e
+    #     else:
+    #         return ref_genome
+    #     finally:
+    #         tmp_dir.cleanup()
+    #
+    #
+    #     return ref_genome
 
     def read_ErrorRate(self, ofile):
         lastPos = ofile.tell()
@@ -3656,7 +3661,7 @@ class IgorModel:
                               fln_V_gene_CDR3_anchors=fln_V_gene_CDR3_anchors,
                               fln_J_gene_CDR3_anchors=fln_J_gene_CDR3_anchors)
 
-    def export_model_dir(self, model_dir_path):
+    def write_mdl_data_dir(self, model_dir_path):
         """
         Export IgorModel and IgorRefGenome
         """
@@ -4197,9 +4202,7 @@ class IgorTask:
 
         try:
             if self.igor_exec_path is None:
-                p = subprocess.Popen("which igor", shell=True, stdout=subprocess.PIPE)
-                line = p.stdout.readline()
-                self.igor_exec_path = line.decode("utf-8").replace('\n', '')
+                self.igor_exec_path = run_get_igor_exec_path()
         except Exception as e:
             print(e)
             raise e
@@ -4408,15 +4411,18 @@ class IgorTask:
             raise e
 
     def gen_igor_wd(self):
-        p = subprocess.Popen("pwd", shell=True, stdout=subprocess.PIPE)
-        line = p.stdout.readline()
-        self.igor_wd = line.decode("utf-8").replace('\n', '')
+        # p = subprocess.run("pwd", shell=True, capture_output=True, text=True)
+        # line = p.stdout.readline()
+        # self.igor_wd = line.decode("utf-8").replace('\n', '')
+        self.igor_wd = run_get_igor_wd()
 
     def gen_random_batchname(self):
         try:
-            p = subprocess.Popen("head /dev/urandom | tr -dc A-Za-z0-9 | head -c10", shell=True, stdout=subprocess.PIPE)
-            line = p.stdout.readline()
-            self.igor_batchname = "dataIGoR" + line.decode("utf-8").replace('\n', '')
+            # p = subprocess.Popen("head /dev/urandom | tr -dc A-Za-z0-9 | head -c10", shell=True, stdout=subprocess.PIPE)
+            # line = p.stdout.readline()
+            # self.igor_batchname = "dataIGoR" + line.decode("utf-8").replace('\n', '')
+            str_random = run_get_random_string()
+            self.igor_batchname = "dataIGoR" + str_random
         except Exception as e:
             raise e
 
@@ -4615,11 +4621,14 @@ class IgorTask:
 
     def run_demo(self):
         cmd = self.igor_exec_path + " -run_demo"
-        return run_command(cmd)
+        return run_command_print(cmd)
+        # return run_command(cmd)
 
     def run_datadir(self):
-        cmd = self.igor_exec_path + " -getdatadir"
-        self.igor_datadir = run_command(cmd).replace('\n', '')
+        # cmd = self.igor_exec_path + " -getdatadir"
+        # self.igor_datadir = run_command(cmd).replace('\n', '')
+        # self.igor_models_root_path = self.igor_datadir + "/models/"
+        self.igor_datadir = run_get_igor_datadir()
         self.igor_models_root_path = self.igor_datadir + "/models/"
 
     def run_read_seqs(self, igor_read_seqs=None):
@@ -4882,7 +4891,7 @@ class IgorTask:
 
     def run_generate(self, N_seqs=None, mdl=None, igor_wd=None, igor_batchname=None, igor_model_parms_file=None,
                      igor_model_marginals_file=None,
-                     igor_db=None, igor_fln_db=None, igor_species=None, igor_chain=None, return_df=True):
+                     igor_db=None, igor_fln_db=None, igor_species=None, igor_chain=None, return_df=False):
         """
         Run IGoR generate command line.
         """
@@ -6212,18 +6221,26 @@ class IgorBestScenariosVDJ:
 def generate(Nseqs, mdl:IgorModel):
     """Return pandas dataframe with generated sequences Only sequences, not scenarios"""
     try:
+        # TODO:
+        # 1. Use a IgorModel to create an IgorTask
+        # 2. Create a temporary directory
+        # 3. generate sequences return_df = True
+
         task = IgorTask(mdl=mdl)
         task.gen_random_batchname()
+
         task.update_batch_filenames()
         path_mdl_data = task.igor_batchname + "_mdldata"
         task.update_model_filenames(igor_model_dir_path=path_mdl_data)
         task.update_ref_genome()
         task.mdl.write_model(task.igor_model_parms_file, task.igor_model_marginals_file)
         mdl_inferrred = task.run_generate(Nseqs, mdl=mdl, return_df=True)
+
+        pd_sequences = task.run_generate(Nseqs, return_df=True)
     except Exception as e:
         raise e
     else:
-        return mdl_inferrred
+        return pd_sequences #mdl_inferrred
     finally:
         task.run_clean_batch()
 
@@ -6232,20 +6249,34 @@ def infer(input_sequences:Union[str, pd.DataFrame, np.ndarray, Path],
           mdl:IgorModel, batch_clean=True)->IgorModel:
     # FIXME: IN DEV
     try:
-        mdl.parms.get_ref_genome()
-        mdl.write_model()
         import tempfile
-        tmp_dir = tempfile.TemporaryDirectory(prefix='genomic', dir='.')
-        tempfile.TemporaryFile('w', suffix='.csv', prefix='read_seqs')
-        # make a temporary file
 
-        write_sequences_to_file(input_sequences, )
+        # 1. Create a temporary directory igor_wd=tmp_dir.name
+        tmp_dir = tempfile.TemporaryDirectory(prefix='igor_inferring_', dir='.')
+        fln_input_sequences = tmp_dir.name + "/" + "input_sequences.csv"
 
-        task = IgorTask(igor_read_seqs=input_sequences, mdl=mdl)
-        # task.extract genomes and anchors from mdl
-        # save it to the temporal task files
+        # 2. Write Sequences in file if file not exist
+        write_sequences_to_file(input_sequences, fln_input_sequences)
+        # 3. Export model and ref_genome to model_dir
+        task = IgorTask(igor_wd=tmp_dir.name, mdl=mdl)
+        path_mdl_data = task.igor_wd + "/" + task.igor_batchname + "_mdldata"
+        task.update_model_filenames(igor_model_dir_path=path_mdl_data)
+        task.update_ref_genome(igor_model_dir_path=path_mdl_data)
+        task.mdl.write_mdl_data_dir(path_mdl_data)
+        print(task)
 
-        task.run_infer(igor_read_seqs=input_sequences)
+        # 4. Run infer model
+        task.run_infer(igor_read_seqs=fln_input_sequences)
+        task.load_IgorModel_from_infer_files()
+
+        """
+        path_mdl_data = task.igor_wd + "/" + task.igor_batchname + "_mdldata"
+        task.update_model_filenames(igor_model_dir_path=path_mdl_data)
+        task.update_ref_genome()
+        task.mdl.write_model(task.igor_model_parms_file, task.igor_model_marginals_file)
+        mdl_inferrred = task.run_generate(Nseqs, mdl=mdl, return_df=True)
+        """
+
     except Exception as e:
         raise e
     else:
@@ -6253,5 +6284,6 @@ def infer(input_sequences:Union[str, pd.DataFrame, np.ndarray, Path],
     finally:
         if batch_clean:
             task.run_clean_batch()
+        tmp_dir.cleanup()
 
 

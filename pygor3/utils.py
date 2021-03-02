@@ -133,7 +133,7 @@ def get_default_ref_genomes_species_chain(IgorSpecie:str, IgorChain:str, modelsp
     """
     if modelspath is None:
         try:
-            modelspath = run_igor_datadir() + "/models"
+            modelspath = run_get_igor_datadir() + "/models"
             print("modelpath : ", modelspath)
         except Exception as e:
             print("ERROR: getting default igor datadir.", e)
@@ -208,7 +208,7 @@ def get_default_models_paths_species_chain(IgorSpecie, IgorChain, modelpath=None
     # IgorChain     = chain #"tcr_beta"
     if modelpath is None:
         try:
-            modelpath = run_igor_datadir() + "/models"
+            modelpath = run_get_igor_datadir() + "/models"
             print("modelpath : ", modelpath)
         except Exception as e:
             print("ERROR: getting default igor datadir.", e)
@@ -396,20 +396,40 @@ except Exception as exception:
     print(exception, False)
     print(exception.__class__.__name__ + ": " + exception.message)
 
-
-def run_igor_datadir():
+def run_get_igor_exec_path():
     import subprocess
+    p1 = subprocess.run(["which", "igor"], capture_output=True, text=True)
+    return p1.stdout.replace('\n', '')
 
+def run_get_igor_datadir():
+    import subprocess
+    igor_exec_path = run_get_igor_exec_path()
+    p2 = subprocess.run([igor_exec_path, "-getdatadir"], capture_output=True, text=True)
+    return p2.stdout.replace('\n', '')
+
+    """
     cmd = "which igor"
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
     line = p.stdout.readline()
     igor_exec_path = line.decode("utf-8").replace('\n', '')
+    p.wait()
+    p.kill()
 
     cmd = igor_exec_path + " -getdatadir"
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+    line = p.stdout.readline()
+    igor_datadir = line.decode("utf-8").replace('\n', '')
+    p.wait()
+    p.kill()
+    return igor_datadir
+    """
 
+    """
     # FIXME: ADD A WITH TO SUBPROCESS with subprocess.Popen(...) as p and a p.kill()
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    # with subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT) as p:
     stdout = []
+    # with p.stdout as p_stdout:
     while True:
         line = p.stdout.readline()
         line = line.decode("utf-8")
@@ -417,8 +437,22 @@ def run_igor_datadir():
         # print (line, end='')
         if line == '' and p.poll() != None:
             break
+    p.communicate()
+    p.stdout.close()
+    p.kill()
     return (''.join(stdout)).replace('\n','')
+    """
 
+
+def run_get_random_string():
+    import subprocess
+    p = subprocess.run("head /dev/urandom | tr -dc A-Za-z0-9 | head -c10", shell=True, capture_output=True, text=True)
+    return p.stdout.replace('\n','')
+
+def run_get_igor_wd():
+    import subprocess
+    p = subprocess.run("pwd", shell=True, capture_output=True, text=True)
+    return p.stdout.replace('\n', '')
 
 
 

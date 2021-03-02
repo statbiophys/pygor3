@@ -1,9 +1,22 @@
 import unittest
-from pygor3 import IgorTask
+# from pygor3 import IgorTask
 from pygor3.utils import *
 import subprocess
+import os
 
 class MyTestCase(unittest.TestCase):
+
+    def test_run_igor_datadir(self):
+        igor_exec_path = run_get_igor_exec_path()
+        print(igor_exec_path)
+        self.assertTrue(os.path.isfile(igor_exec_path))
+        igor_datadir = run_get_igor_datadir()
+        print(igor_datadir)
+        # self.assertEqual(True, True)
+        self.assertTrue(os.path.isdir(igor_datadir))
+
+
+    """
     def test_something(self):
         dicto = get_default_ref_genomes_species_chain("human", "tcr_beta")
         print(dicto)
@@ -18,6 +31,7 @@ class MyTestCase(unittest.TestCase):
         # subprocess.call("cat sequences.csv", shell=True)
         task.run_infer(igor_read_seqs='sequences.csv')
         self.assertEqual(True, True)
+    """
 
 
 
