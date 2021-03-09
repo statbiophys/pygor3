@@ -15,7 +15,6 @@ class MyTestCase(unittest.TestCase):
         # self.assertEqual(True, True)
         self.assertTrue(os.path.isdir(igor_datadir))
 
-
     """
     def test_something(self):
         dicto = get_default_ref_genomes_species_chain("human", "tcr_beta")

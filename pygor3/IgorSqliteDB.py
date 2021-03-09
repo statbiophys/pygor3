@@ -584,15 +584,15 @@ class IgorSqliteDB:
         J_records = self.fetch_IgorGenomicData_By_Gene("J")
 
         columnas = ['id', 'gene_name', 'sequence', 'anchor_index', 'function']
-        df_V = pd.DataFrame.from_records(V_records, columns=columnas)
+        df_V = pd.DataFrame.from_records(V_records, columns=columnas, index='id')
         genomic_data_dict["V"] = df_V
-        df_J = pd.DataFrame.from_records(J_records, columns=columnas)
+        df_J = pd.DataFrame.from_records(J_records, columns=columnas, index='id')
         genomic_data_dict["J"] = df_J
 
         try:
             D_records = self.fetch_IgorGenomicData_By_Gene("D")
             columnas = ['id', 'gene_name', 'sequence']
-            df_D = pd.DataFrame.from_records(D_records, columns=columnas)
+            df_D = pd.DataFrame.from_records(D_records, columns=columnas, index='id')
             genomic_data_dict["D"] = df_D
         except Exception as e:
             print("No D genes were found in database ", self.fln_db)

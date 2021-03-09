@@ -6,125 +6,74 @@ import pandas as pd
 from typing import TextIO, Generator, Union  # Generator[str]
 from pathlib import Path
 
-# Write functions
-def write_sequences_to_file(sequences: Union[pd.DataFrame, np.ndarray, list, str],
-                            fln_sequences: Union[str, Path], sep=';'):
+# Execute subprocess functions
+def run_get_igor_exec_path():
+    """Return IGoR executable path"""
+    import subprocess
+    p1 = subprocess.run(["which", "igor"], capture_output=True, text=True)
+    return p1.stdout.replace('\n', '')
+
+def run_get_igor_datadir():
+    """Return IGoR default data dir (default models and demo data) path"""
+    import subprocess
+    igor_exec_path = run_get_igor_exec_path()
+    p2 = subprocess.run([igor_exec_path, "-getdatadir"], capture_output=True, text=True)
+    return p2.stdout.replace('\n', '')
+
     """
-    Write sequence to csv file from a dataframe, numpy array, list or single sequence.
-    :param sequences: Sequences to write in a csv file.
-    :param fln_sequences: CSV filename to output sequences.
+    cmd = "which igor"
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+    line = p.stdout.readline()
+    igor_exec_path = line.decode("utf-8").replace('\n', '')
+    p.wait()
+    p.kill()
+
+    cmd = igor_exec_path + " -getdatadir"
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+    line = p.stdout.readline()
+    igor_datadir = line.decode("utf-8").replace('\n', '')
+    p.wait()
+    p.kill()
+    return igor_datadir
     """
-    try:
-        if type(sequences) == pd.DataFrame:
-            sequences.to_csv(fln_sequences, sep=sep)
 
-        elif type(sequences) == np.ndarray:
-            # np.savetxt(fln_sequences, sequences, delimiter=sep, fmt="%s")
-            np_output = np.dstack((np.arange(0, sequences.size), sequences))[0]
-            np.savetxt(fln_sequences, np_output, "%d"+sep+"%s",
-                       header="seq_index"+sep+"sequence")
-
-        elif type(sequences) == list:  # or type(sequences)==type(Generator[str]):
-            with open(fln_sequences, 'w') as ofile:
-                for ii, sequence in enumerate(sequences):
-                    ofile.write("{:d}"+sep+"{}\n".format(ii, sequence))
-        elif type(sequences) == str:
-            # Use regex to generate sequences with that form
-            sequence = sequences
-            with open(fln_sequences, 'w') as ofile:
-                ofile.write("0"+sep+sequence+"\n")
-
-        else:
-            print("Format not supported")
-
-        return fln_sequences
-    except Exception as e:
-        raise e
-
-def write_ref_genome_files_from_dataframe(df_Gene_ref_genome, fln_fasta, fln_anchor=None):
-    write_genetemplate_dataframe_to_fasta(fln_fasta, df_Gene_ref_genome)
-    try:
-        write_geneanchors_dataframe_to_csv(fln_anchor, df_Gene_ref_genome)
-    except Exception as e:
-        pass
-
-def write_genetemplate_dataframe_to_fasta(fln_fasta:Union[str, Path, TextIO], df_genomic):
-    """Write dataframe to fasta file
-    :param fln_fasta: Fasta output filename.
-    :param df_genomic: Pandas dataframe with columns 'name' for description and 'value' for sequence.
     """
-    try:
-        if df_genomic is not None:
-            with open(fln_fasta, "w") as ofile:
-                for idx, row in df_genomic.iterrows():
-                    fasta_one_sequence = ">" + str(row['name']) + "\n" + str(row['value']) + "\n"
-                    ofile.write(fasta_one_sequence)
-    except Exception as e:
-        raise e
-
-def write_geneanchors_dataframe_to_csv(fln_anchor:Union[str, Path, TextIO], df_ref_genome, sep = ';'):
+    # FIXME: ADD A WITH TO SUBPROCESS with subprocess.Popen(...) as p and a p.kill()
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    # with subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT) as p:
+    stdout = []
+    # with p.stdout as p_stdout:
+    while True:
+        line = p.stdout.readline()
+        line = line.decode("utf-8")
+        stdout.append(line)
+        # print (line, end='')
+        if line == '' and p.poll() != None:
+            break
+    p.communicate()
+    p.stdout.close()
+    p.kill()
+    return (''.join(stdout)).replace('\n','')
     """
-    Write gene anchors in csv file from a ref_genome dataframe
-    :param fln_anchor: csv output filename.
-    :param df_genomic: Pandas dataframe with columns 'name' for description and 'value' for sequence.
+
+def run_get_random_string():
     """
-    try:
-        not_na = ~df_ref_genome['anchor_index'].isna()
-        df_anchors = df_ref_genome[not_na].copy()
-        df_tmp = df_anchors['anchor_index'].apply(lambda x: int(x))
-        df_anchors['anchor_index'] = df_tmp.copy()
-        try:
-            if 'function' in df_anchors.columns:
-                df_anchors['function'].fillna("", inplace=True)
-                df_anchors.to_csv(fln_anchor, sep=sep, index=False, columns=['name', 'anchor_index', 'function'])
-            elif 'gfunction' in df_anchors.columns:
-                df_anchors['gfunction'].fillna("", inplace=True)
-                df_anchors.to_csv(fln_anchor, sep=sep, index=False, columns=['name', 'anchor_index', 'gfunction'])
-            else:
-                df_anchors.to_csv(fln_anchor, sep=sep, index=False, columns=['name', 'anchor_index'])
-        except Exception as e:
-            print("Not function in anchors file!")
-            raise e
-    except Exception as e:
-        raise e
-
-
-# Get functions
-def get_dataframe_from_fasta(fln_fasta):
-    """Return dataframe from fasta file
-    :param fln_fasta: Fasta filename.
+    Return random string using subprocess
     """
-    from Bio import SeqIO
-    import pandas as pd
-    genes_name_list = list()
-    genes_value_list = list()
-    for gene_record in SeqIO.parse(fln_fasta, "fasta"):
-        genes_name_list.append(gene_record.description)
-        genes_value_list.append(str(gene_record.seq))
-    df_genes = pd.DataFrame.from_dict({'name': genes_name_list, 'value': genes_value_list})
-    df_genes.index.name = 'id'
-    return df_genes
+    # FIXME: CHANGE TO ANOTHER WAY WITHOUT USING SYSTEM OR SUBPROCESS.
+    import subprocess
+    p = subprocess.run("head /dev/urandom | tr -dc A-Za-z0-9 | head -c10", shell=True, capture_output=True, text=True)
+    return p.stdout.replace('\n', '')
 
-def get_ref_genome_dataframe_from(df_genomic, df_anchors=None, sep=';'):
-    import pandas as pd
-    if df_anchors is not None:
-        df_ref_genome = df_genomic.set_index('name').join(df_anchors.set_index('gene')).reset_index()
-        df_ref_genome.index.name = 'id'
-    else:
-        df_ref_genome = df_genomic
-    return df_ref_genome
+def run_get_igor_wd():
+    """Return current directory, that can be use as default wd"""
+    import subprocess
+    p = subprocess.run("pwd", shell=True, capture_output=True, text=True)
+    return p.stdout.replace('\n', '')
 
-def get_dataframe_from_fasta_and_csv_anchors(fln_fasta, fln_anchor_csv=None, sep=';'):
-    import pandas as pd
-    df_genomic = get_dataframe_from_fasta(fln_fasta)
-    if fln_anchor_csv is not None:
-        df_anchors = pd.read_csv(fln_anchor_csv, sep=sep)
-        df_ref_genome = get_ref_genome_dataframe_from(df_genomic, df_anchors)
-    else:
-        df_ref_genome = df_genomic
-    return df_ref_genome
 
-def get_default_ref_genomes_species_chain(IgorSpecie:str, IgorChain:str, modelspath=None, ref_genome_path=None):
+# Get default filenames functions
+def get_default_fln_dict_ref_genomes_species_chain(IgorSpecie:str, IgorChain:str, modelspath=None, ref_genome_path=None):
     """
     Return a dictionary with the paths of the genomic references ref_genome files.
     :param IgorSpecie: Species directory name in IGoR's directory structure
@@ -223,10 +172,179 @@ def get_default_models_paths_species_chain(IgorSpecie, IgorChain, modelpath=None
     # print("-" * 50)
     return flnModelParms, flnModelMargs
 
-def join_genomics_anchors_dataframes(df_genes_templates, df_genes_anchors):
+def make_igor_directories(gene: str, specie: str, modelspath=None):
+    """
+    Make directories for all models path root gene species
+    :param gene: Gene name
+    :param specie: species
+    """
+    if modelspath is None:
+        modelspath = "models"
+
+    os.system("mkdir -p " + modelspath)
+    os.system("mkdir -p " + modelspath + "/" + specie)
+    os.system("mkdir -p " + modelspath + "/" + specie + "/" + gene)
+    os.system("mkdir -p " + modelspath + "/" + specie + "/" + gene + "/ref_genome")
+    os.system("mkdir -p " + modelspath + "/" + specie + "/" + gene + "/ref_genome")
+    os.system("mkdir -p " + modelspath + "/" + specie + "/" + gene + "/models")
+
+
+# Write functions
+def write_sequences_to_file(sequences: Union[pd.DataFrame, np.ndarray, list, str],
+                            fln_sequences: Union[str, Path], sep=';'):
+    """
+    Write sequence to csv file from a dataframe, numpy array, list or single sequence.
+    :param sequences: Sequences to write in a csv file.
+    :param fln_sequences: CSV filename to output sequences.
+    """
+    try:
+        if type(sequences) == pd.DataFrame:
+            sequences.to_csv(fln_sequences, sep=sep)
+
+        elif type(sequences) == np.ndarray:
+            # np.savetxt(fln_sequences, sequences, delimiter=sep, fmt="%s")
+            np_output = np.dstack((np.arange(0, sequences.size), sequences))[0]
+            np.savetxt(fln_sequences, np_output, "%d"+sep+"%s",
+                       header="seq_index"+sep+"sequence")
+
+        elif type(sequences) == list:  # or type(sequences)==type(Generator[str]):
+            with open(fln_sequences, 'w') as ofile:
+                for ii, sequence in enumerate(sequences):
+                    ofile.write("{:d}"+sep+"{}\n".format(ii, sequence))
+        elif type(sequences) == str:
+            # Use regex to generate sequences with that form
+            sequence = sequences
+            with open(fln_sequences, 'w') as ofile:
+                ofile.write("0"+sep+sequence+"\n")
+
+        else:
+            print("Format not supported")
+
+        return fln_sequences
+    except Exception as e:
+        raise e
+
+def write_ref_genome_files_from_dataframe(df_Gene_ref_genome, fln_fasta, fln_anchor=None):
+    try:
+        write_genetemplate_dataframe_to_fasta(fln_fasta, df_Gene_ref_genome)
+        try:
+            if fln_anchor is not None:
+                # write anchors if any
+                write_geneanchors_dataframe_to_csv(fln_anchor, df_Gene_ref_genome)
+        except Exception as e:
+            print("ERROR: No anchors found in: ", df_Gene_ref_genome)
+            raise e
+    except Exception as e:
+        raise e
+
+def write_genetemplate_dataframe_to_fasta(fln_fasta:Union[str, Path, TextIO], df_genomic):
+    """Write dataframe to fasta file
+    :param fln_fasta: Fasta output filename.
+    :param df_genomic: Pandas dataframe with columns 'name' for description and 'value' for sequence.
+    """
+    try:
+        if df_genomic is not None:
+            with open(fln_fasta, "w") as ofile:
+                for idx, row in df_genomic.iterrows():
+                    fasta_one_sequence = ">" + str(row['name']) + "\n" + str(row['value']) + "\n"
+                    ofile.write(fasta_one_sequence)
+    except Exception as e:
+        print("fln_fasta: ", fln_fasta)
+        print("df_genomic: ", df_genomic)
+        raise e
+
+def write_geneanchors_dataframe_to_csv(fln_anchor:Union[str, Path, TextIO], df_ref_genome, sep = ';'):
+    """
+    Write gene anchors in csv file from a ref_genome dataframe
+    :param fln_anchor: csv output filename.
+    :param df_genomic: Pandas dataframe with columns 'name' for description and 'value' for sequence.
+    """
+    try:
+        not_na = ~df_ref_genome['anchor_index'].isna()
+        df_anchors = df_ref_genome[not_na].copy()
+        df_tmp = df_anchors['anchor_index'].apply(lambda x: int(x))
+        df_anchors['anchor_index'] = df_tmp.copy()
+        try:
+            if 'function' in df_anchors.columns:
+                df_anchors['function'].fillna("", inplace=True)
+                df_anchors.to_csv(fln_anchor, sep=sep, index=False, columns=['name', 'anchor_index', 'function'])
+            elif 'gfunction' in df_anchors.columns:
+                df_anchors['gfunction'].fillna("", inplace=True)
+                df_anchors.to_csv(fln_anchor, sep=sep, index=False, columns=['name', 'anchor_index', 'gfunction'])
+            else:
+                df_anchors.to_csv(fln_anchor, sep=sep, index=False, columns=['name', 'anchor_index'])
+        except Exception as e:
+            print("Not function in anchors file!")
+            raise e
+    except Exception as e:
+        raise e
+
+
+# Get Dataframes functions
+def get_dataframe_from_fasta(fln_fasta):
+    """Return dataframe from fasta file
+    :param fln_fasta: Fasta filename.
+    """
+    from Bio import SeqIO
+    import pandas as pd
+    genes_name_list = list()
+    genes_value_list = list()
+    for gene_record in SeqIO.parse(fln_fasta, "fasta"):
+        genes_name_list.append(gene_record.description)
+        genes_value_list.append(str(gene_record.seq))
+    df_genes = pd.DataFrame.from_dict({'name': genes_name_list, 'value': genes_value_list})
+    df_genes.index.name = 'id'
+    return df_genes
+
+def get_anchors_dataframe_from_csv(fln_csv, sep=';'):
+    try:
+        # FIXME: gene could it be gene_name or simple name?
+        df_anchors = pd.read_csv(fln_csv, sep=sep, index_col='gene')
+        df_anchors['anchor_index']
+        return df_anchors
+    except Exception as e:
+        raise e
+
+def get_ref_genome_dataframe_from(df_genomic:pd.DataFrame, df_anchors:pd.DataFrame=None, sep=';'):
+    df_genomic_copy = df_genomic.copy()
+    df_anchors_copy = df_anchors.copy()
+    if df_anchors_copy is not None:
+        try:
+            # 1. save values of index
+            df_genomic_copy['id'] = df_genomic_copy.index.get_level_values('id')
+            # 2. Change index to gene name
+            if not df_genomic_copy.index.name == 'name':
+                df_genomic_copy.set_index('name', inplace=True)
+                df_genomic_copy['name'] = df_genomic_copy.index.get_level_values('name')
+            # 3. Change index
+            if not df_anchors_copy.index.name == 'gene':
+                df_anchors_copy.set_index('gene', inplace=True)
+            # 4. Join dataframes by gene name
+            df_ref_genome = df_genomic_copy.join(df_anchors_copy)
+            # 5. Finally recover the original indexes
+            df_ref_genome.set_index('id', inplace=True)
+            get_df_order_cols_ref_genome(df_ref_genome)
+        except Exception as e:
+            raise e
+    else:
+        df_ref_genome = df_genomic#.copy()
+    return df_ref_genome
+
+def get_dataframe_from_fasta_and_csv_anchors(fln_fasta, fln_anchor_csv=None, sep=';'):
+    import pandas as pd
+    df_genomic = get_dataframe_from_fasta(fln_fasta)
+    if fln_anchor_csv is not None:
+        df_anchors = pd.read_csv(fln_anchor_csv, sep=sep)
+        df_ref_genome = get_ref_genome_dataframe_from(df_genomic, df_anchors)
+    else:
+        df_ref_genome = df_genomic
+    return df_ref_genome
+
+
+def get_join_genomics_anchors_dataframes(df_genes_templates, df_genes_anchors):
     df_genetemplates = df_genes_templates.copy()
     df_genetemplates['id'] = df_genetemplates.index.get_level_values('id')
-    df_genetemplates.set_index('name', inplace=True)
+    df_genetemplates.set_index('name', inplace=True) # gene name for GeneChoice events
     df_geneanchors = df_genes_anchors.copy() #.set_index('gene').copy()
 
     df_all = df_genetemplates.join(df_geneanchors)
@@ -245,23 +363,61 @@ def join_genomics_anchors_dataframes(df_genes_templates, df_genes_anchors):
 
     return df_all.copy()
 
+def get_df_order_cols_ref_genome(df_all:pd.DataFrame):
+    columnas = df_all.columns.to_list()
+    if 'anchor_index' in columnas:
+        ini_cols = ['name', 'value', 'anchor_index']
+    else:
+        ini_cols = ['name', 'value']
+    other_cols = list()
+    for col in columnas:
+        if not col in ini_cols:
+            other_cols.append(col)
+    new_order = ini_cols + other_cols
+    return df_all[new_order].copy()
 
-def make_igor_directories(gene: str, specie: str, modelspath=None):
-    """
-    Make directories for all models path root gene species
-    :param gene: Gene name
-    :param specie: species
-    """
-    if modelspath is None:
-        modelspath = "models"
 
-    os.system("mkdir -p " + modelspath)
-    os.system("mkdir -p " + modelspath + "/" + specie)
-    os.system("mkdir -p " + modelspath + "/" + specie + "/" + gene)
-    os.system("mkdir -p " + modelspath + "/" + specie + "/" + gene + "/ref_genome")
-    os.system("mkdir -p " + modelspath + "/" + specie + "/" + gene + "/ref_genome")
-    os.system("mkdir -p " + modelspath + "/" + specie + "/" + gene + "/models")
+def get_dataframe_with_ref_genome_column_names(df_ref_genome:pd.DataFrame):
+    df = df_ref_genome.copy()
+    old_index = df.index.name
+    df = df.rename(index={old_index: 'id'})
+    gene_name_cols = ['gene_name', 'gene']
+    for str_name in gene_name_cols:
+        if str_name in df.columns:
+            df = df.rename(columns={str_name: 'name'})
+            break
+    gene_name_cols = ['sequence']
+    for str_name in gene_name_cols:
+        if str_name in df.columns:
+            df = df.rename(columns={str_name: 'value'})
+            break
 
+    return df
+    # change it to
+
+
+def get_df_anchors_from_df_ref_genome(df_ref_genome):
+    sequences_cols = ['value']
+    # remove sequence value
+    df_tmp_ref_genome = df_ref_genome.copy()
+    try:
+        df_tmp_ref_genome = df_tmp_ref_genome.drop(columns=sequences_cols)
+    except KeyError as e:
+        print(e)
+        pass
+    except Exception as e:
+        raise e
+    # set change colname of name to gene and set it as index
+    try:
+        df_tmp_ref_genome = df_tmp_ref_genome.set_index('name')
+        df_tmp_ref_genome.index.name = 'gene'
+    except KeyError as e:
+        print(e)
+        pass
+    except Exception as e:
+        raise e
+
+    return df_tmp_ref_genome.copy()
 
 # // A, C, G, T, R, Y, K, M, S, W, B, D, H, V, N
 heavy_pen_nuc44_vect = [
@@ -395,64 +551,6 @@ except Exception as exception:
     # Output unexpected Exceptions.
     print(exception, False)
     print(exception.__class__.__name__ + ": " + exception.message)
-
-def run_get_igor_exec_path():
-    import subprocess
-    p1 = subprocess.run(["which", "igor"], capture_output=True, text=True)
-    return p1.stdout.replace('\n', '')
-
-def run_get_igor_datadir():
-    import subprocess
-    igor_exec_path = run_get_igor_exec_path()
-    p2 = subprocess.run([igor_exec_path, "-getdatadir"], capture_output=True, text=True)
-    return p2.stdout.replace('\n', '')
-
-    """
-    cmd = "which igor"
-    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-    line = p.stdout.readline()
-    igor_exec_path = line.decode("utf-8").replace('\n', '')
-    p.wait()
-    p.kill()
-
-    cmd = igor_exec_path + " -getdatadir"
-    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-    line = p.stdout.readline()
-    igor_datadir = line.decode("utf-8").replace('\n', '')
-    p.wait()
-    p.kill()
-    return igor_datadir
-    """
-
-    """
-    # FIXME: ADD A WITH TO SUBPROCESS with subprocess.Popen(...) as p and a p.kill()
-    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    # with subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT) as p:
-    stdout = []
-    # with p.stdout as p_stdout:
-    while True:
-        line = p.stdout.readline()
-        line = line.decode("utf-8")
-        stdout.append(line)
-        # print (line, end='')
-        if line == '' and p.poll() != None:
-            break
-    p.communicate()
-    p.stdout.close()
-    p.kill()
-    return (''.join(stdout)).replace('\n','')
-    """
-
-
-def run_get_random_string():
-    import subprocess
-    p = subprocess.run("head /dev/urandom | tr -dc A-Za-z0-9 | head -c10", shell=True, capture_output=True, text=True)
-    return p.stdout.replace('\n','')
-
-def run_get_igor_wd():
-    import subprocess
-    p = subprocess.run("pwd", shell=True, capture_output=True, text=True)
-    return p.stdout.replace('\n', '')
 
 
 

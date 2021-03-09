@@ -3,16 +3,16 @@ from pygor3 import imgt
 from pygor3.utils import *
 from pygor3 import IgorRefGenome
 from pygor3 import IgorModel
+from pandas._testing import assert_frame_equal
 
 import os
 import tempfile
 import time
 import numpy as np
-
+import pandas as pd
 
 str_mock_VDJ_fln_genomicVs = \
-"""
->TRBV1*01
+""">TRBV1*01
 GATACTGGAATTACCCAGACACCAAAATACCTGGTCACAGCAATGGGGAGTAAAAGGACA
 ATGAAACGTGAGCATCTGGGACATGATTCTATGTATTGGTACAGACAGAAAGCTAAGAAA
 TCCCTGGAGTTCATGTTTTACTACAACTGTAAGGAATTCATTGAAAACAAGACTGTGCCA
@@ -202,8 +202,7 @@ AAACAGAGGAAACTTCCCTCCTAGATTTTCAGGTCGCCAGTTCCCTAATTATAGCTCTGA
 GCTGAATGTGAACGCCTTGGAGCTGGAGGACTCGGCCCTGTATCTCTGTGCCAGCAGC
 """
 str_mock_VDJ_fln_genomicDs = \
-"""
->TRBD1*01
+""">TRBD1*01
 GGGACAGGGGGC
 >TRBD2*01
 GGGACTAGCGGGGGGG
@@ -211,8 +210,7 @@ GGGACTAGCGGGGGGG
 GGGACTAGCGGGAGGG
 """
 str_mock_VDJ_fln_genomicJs = \
-"""
->TRBJ1-1*01
+""">TRBJ1-1*01
 TGAACACTGAAGCTTTCTTTGGACAAGGCACCAGACTCACAGTTGTAG
 >TRBJ1-2*01
 CTAACTATGGCTACACCTTCGGTTCGGGGACCAGGTTAACCGTTGTAG
@@ -246,8 +244,7 @@ CTCCTACGAGCAGTACTTCGGGCCGGGCACCAGGCTCACGGTCACAG
 CTCCTACGAGCAGTACGTCGGGCCGGGCACCAGGCTCACGGTCACAG
 """
 str_mock_VDJ_fln_V_gene_CDR3_anchors = \
-"""
-gene;anchor_index;gfunction
+"""gene;anchor_index;gfunction
 TRBV1*01;267;P
 TRBV2*01;273;F
 TRBV2*02;273;(F)
@@ -283,8 +280,7 @@ TRBV5-8*01;270;F
 TRBV5-8*02;226;(F)
 """
 str_mock_VDJ_fln_J_gene_CDR3_anchors = \
-"""
-gene;anchor_index;function
+"""gene;anchor_index;function
 TRBJ1-1*01;17;F
 TRBJ1-2*01;17;F
 TRBJ1-3*01;19;F
@@ -317,8 +313,6 @@ class MyTestCase(unittest.TestCase):
         self.fln_dict = get_default_ref_genome_fln_paths(self.tmp_dir.name + "/ref_genome")
         self.ref_genome_path_dir = self.tmp_dir.name + "/ref_genome"
         os.makedirs(self.ref_genome_path_dir)
-
-
         for fln_key in self.fln_dict.keys():
             if fln_key in str_mock_VDJ_fln_dict.keys():
                 with open(self.fln_dict[fln_key], mode='w') as ofile:
@@ -330,8 +324,19 @@ class MyTestCase(unittest.TestCase):
         for fln_key in self.fln_dict.keys():
             self.assertTrue(os.path.isfile(self.fln_dict[fln_key]))
 
+    def test_IgorRefGenome(self):
+        ref_geno = IgorRefGenome()
+        ref_geno.path_ref_genome = self.ref_genome_path_dir
+        ref_geno.update_fln_names(path_ref_genome=ref_geno.path_ref_genome)
+        ref_geno.load_dataframes_from_ref_genome_files()
+        print(ref_geno.to_dict())
+        # Check equality of properties
+        self.assertTrue(True, True)
+
     def test_IgorRefGenome_from_path(self):
         ref_genome = IgorRefGenome.load_from_path(self.ref_genome_path_dir)
+        ref_genome.load_J_anchors_from_file(ref_genome.fln_J_gene_CDR3_anchors)
+        print(ref_genome.df_J_anchors)
         row = ref_genome.df_J_ref_genome.loc[9]
         # print(row)
         self.assertEqual(row['name'], "TRBJ2-2P*01")
@@ -339,6 +344,7 @@ class MyTestCase(unittest.TestCase):
 
         self.assertTrue(np.isnan(row['anchor_index']))
         self.assertTrue(np.isnan(row['function']))
+
         # time.sleep(5)
         # ref_genome = IgorRefGenome.load_from_dataframe_genomics_dict(ref_genome_pd_dict)
 
@@ -364,11 +370,11 @@ class MyTestCase(unittest.TestCase):
     def test_IgorRefGenome_from_dataframe_genomics_dict(self):
         ref_genome_pd_dict = dict()
         ref_genome_pd_dict['V'] = get_dataframe_from_fasta_and_csv_anchors(
-            self.fln_dict['fln_genomicVs'],
-            self.fln_dict['fln_V_gene_CDR3_anchors'])
+            self.fln_dict['fln_genomicVs'], self.fln_dict['fln_V_gene_CDR3_anchors'])
+
         ref_genome_pd_dict['J'] = get_dataframe_from_fasta_and_csv_anchors(
-            self.fln_dict['fln_genomicJs'],
-            self.fln_dict['fln_J_gene_CDR3_anchors'])
+            self.fln_dict['fln_genomicJs'], self.fln_dict['fln_J_gene_CDR3_anchors'])
+
         ref_genome_pd_dict['D'] = get_dataframe_from_fasta_and_csv_anchors(
             self.fln_dict['fln_genomicDs'])
 
@@ -383,11 +389,13 @@ class MyTestCase(unittest.TestCase):
     def test_IgorRefGenome_default(self):
         species = "human"
         chain = "tcr_beta"
-        ref_genome_files_dict = get_default_ref_genomes_species_chain(species, chain)
+        ref_genome_files_dict = get_default_fln_dict_ref_genomes_species_chain(species, chain)
         genomes = IgorRefGenome(**ref_genome_files_dict)
         genomes_default = IgorRefGenome.load_default(species, chain)
         self.assertEqual(genomes.V.loc[0].values[0], genomes_default.V.loc[0].values[0])
         self.assertEqual(genomes.V.loc[0].values[1], genomes_default.V.loc[0].values[1])
+
+        # self.assertEqual(genomes_default.df_V_ref_genome, genomes_default.V)
 
     def test_IgorRefGenome_write_ref_genome(self):
         # 1. Make a temporal directory
@@ -397,6 +405,9 @@ class MyTestCase(unittest.TestCase):
 
         # 2. load default RefGenome
         genomes = IgorRefGenome.load_default(species, chain)
+        print(genomes.df_genomicVs)
+        print(genomes.df_V_anchors)
+        print(genomes.df_V_ref_genome)
 
         # 3. write ref_genome in temporary directory.
         genomes.write_ref_genome_dir(tmp_test_dir.name)
@@ -413,6 +424,19 @@ class MyTestCase(unittest.TestCase):
 
         # 5. Remove temporal directory.
         tmp_test_dir.cleanup()
+
+    def test_property_dict_genomicXs(self):
+
+        self.assertTrue(True, False)
+
+    def test_IgorRefGenome_from_imgt(self):
+        print(IgorRefGenome.get_imgt_list_species())
+        hs_trb_imgt_ref_genome = IgorRefGenome.load_VDJ_from_IMGT_website("Homo+sapiens", "TRB")
+        self.assertIsInstance(hs_trb_imgt_ref_genome, IgorRefGenome)
+
+        hs_tra_imgt_ref_genome = IgorRefGenome.load_VJ_from_IMGT_website("Homo+sapiens", "TRA")
+        self.assertIsInstance(hs_tra_imgt_ref_genome, IgorRefGenome)
+
 
     def tearDown(self) -> None:
         self.tmp_dir.cleanup()

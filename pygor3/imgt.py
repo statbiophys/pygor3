@@ -539,6 +539,7 @@ def download_ref_genome_VJ(species: str, chain: str, **kwargs):
 def download_ref_genome(species: str, chain: str, **kwargs):
     """
     FIXME: IN DEV
+    TODO: CHECK THE IMGT STANDARDS TO DEFINE IG AND TR
     """
     dictVGenome = download_gene_template(species, chain + 'V', **kwargs)
     dictJGenome = download_gene_template(species, chain + 'J', **kwargs)

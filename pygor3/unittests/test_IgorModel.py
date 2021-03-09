@@ -5,8 +5,7 @@ from pygor3 import *
 import time
 
 str_mock_VDJ_fln_genomicVs = \
-"""
->TRBV1*01
+""">TRBV1*01
 GATACTGGAATTACCCAGACACCAAAATACCTGGTCACAGCAATGGGGAGTAAAAGGACA
 ATGAAACGTGAGCATCTGGGACATGATTCTATGTATTGGTACAGACAGAAAGCTAAGAAA
 TCCCTGGAGTTCATGTTTTACTACAACTGTAAGGAATTCATTGAAAACAAGACTGTGCCA
@@ -196,8 +195,7 @@ AAACAGAGGAAACTTCCCTCCTAGATTTTCAGGTCGCCAGTTCCCTAATTATAGCTCTGA
 GCTGAATGTGAACGCCTTGGAGCTGGAGGACTCGGCCCTGTATCTCTGTGCCAGCAGC
 """
 str_mock_VDJ_fln_genomicDs = \
-"""
->TRBD1*01
+""">TRBD1*01
 GGGACAGGGGGC
 >TRBD2*01
 GGGACTAGCGGGGGGG
@@ -205,8 +203,7 @@ GGGACTAGCGGGGGGG
 GGGACTAGCGGGAGGG
 """
 str_mock_VDJ_fln_genomicJs = \
-"""
->TRBJ1-1*01
+""">TRBJ1-1*01
 TGAACACTGAAGCTTTCTTTGGACAAGGCACCAGACTCACAGTTGTAG
 >TRBJ1-2*01
 CTAACTATGGCTACACCTTCGGTTCGGGGACCAGGTTAACCGTTGTAG
@@ -240,8 +237,7 @@ CTCCTACGAGCAGTACTTCGGGCCGGGCACCAGGCTCACGGTCACAG
 CTCCTACGAGCAGTACGTCGGGCCGGGCACCAGGCTCACGGTCACAG
 """
 str_mock_VDJ_fln_V_gene_CDR3_anchors = \
-"""
-gene;anchor_index;gfunction
+"""gene;anchor_index;gfunction
 TRBV1*01;267;P
 TRBV2*01;273;F
 TRBV2*02;273;(F)
@@ -277,8 +273,7 @@ TRBV5-8*01;270;F
 TRBV5-8*02;226;(F)
 """
 str_mock_VDJ_fln_J_gene_CDR3_anchors = \
-"""
-gene;anchor_index;function
+"""gene;anchor_index;function
 TRBJ1-1*01;17;F
 TRBJ1-2*01;17;F
 TRBJ1-3*01;19;F
@@ -341,19 +336,32 @@ class MyTestCase(unittest.TestCase):
         species = "human"
         chain  = "tcr_beta"
         mdl = IgorModel.load_default(species, chain)
+        print("+" * 40)
         print("mdl.genomic_dataframe_dict['V']: ", mdl.genomic_dataframe_dict['V'])
+        print("-"*40)
         print("mdl.genomic_dataframe_dict['D']: ", mdl.genomic_dataframe_dict['D'])
+        print("-" * 40)
         print("mdl.genomic_dataframe_dict['J']: ", mdl.genomic_dataframe_dict['J'])
+        print("-" * 40)
         print("mdl.anchors_CDR3_V: ", mdl.anchors_CDR3_V)
-
-        mdl.generate_xdata()
-
-        # To access the anchors use mdl.V_anchors
-        # this method should be use when mdl.V_anchors are
+        print("-" * 40)
         print("mdl.V_anchors: ", mdl.V_anchors)
-        # Make a copy of anchors in functions.
-        # and accessed by mdl.parms.df_V_anchors
-        print("mdl.parms.df_V_anchors: ", mdl.parms.df_V_anchors)
+
+
+        # mdl.parms.get_IgorRefGenome()
+        # mdl.generate_xdata()
+        # mdl.anchors_CDR3_V
+        #
+        # # To access the anchors use mdl.V_anchors
+        # # this method should be use when mdl.V_anchors are
+        # print("mdl.V_anchors: ", mdl.V_anchors)
+        # # Make a copy of anchors in functions.
+        # # and accessed by mdl.parms.df_V_anchors
+        # print("mdl.parms.df_V_anchors: ", mdl.parms.df_V_anchors)
+        #
+        # print("mdl.anchors_CDR3_V: ", mdl.anchors_CDR3_V)
+
+        # how to populate genomic_dataframe_dict
 
         # 1. Use parms.df_V_anchors as a copy to mdl.anchors_CDR3_V
 
@@ -365,6 +373,42 @@ class MyTestCase(unittest.TestCase):
 
 
         # print(mdl.V_anchors)
+
+    def test_IgorModel_from_dataframes(self):
+        ref_genome = IgorRefGenome.load_from_path(self.ref_genome_path_dir)
+        # Because the model depends has VDJ genes
+        self.assertIsInstance(ref_genome, IgorRefGenome)
+
+        mdl_from_ref_genome = IgorModel.make_default_model_from_IgorRefGenome(ref_genome)
+        self.assertIsInstance(mdl_from_ref_genome, IgorModel)
+
+        print("mdl_from_ref_genome.V_anchors: ", mdl_from_ref_genome.V_anchors)
+        print("mdl_from_ref_genome.J_anchors: ", mdl_from_ref_genome.J_anchors)
+
+        path_mdl_data = self.tmp_dir.name + "/batch_mdldata"
+        aaa = path_mdl_data + "/ref_genome"
+        mdl_from_ref_genome
+        mdl_from_ref_genome.write_mdl_data_dir()
+
+        ref_genome_again = mdl_from_ref_genome.parms.get_IgorRefGenome()
+        self.assertIsInstance(ref_genome_again, IgorRefGenome)
+
+        os.system("mkdir -p " + aaa)
+        ref_genome_again.write_ref_genome_dir(aaa)
+        fln_dict_tmp = get_default_ref_genome_fln_paths(ref_genome_path=aaa)
+        print(fln_dict_tmp, str_mock_VDJ_fln_dict.keys())
+        for fln_key in str_mock_VDJ_fln_dict.keys():
+            print("fln_dict_tmp[" + fln_key + "]:", fln_dict_tmp[fln_key])
+            self.assertTrue(os.path.isfile(fln_dict_tmp[fln_key]))
+
+        """
+        No V genes event found!
+        No J genes event found!
+        ==================================================
+        []
+        No J genes event found!
+        None
+        """
 
     """
     def test_IgorModel_default_from_system(self):
