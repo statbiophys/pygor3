@@ -215,6 +215,7 @@ def write_sequences_to_file(sequences: Union[pd.DataFrame, np.ndarray, list, str
             # Use regex to generate sequences with that form
             sequence = sequences
             with open(fln_sequences, 'w') as ofile:
+                ofile.write("seq_index"+sep+"sequence"+"\n")
                 ofile.write("0"+sep+sequence+"\n")
 
         else:
@@ -262,17 +263,22 @@ def write_geneanchors_dataframe_to_csv(fln_anchor:Union[str, Path, TextIO], df_r
     try:
         not_na = ~df_ref_genome['anchor_index'].isna()
         df_anchors = df_ref_genome[not_na].copy()
+        try:
+            df_anchors.rename(columns={'name':'gene'}, inplace=True)
+        except:
+            pass
         df_tmp = df_anchors['anchor_index'].apply(lambda x: int(x))
         df_anchors['anchor_index'] = df_tmp.copy()
+        anchors_cols = ['gene', 'anchor_index']
         try:
             if 'function' in df_anchors.columns:
                 df_anchors['function'].fillna("", inplace=True)
-                df_anchors.to_csv(fln_anchor, sep=sep, index=False, columns=['name', 'anchor_index', 'function'])
+                df_anchors.to_csv(fln_anchor, sep=sep, index=False, columns=anchors_cols + ['function'])
             elif 'gfunction' in df_anchors.columns:
                 df_anchors['gfunction'].fillna("", inplace=True)
-                df_anchors.to_csv(fln_anchor, sep=sep, index=False, columns=['name', 'anchor_index', 'gfunction'])
+                df_anchors.to_csv(fln_anchor, sep=sep, index=False, columns=anchors_cols + ['gfunction'])
             else:
-                df_anchors.to_csv(fln_anchor, sep=sep, index=False, columns=['name', 'anchor_index'])
+                df_anchors.to_csv(fln_anchor, sep=sep, index=False, columns=anchors_cols)
         except Exception as e:
             print("Not function in anchors file!")
             raise e

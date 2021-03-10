@@ -4,7 +4,7 @@ from pygor3 import IgorModel
 from pygor3 import IgorRefGenome
 from pygor3 import generate
 from pygor3 import infer
-from pygor3 import evaluate
+from pygor3 import evaluate_pgen
 import pandas as pd
 from pygor3 import v_genLabel
 

@@ -1591,8 +1591,8 @@ class IgorModel_Parms:
         try:
             genomic_cols = ['name', 'value']
             df_genomicVs = df_V_ref_genome[genomic_cols].copy()
-            df_genomicDs = df_D_ref_genome[genomic_cols]
-            df_genomicJs = df_J_ref_genome[genomic_cols]
+            df_genomicDs = df_D_ref_genome[genomic_cols].copy()
+            df_genomicJs = df_J_ref_genome[genomic_cols].copy()
         except KeyError as e:
             print("ERROR: gene name column name should be 'name' and sequence column name should be 'value'")
             raise e
@@ -2678,6 +2678,14 @@ class IgorModel:
         if (not (fln_V_gene_CDR3_anchors is None)) and (not (fln_J_gene_CDR3_anchors is None)):
             self.parms.attach_anchors_from_files(fln_V_gene_CDR3_anchors=fln_V_gene_CDR3_anchors,
                                                  fln_J_gene_CDR3_anchors=fln_J_gene_CDR3_anchors)
+            if self.parms.event_GeneChoice_V is not None:
+                self.genomic_dataframe_dict['V'] = self.parms.df_V_ref_genome
+
+            if self.parms.event_GeneChoice_D is not None:
+                self.genomic_dataframe_dict['D'] = self.parms.df_D_ref_genome
+
+            if self.parms.event_GeneChoice_J is not None:
+                self.genomic_dataframe_dict['J'] = self.parms.df_J_ref_genome
 
 
     def __getitem__(self, key):
@@ -3863,32 +3871,68 @@ class IgorModel:
         df = self.xdata[strEvent].to_dataframe(name="Prob").drop('priority', 1)
         df.to_csv(*args, **kargs)
 
-    def plot_dumm_report(self, strEvent):
-        # strEvent = 'd_gene'
-        import matplotlib.pyplot as plt
-        fig, ax = plt.subplots()
-        dependencias = list(self.xdata[strEvent].dims)
-        dependencias.remove(strEvent)
-        dependencias_dim = [self.xdata[strEvent][dep].shape[0] for dep in dependencias]
-        # eventos = eventos.remove(strEvent)
-        lista = list()
-        import numpy as np
-        # np.ndindex()
-        for index in np.ndindex(*dependencias_dim):
-            dictionary = dict(zip(dependencias, index))
-            # TODO: PLOT EACH DAMM FIGURE
-            self.xdata[strEvent][dictionary].plot()
-            aaa = [str(key) + "__" + str(dictionary[key]) for key in dictionary.keys()]
-            lbl_file = "___".join(aaa)
-            df = self.xdata[strEvent][dictionary].to_dataframe("P").drop('priority', 1)
-            df.plot.bar(x="lbl__" + strEvent, y='P', ax=ax)
-            print("*" * 10)
-            print(lbl_file)
-            print(df)
-            # df.to_csv(lbl_file+".csv")
-            # fig.savefig(lbl_file+".png")
-            # ax.clear()
-        return fig
+
+    def plot_GeneChoice_Pmarginal(self):
+        try:
+            import matplotlib.pyplot as plt
+            fig = plt.figure(figsize=(18, 20))
+            grid = plt.GridSpec(2, 3, hspace=0.2, wspace=0.2)
+            grid
+            ax_v = fig.add_subplot(grid[0, :])
+            ax_j = fig.add_subplot(grid[1, 0:2])
+            ax_d = fig.add_subplot(grid[1, 2])
+
+            self.plot_Event_Marginal('v_choice', ax=ax_v)
+            self.plot_Event_Marginal('j_choice', ax=ax_j)
+            self.plot_Event_Marginal('d_gene', ax=ax_d)
+            return fig
+        except Exception as e:
+            raise e
+
+    def plot_InsertionsDeletions_Pmarginal(self):
+        try:
+            import matplotlib.pyplot as plt
+            fig, ax = plt.subplots(1, 2, figsize=(16, 6))
+            self.plot_Event_Marginal('v_3_del', ax=ax[0], marker='o', label='V3')
+            self.plot_Event_Marginal('j_5_del', ax=ax[0], marker='x', label='J5')
+            self.plot_Event_Marginal('d_3_del', ax=ax[0], marker='s', label='D3')
+            self.plot_Event_Marginal('d_5_del', ax=ax[0], marker='s', label='D5')
+            ax[0].set_xlabel("Deletions")
+            ax[0].legend()
+
+            self.plot_Event_Marginal('vd_ins', ax=ax[1], marker='o', label='VD')
+            self.plot_Event_Marginal('dj_ins', ax=ax[1], marker='s', label='DJ')
+            ax[1].set_xlabel("Insertions")
+            ax[1].legend()
+            return fig
+        except Exception as e:
+            raise e
+    # def plot_dumm_report(self, strEvent):
+    #     # strEvent = 'd_gene'
+    #     import matplotlib.pyplot as plt
+    #     fig, ax = plt.subplots()
+    #     dependencias = list(self.xdata[strEvent].dims)
+    #     dependencias.remove(strEvent)
+    #     dependencias_dim = [self.xdata[strEvent][dep].shape[0] for dep in dependencias]
+    #     # eventos = eventos.remove(strEvent)
+    #     lista = list()
+    #     import numpy as np
+    #     # np.ndindex()
+    #     for index in np.ndindex(*dependencias_dim):
+    #         dictionary = dict(zip(dependencias, index))
+    #         # TODO: PLOT EACH DAMM FIGURE
+    #         self.xdata[strEvent][dictionary].plot()
+    #         aaa = [str(key) + "__" + str(dictionary[key]) for key in dictionary.keys()]
+    #         lbl_file = "___".join(aaa)
+    #         df = self.xdata[strEvent][dictionary].to_dataframe("P").drop('priority', 1)
+    #         df.plot.bar(x="lbl__" + strEvent, y='P', ax=ax)
+    #         print("*" * 10)
+    #         print(lbl_file)
+    #         print(df)
+    #         # df.to_csv(lbl_file+".csv")
+    #         # fig.savefig(lbl_file+".png")
+    #         # ax.clear()
+    #     return fig
 
     def set_genomic_dataframe_dict(self, dataframe_dict):
         self.genomic_dataframe_dict = dataframe_dict
@@ -4747,7 +4791,9 @@ class IgorTask:
                 self.igor_fln_infer_final_marginals = igor_fln_infer_final_marginals
 
             self.mdl = IgorModel(model_parms_file=self.igor_fln_infer_final_parms,
-                                 model_marginals_file=self.igor_fln_infer_final_marginals)
+                                 model_marginals_file=self.igor_fln_infer_final_marginals,
+                                 fln_V_gene_CDR3_anchors=self.fln_V_gene_CDR3_anchors,
+                                 fln_J_gene_CDR3_anchors=self.fln_J_gene_CDR3_anchors)
 
             try:
                 self.df_infer_likelihoods = pd.read_csv(self.igor_fln_infer_likelihoods, sep=';')
@@ -6628,7 +6674,7 @@ def generate(Nseqs, mdl:IgorModel):
 
 def infer(input_sequences:Union[str, pd.DataFrame, np.ndarray, Path],
           mdl:IgorModel, igor_wd=None, batch_clean=True, return_likelihoods=True)->IgorModel:
-    # FIXME: IN DEV
+    # FIXME: IN DEV attach anchors from input model
     try:
         import tempfile
         batch_clean = False
@@ -6756,4 +6802,35 @@ def evaluate(input_sequences:Union[str, pd.DataFrame, np.ndarray, Path],
             task.run_clean_batch()
         tmp_dir.cleanup()
 
-    return 0
+
+def evaluate_pgen(input_sequences:Union[str, pd.DataFrame, np.ndarray, Path],
+             mdl:IgorModel, igor_wd=None, batch_clean=True):
+    """
+    Evaluate input sequences with provided model
+    :param input_sequences:Union[str, pd.DataFrame, np.ndarray, Path]
+    :param mdl:IgorModel
+    :param batch_clean: Remove all temporary files True by default.
+    """
+    # columns = ['sequence_id', 'sequence', 'v_call', 'd_call', 'j_call', 'pgen', 'scenario_rank', 'scenario_proba_cond_seq']
+    pgen_columns = ['sequence_id', 'sequence', 'v_call', 'd_call', 'j_call', 'pgen']
+    return evaluate(input_sequences, mdl, N_scenarios=1, igor_wd=igor_wd, batch_clean=batch_clean)[pgen_columns]
+
+#############################################
+# Alias and Functions to get direct objects
+def get_default_IgorModel(species, chain):
+    return IgorModel.load_default(species, chain)
+
+def get_IgorModel_from_IgorRefGenome(ref_genome:IgorRefGenome):
+    return IgorModel.make_default_model_from_IgorRefGenome(ref_genome)
+
+def get_imgt_list_species():
+    return IgorRefGenome.get_imgt_list_species()
+
+def get_IgorRefGenome_VDJ_from_IMGT(imgt_species, imgt_chain):
+    return IgorRefGenome.load_VDJ_from_IMGT_website(imgt_species, imgt_chain)
+
+def get_IgorRefGenome_VJ_from_IMGT(imgt_species, imgt_chain):
+    return IgorRefGenome.load_VJ_from_IMGT_website(imgt_species, imgt_chain)
+
+RefGenome = IgorRefGenome
+Model = IgorModel

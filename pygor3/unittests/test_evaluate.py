@@ -3,8 +3,13 @@ import unittest
 import pandas as pd
 
 from pygor3 import IgorModel
+from pygor3 import IgorRefGenome
 from pygor3 import generate
 from pygor3 import evaluate
+from pygor3 import evaluate_pgen
+from pygor3 import infer
+from pygor3 import get_default_IgorModel
+from pygor3 import get_IgorRefGenome_VDJ_from_IMGT
 
 
 
@@ -320,8 +325,44 @@ class MyTestCase(unittest.TestCase):
         self.assertIsInstance(hb_mdl, IgorModel)
 
         # 3. infer a new model using the initial  model.
-        evaluated_seqs = evaluate(self.pd_sequences, hb_mdl, N_scenarios=5)
+        evaluated_seqs = evaluate_pgen(self.pd_sequences, hb_mdl, N_scenarios=5)
         print(evaluated_seqs)
+
+    def test_from_generation_to_evaluation(self):
+        hb_mdl = get_default_IgorModel("human", "tcr_beta")
+        self.assertIsInstance(hb_mdl, IgorModel)
+        sequences = generate(10, hb_mdl)
+        self.assertIsInstance(sequences, pd.DataFrame)
+
+        ref_genome = get_IgorRefGenome_VDJ_from_IMGT("Homo+sapiens", "TRB")
+        self.assertIsInstance(ref_genome, IgorRefGenome)
+        ref_genome.clean_empty_anchors()
+        self.assertIsInstance(ref_genome, IgorRefGenome)
+
+        mdl_ini = IgorModel.make_default_model_from_IgorRefGenome(ref_genome)
+        self.assertIsInstance(mdl_ini, IgorModel)
+
+        mdl_new, df_likelihood = infer(sequences, mdl_ini)
+        self.assertIsInstance(mdl_new, IgorModel)
+        self.assertIsInstance(df_likelihood, pd.DataFrame)
+
+    def test_one_sequence_evaluate(self):
+        hb_mdl = get_default_IgorModel("human", "tcr_beta")
+        self.assertIsInstance(hb_mdl, IgorModel)
+        sequences = generate(10, hb_mdl)
+        self.assertIsInstance(sequences, pd.DataFrame)
+        ref_genome = get_IgorRefGenome_VDJ_from_IMGT("Homo+sapiens", "TRB")
+        self.assertIsInstance(ref_genome, IgorRefGenome)
+        ref_genome.clean_empty_anchors()
+        self.assertIsInstance(ref_genome, IgorRefGenome)
+        mdl_ini = IgorModel.make_default_model_from_IgorRefGenome(ref_genome)
+        self.assertIsInstance(mdl_ini, IgorModel)
+        mdl_new, df_likelihood = infer(sequences, mdl_ini)
+        one_sequence = 'GGTGCTGTCGTCTCTCAACATCCGAGCTGGGTTATCTGTAAGAGTGGAACCTCTGTGAAGATCGAGTGCCGTTCCCTGGACTTTCAGGCCACAACTATGTTTTGGTATCGTCAGTTCCCGAAACAGAGTCTCATGCTGATGGCAACTTCCAATGAGGGCTCCAAGGCCACATACGAGCAAGGCGTCGAGAAGGACAAGTTTCTCATCAACCATGCAAGCCTGACCTTGTCCACTCTGACAGTGACCAGTGCCCATCCTGAAGACAGCAGCTTCTACATCTGCAGTGCTCAGTTCGCGGGAATTAGGAACACTGAAGCTTTCTTTGGACAAGGCACCAGACTCACAGTTGTAG'
+        one_pgen = evaluate(one_sequence, mdl_new, N_scenarios=5)
+        print(one_pgen)
+
+
 
 if __name__ == '__main__':
     unittest.main()

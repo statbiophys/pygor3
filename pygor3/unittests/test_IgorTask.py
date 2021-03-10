@@ -12,7 +12,6 @@ class MyTestCase(unittest.TestCase):
     null_genomes = IgorRefGenome()
     null_genomes.update_fln_names()
 
-    null_task.igor_model_dir_path
 
     def test_generate_sequences(self):
         default_task = IgorTask.default_model("human", "beta")
@@ -25,6 +24,9 @@ class MyTestCase(unittest.TestCase):
         sequences_pd.to_csv(fln_csv, sep=';')
         self.assertEqual(True, True)
 
+    def test_something(self):
+        # self.null_task.igor_
+        pass
     # def test_load_default(self):
     #     """test default task"""
     #     default_task = IgorTask.default_model("human", "beta")
