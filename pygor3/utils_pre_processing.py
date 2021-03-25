@@ -99,7 +99,7 @@ def Process_Seqs( pr_pr_batchname, full_blast_info=False, keep_stop_codon=False 
 
     # open temporary igblast alignment file
     aligned = pd.read_csv( filein, sep="\t", compression="gzip", dtype=str, index_col=['sequence_id'] ) 
-    del aligned.index.name
+    aligned.index.name = None
     keep = ["sequence", "vj_in_frame", "productive"]
     aligned = aligned[ keep ]
     # choose which igblast output to consider
