@@ -302,6 +302,16 @@ def get_dataframe_from_fasta(fln_fasta):
     df_genes.index.name = 'id'
     return df_genes
 
+def get_fasta_from_dataframe( reads_data_frame, batchname ) :
+    '''
+    Dataframe to fasta
+    '''
+    path_to_fasta = f"{batchname}.fasta"
+    with open( path_to_fasta, "w" ) as fw:
+        for indx, seq in zip( reads_data_frame.index, reads_data_frame.values ):
+            fw.write( ">{}\n".format( indx ) )
+            fw.write( f"{seq}\n" )
+
 def get_anchors_dataframe_from_csv(fln_csv, sep=';'):
     try:
         # FIXME: gene could it be gene_name or simple name?
@@ -424,6 +434,7 @@ def get_df_anchors_from_df_ref_genome(df_ref_genome):
         raise e
 
     return df_tmp_ref_genome.copy()
+>>>>>>> 3d47be41fd316a5a03d1454aa2168244fc40512a
 
 # // A, C, G, T, R, Y, K, M, S, W, B, D, H, V, N
 heavy_pen_nuc44_vect = [
