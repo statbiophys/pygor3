@@ -60,8 +60,8 @@ def PreProcessTask( igortask, full_blast_info=False, keep_stop_codon=False, igda
         else :
             print( 'Only out of frame vj are considered.' )
              
-    igortask.raw_read_seqs = igortask.read_seqs.copy()
-    igortask.read_seqs = Process_Seqs( pr_pr_batchname=pr_pr_batchname, 
+    igortask.igor_raw_read_seqs = igortask.igor_read_seqs.copy()
+    igortask.igor_read_seqs = Process_Seqs( pr_pr_batchname=pr_pr_batchname, 
                                             full_blast_info=full_blast_info, 
                                             keep_stop_codon=keep_stop_codon )
     if verbose : 
