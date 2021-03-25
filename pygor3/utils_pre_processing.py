@@ -16,7 +16,7 @@ def from_igor_chain_to_receptor( IgorChainName ) :
         raise Exception( 'Unrecognized Igor chain name: %s' % IgorChainName )
     return receptor
 
-def PreProcessTask( igortask, full_blast_info=False, keep_stop_codon=False, igdata=None, verbose=False ):
+def PreProcessTask( igortask, full_blast_info=False, keep_stop_codon=False, igdata=None, verbose=True ):
         
     '''
     It aligns sequences through IgBlast to return only the relavant for Igor inference.
@@ -99,6 +99,7 @@ def Process_Seqs( pr_pr_batchname, full_blast_info=False, keep_stop_codon=False 
 
     # open temporary igblast alignment file
     aligned = pd.read_csv( filein, sep="\t", compression="gzip", dtype=str, index_col=['sequence_id'] ) 
+    del aligned.index.name
     keep = ["sequence", "vj_in_frame", "productive"]
     aligned = aligned[ keep ]
     # choose which igblast output to consider
@@ -115,4 +116,4 @@ def Process_Seqs( pr_pr_batchname, full_blast_info=False, keep_stop_codon=False 
         os.remove( filein )       
    
     processed.to_csv( f'{pr_pr_batchname}.csv.gz', columns=["sequence"], compression="gzip" )     
-    return processed
+    return processed["sequence"]
