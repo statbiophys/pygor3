@@ -40,8 +40,8 @@ def PreProcessTask( igortask, full_blast_info=False, keep_stop_codon=False, igda
         Provide all passages description.   
     '''        
         
-    pr_pr_batchname = f"{igortask.igor_wd}/pre_process/{igortask.igor_batchname}-pr_pr"
-    os.makedirs(pr_pr_batchname, exist_ok=True)
+    pr_pr_batchname = f"{igortask.igor_wd}/pre_process/{igortask.igor_batchname}"
+    os.makedirs(f"{igortask.igor_wd}/pre_process", exist_ok=True)
 
     if verbose is True : 
         print ( 'Loading indexed sequences...' )
@@ -103,9 +103,9 @@ def Process_Seqs( pr_pr_batchname, full_blast_info=False, keep_stop_codon=False 
     aligned = aligned[ keep ]
     # choose which igblast output to consider
     if keep_stop_codon is True :            
-        mask = aligned[ ~ aligned["productive"] ]
+        mask = aligned[ aligned["productive"] == 'F' ]
     else :
-        mask = aligned[ ~ aligned["vj_in_frame"] ]
+        mask = aligned[ aligned["vj_in_frame"] == 'F' ]
     processed = aligned[mask].copy()
     del aligned
 
