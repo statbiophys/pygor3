@@ -5,7 +5,7 @@ import subprocess
 import numpy as np
 import pandas as pd
 from .IgorIO import IgorTask
-from .utils import from_dataframe_to_fasta
+from .utils import get_fasta_from_dataframe
 
 def from_igor_chain_to_receptor( IgorChainName ) :
     if IgorChainName.startswith("TR") :
@@ -45,14 +45,14 @@ def PreProcessTask( igortask, full_blast_info=False, keep_stop_codon=False, igda
 
     if verbose is True : 
         print ( 'Loading indexed sequences...' )
-    from_dataframe_to_fasta( reads_data_frame=igortask.igor_read_seqs, 
+    get_fasta_from_dataframe( reads_data_frame=igortask.igor_read_seqs, 
                             batchname=pr_pr_batchname )
     if verbose is True : 
         print ( 'Aligning sequences...' )
     
     specie = igortask.igor_species
     receptor = from_igor_chain_to_receptor(igortask.igor_chain)
-    blastname = Align_Seqs( specie=specie, receptor=receptor, pr_pr_batchname=pr_pr_batchname, igdata=igdata )
+    Align_Seqs( specie=specie, receptor=receptor, pr_pr_batchname=pr_pr_batchname, igdata=igdata )
     if verbose is True : 
         print ( 'Selecting sequences for Igor inference...' )
         if keep_stop_codon is True :            
@@ -88,8 +88,7 @@ def Align_Seqs( specie, receptor, pr_pr_batchname, igdata=None ):
     if results.returncode : 
         raise RuntimeError( results.stderr )
     # get rid of the temporary fasta file
-    os.remove( filein )       
-    return fileout
+    os.remove( filein )     
 
 def Process_Seqs( pr_pr_batchname, full_blast_info=False, keep_stop_codon=False ):
     '''
