@@ -22,7 +22,7 @@ def observable():
     """
     obs_task = p3.IgorTask()
     print(obs_task.to_dict())
-    obs_task.run_generate(20)
+    obs_task._run_generate(20)
     obs_task.load_IgorModel()
     pass
 

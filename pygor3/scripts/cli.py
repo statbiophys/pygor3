@@ -318,7 +318,7 @@ def run_infer(igor_read_seqs, output_fln_prefix,
     igortask.load_IgorRefGenome()
     igortask.load_IgorModel()
     print(igortask)
-    output = igortask.run_infer(igor_read_seqs=igor_read_seqs)
+    output = igortask._run_infer(igor_read_seqs=igor_read_seqs)
     # print(output)
 
     print("===== Saving files in database : =====")
@@ -472,7 +472,7 @@ def run_evaluate(igor_read_seqs, output_fln_prefix,
     # batchname_model/
     # batchname_model/models
     # batchname_model/ref_genome
-    output = igortask.run_evaluate(igor_read_seqs=igor_read_seqs)
+    output = igortask._run_evaluate(igor_read_seqs=igor_read_seqs)
     print(output)
     if b_clean_igortask_input:
         igortask_input.run_clean_batch()
@@ -736,7 +736,7 @@ def run_get_pgen(igor_read_seqs, output_db,
         print("WARNING: No model provided!")
 
     ########################
-    igortask.run_evaluate(igor_read_seqs=igor_read_seqs)
+    igortask._run_evaluate(igor_read_seqs=igor_read_seqs)
 
 
 
@@ -828,7 +828,7 @@ def run_generate(N,
     igortask.update_model_filenames()
 
     print(igortask.to_dict())
-    igortask.run_generate(N_seqs=N)
+    igortask._run_generate(N_seqs=N)
     import os
     if fln_output_prefix is None:
         igortask.igor_fln_generated_realizations_werr = None

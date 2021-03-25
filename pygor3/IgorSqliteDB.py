@@ -6,6 +6,7 @@ Created on Thu Oct  3 11:02:28 2019
 @author: alfaceor
 """
 
+_flag_verbose_sqlite=False
 import sqlite3
 import csv
 from Bio import SeqIO
@@ -1302,9 +1303,10 @@ class IgorSqliteDB:
                 print(e)
                 pass
         except Exception as e:
-            print("ERROR: insert_IgorBestScenarios_FromCSVline")
-            print(csvlist)
-            print(e)
+            if _flag_verbose_sqlite:
+                print("ERROR: insert_IgorBestScenarios_FromCSVline")
+                print(csvlist)
+                print(e)
             pass
 
     def write_IgorBestScenarios_to_CSV(self, flnIgorBestScenarios, mdl=None, sep=';'):
@@ -1678,7 +1680,8 @@ class IgorSqliteDB:
         ErrorRate_dict = dict()
         sql_cmd = "SELECT error_type, error_values FROM IgorMP_ErrorRate;"
         ErrorRate_record = self.execute_select_query(sql_cmd)[0]
-        print("ErrorRate_record : ", ErrorRate_record)
+        if _flag_verbose_sqlite:
+            print("ErrorRate_record : ", ErrorRate_record)
         ErrorRate_dict['error_type'] = ErrorRate_record[0]
         ErrorRate_dict['error_values'] = ErrorRate_record[1]
         return ErrorRate_dict

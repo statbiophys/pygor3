@@ -191,7 +191,7 @@ def make_igor_directories(gene: str, specie: str, modelspath=None):
 
 # Write functions
 def write_sequences_to_file(sequences: Union[pd.DataFrame, np.ndarray, list, str],
-                            fln_sequences: Union[str, Path], sep=';'):
+                            fln_sequences: Union[str, Path, TextIO], sep=';'):
     """
     Write sequence to csv file from a dataframe, numpy array, list or single sequence.
     :param sequences: Sequences to write in a csv file.
@@ -208,15 +208,28 @@ def write_sequences_to_file(sequences: Union[pd.DataFrame, np.ndarray, list, str
                        header="seq_index"+sep+"sequence")
 
         elif type(sequences) == list:  # or type(sequences)==type(Generator[str]):
-            with open(fln_sequences, 'w') as ofile:
+            if isinstance(fln_sequences, (str, bytes, Path)):
+                # open a file handler with "with"
+                with open(fln_sequences, 'w') as ofile:
+                    for ii, sequence in enumerate(sequences):
+                        ofile.write("{:d}"+sep+"{}\n".format(ii, sequence))
+            else:
+                ofile = fln_sequences
                 for ii, sequence in enumerate(sequences):
-                    ofile.write("{:d}"+sep+"{}\n".format(ii, sequence))
+                    ofile.write("{:d}" + sep + "{}\n".format(ii, sequence))
         elif type(sequences) == str:
             # Use regex to generate sequences with that form
             sequence = sequences
-            with open(fln_sequences, 'w') as ofile:
-                ofile.write("seq_index"+sep+"sequence"+"\n")
-                ofile.write("0"+sep+sequence+"\n")
+            if isinstance(fln_sequences, (str, bytes, Path)):
+                # open a file handler with "with"
+                with open(fln_sequences, 'w') as ofile:
+                    ofile.write("seq_index"+sep+"sequence"+"\n")
+                    ofile.write("0"+sep+sequence+"\n")
+            else:
+                ofile = fln_sequences
+                ofile.write("seq_index" + sep + "sequence" + "\n")
+                ofile.write("0" + sep + sequence + "\n")
+
 
         else:
             print("Format not supported")
@@ -285,7 +298,9 @@ def write_geneanchors_dataframe_to_csv(fln_anchor:Union[str, Path, TextIO], df_r
     except Exception as e:
         raise e
 
-
+def get_dataframe_from_generated_files(igor_fln_generated_seqs_werr):
+    df_seqs = pd.read_csv(igor_fln_generated_seqs_werr, delimiter=';').set_index('seq_index')
+    return df_seqs
 # Get Dataframes functions
 def get_dataframe_from_fasta(fln_fasta):
     """Return dataframe from fasta file

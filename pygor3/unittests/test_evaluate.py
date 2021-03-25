@@ -2,6 +2,7 @@ import unittest
 
 import pandas as pd
 
+from pygor3 import IgorTask
 from pygor3 import IgorModel
 from pygor3 import IgorRefGenome
 from pygor3 import generate
@@ -325,7 +326,7 @@ class MyTestCase(unittest.TestCase):
         self.assertIsInstance(hb_mdl, IgorModel)
 
         # 3. infer a new model using the initial  model.
-        evaluated_seqs = evaluate_pgen(self.pd_sequences, hb_mdl, N_scenarios=5)
+        evaluated_seqs = evaluate_pgen(self.pd_sequences, hb_mdl)
         print(evaluated_seqs)
 
     def test_from_generation_to_evaluation(self):
@@ -361,6 +362,13 @@ class MyTestCase(unittest.TestCase):
         one_sequence = 'GGTGCTGTCGTCTCTCAACATCCGAGCTGGGTTATCTGTAAGAGTGGAACCTCTGTGAAGATCGAGTGCCGTTCCCTGGACTTTCAGGCCACAACTATGTTTTGGTATCGTCAGTTCCCGAAACAGAGTCTCATGCTGATGGCAACTTCCAATGAGGGCTCCAAGGCCACATACGAGCAAGGCGTCGAGAAGGACAAGTTTCTCATCAACCATGCAAGCCTGACCTTGTCCACTCTGACAGTGACCAGTGCCCATCCTGAAGACAGCAGCTTCTACATCTGCAGTGCTCAGTTCGCGGGAATTAGGAACACTGAAGCTTTCTTTGGACAAGGCACCAGACTCACAGTTGTAG'
         one_pgen = evaluate(one_sequence, mdl_new, N_scenarios=5)
         print(one_pgen)
+
+    def test_IgorTask_evaluate(self):
+        task = IgorTask(mdl=self.mdl)
+        pd_rearrangement = task.evaluate(self.pd_sequences, igor_wd='here', clean_batch=False)
+        self.assertIsInstance(pd_rearrangement, pd.DataFrame)
+        print(pd_rearrangement)
+
 
 
 

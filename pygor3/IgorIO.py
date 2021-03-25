@@ -18,7 +18,7 @@
 
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+_flag_verbose = False
 import numpy as np
 import pandas as pd
 pd.set_option('display.max_columns', None)
@@ -58,16 +58,20 @@ v_genLabel = np.vectorize(genLabel)
 
 def command_from_dict_options(dicto: dict):
     """ Return igor options from dictionary"""
+    dicto_copy = copy.deepcopy(dicto)
     cmd = ''
-    for key in dicto.keys():
-        if dicto[key]['active']:
-            if dicto[key]['active'] is None:
+    for key in dicto_copy.keys():
+        if dicto_copy[key]['active']:
+            if dicto_copy[key]['active'] is None:
                 cmd = cmd + " " + key + " "
             else:
-                cmd = cmd + " " + key + " " + str( dicto[key]['value'] )
-            if dicto[key]['dict_options'] is not None:
+                if dicto_copy[key]['value'] is None:
+                    cmd = cmd + " " + key + " "
+                else:
+                    cmd = cmd + " " + key + " " + str( dicto_copy[key]['value'] )
+            if dicto_copy[key]['dict_options'] is not None:
                 # print(key, dicto[key]['dict_options'])
-                cmd = cmd + " " + command_from_dict_options(dicto[key]['dict_options'])
+                cmd = cmd + " " + command_from_dict_options(dicto_copy[key]['dict_options'])
     return cmd
 
 
@@ -75,16 +79,19 @@ def run_command(cmd):
     """from http://blog.kagesenshi.org/2008/02/teeing-python-subprocesspopen-output.html
     """
     # print(cmd)
-    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    stdout = []
-    while True:
-        line = p.stdout.readline()
-        line = line.decode("utf-8")
-        stdout.append(line)
-        # print (line, end='')
-        if line == '' and p.poll() != None:
-            break
-    return ''.join(stdout)
+    # p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    # stdout = []
+    # while True:
+    #     line = p.stdout.readline()
+    #     line = line.decode("utf-8")
+    #     stdout.append(line)
+    #     # print (line, end='')
+    #     if line == '' and p.poll() != None:
+    #         break
+    # return ''.join(stdout)
+
+    p = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    return p
 
 
 def execute_command_generator(cmd):
@@ -854,7 +861,8 @@ class IgorRefGenome:
             self.df_genomicVs = get_dataframe_from_fasta(fln_genomicVs)
             # self.dict_genomicVs = (self.df_genomicVs.set_index('name').to_dict())['value']
             self.fln_genomicVs = fln_genomicVs
-            print("Loaded genomic V templates from file ", self.fln_genomicVs)
+            if _flag_verbose:
+                print("Loaded genomic V templates from file ", self.fln_genomicVs)
         except Exception as e:
             e_message = "load_genomicVs_from_file " + str(fln_genomicVs)
             import sys
@@ -869,7 +877,8 @@ class IgorRefGenome:
             self.df_genomicDs = get_dataframe_from_fasta(fln_genomicDs)
             # self.dict_genomicDs = (self.df_genomicDs.set_index('name').to_dict())['value']
             self.fln_genomicDs = fln_genomicDs
-            print("Loaded genomic D templates from file ", self.fln_genomicDs)
+            if _flag_verbose:
+                print("Loaded genomic D templates from file ", self.fln_genomicDs)
         except Exception as e:
             e_message = "load_genomicDs_from_file " + str(fln_genomicDs)
             import sys
@@ -884,7 +893,8 @@ class IgorRefGenome:
             self.df_genomicJs = get_dataframe_from_fasta(fln_genomicJs)
             # self.dict_genomicJs = (self.df_genomicJs.set_index('name').to_dict())['value']
             self.fln_genomicJs = fln_genomicJs
-            print("Loaded genomic J templates from file ", self.fln_genomicJs)
+            if _flag_verbose:
+                print("Loaded genomic J templates from file ", self.fln_genomicJs)
         except Exception as e:
             e_message = "load_genomicJs_from_file " + str(fln_genomicJs)
             import sys
@@ -900,7 +910,8 @@ class IgorRefGenome:
             # _df_V_anchors = get_anchors_dataframe_from_csv(fln_V_gene_CDR3_anchors, sep=sep)
             # self.df_V_ref_genome = get_join_genomics_anchors_dataframes(self.df_V_ref_genome, _df_V_anchors)
             self.fln_V_gene_CDR3_anchors = fln_V_gene_CDR3_anchors
-            print("Loaded genomic V CDR3 anchors from file ", self.fln_V_gene_CDR3_anchors)
+            if _flag_verbose:
+                print("Loaded genomic V CDR3 anchors from file ", self.fln_V_gene_CDR3_anchors)
         except Exception as e:
             e_message = "load_V_anchors_from_file " + str(fln_V_gene_CDR3_anchors)
             import sys
@@ -914,7 +925,8 @@ class IgorRefGenome:
         try:
             self.df_J_anchors = get_anchors_dataframe_from_csv(fln_J_gene_CDR3_anchors, sep=sep)
             self.fln_J_gene_CDR3_anchors = fln_J_gene_CDR3_anchors
-            print("Loaded genomic J CDR3 anchors from file ", self.fln_J_gene_CDR3_anchors)
+            if _flag_verbose:
+                print("Loaded genomic J CDR3 anchors from file ", self.fln_J_gene_CDR3_anchors)
         except Exception as e:
             e_message = "load_J_anchors_from_file " + str(fln_J_gene_CDR3_anchors)
             import sys
@@ -1353,6 +1365,9 @@ class IgorModel_Parms:
                     pass
 
             # self.get_EventDict_DataFrame()
+
+    def __getitem__(self, item):
+        return self.Event_dict[item]
 
     @property
     def event_GeneChoice_V(self) -> Union[IgorRec_Event, None]:
@@ -2693,6 +2708,9 @@ class IgorModel:
 
     def __str__(self):
         return ".xdata" + str(self.get_events_nicknames_list())
+
+    def get_Event_value(self, event_nickname, index):
+        return self.parms[event_nickname].value.loc[index]
 
     @property
     def V_anchors(self):
@@ -4043,7 +4061,7 @@ class IgorModel:
                               fln_V_gene_CDR3_anchors=fln_V_gene_CDR3_anchors,
                               fln_J_gene_CDR3_anchors=fln_J_gene_CDR3_anchors)
 
-    def write_mdl_data_dir(self, model_dir_path):
+    def write_mdldata_dir(self, model_dir_path):
         """
         Export IgorModel and IgorRefGenome
         """
@@ -4568,6 +4586,17 @@ class IgorTask:
         self.igor_fln_generated_seqs_werr = igor_fln_generated_seqs_werr
         self.igor_fln_generation_info = igor_fln_generation_info
 
+        # Temporary files used to get models in a local directory to generate sequences, for instance
+        self.igor_mdldata_dir = None
+        self.igor_fln_mdldata_parms = None
+        self.igor_fln_mdldata_marginals = None
+        self.igor_fln_mdldata_genomicVs = None
+        self.igor_fln_mdldata_genomicDs = None
+        self.igor_fln_mdldata_genomicJs = None
+        self.igor_fln_mdldata_V_gene_CDR3_anchors = None
+        self.igor_fln_mdldata_J_gene_CDR3_anchors = None
+
+
         self.igor_fln_db = igor_fln_db
 
         # TODO: experimental dictionary to check status of igor batch associated files
@@ -4588,11 +4617,15 @@ class IgorTask:
 
         self.df_infer_likelihoods = None
 
-        self.igor_align_dict_options = igor_align_dict_options.copy()
+        self.igor_align_dict_options = copy.deepcopy(igor_align_dict_options)
 
-        self.igor_evaluate_dict_options = igor_evaluate_dict_options.copy()
+        self.igor_infer_dict_options = copy.deepcopy(igor_infer_dict_options)
 
-        self.igor_output_dict_options = igor_output_dict_options.copy()
+        self.igor_evaluate_dict_options = copy.deepcopy(igor_evaluate_dict_options)
+
+        self.igor_output_dict_options = copy.deepcopy(igor_output_dict_options)
+
+        self.igor_generate_dict_options = copy.deepcopy(igor_generate_dict_options)
 
         try:
             if self.igor_batchname is None:
@@ -4757,16 +4790,27 @@ class IgorTask:
             raise e
 
     def load_IgorModel(self, igor_model_parms_file: Union[None, str] = None,
-                       igor_model_marginals_file: Union[None, str] = None):
+                       igor_model_marginals_file: Union[None, str] = None,
+                       fln_V_gene_CDR3_anchors: Union[None, str] = None,
+                       fln_J_gene_CDR3_anchors: Union[None, str] = None):
         try:
             if igor_model_parms_file is not None:
                 self.igor_model_parms_file = igor_model_parms_file
             if igor_model_marginals_file is not None:
                 self.igor_model_marginals_file = igor_model_marginals_file
 
+            if fln_V_gene_CDR3_anchors is not None:
+                self.fln_V_gene_CDR3_anchors = fln_V_gene_CDR3_anchors
+
+            if fln_J_gene_CDR3_anchors is not None:
+                self.fln_J_gene_CDR3_anchors = fln_J_gene_CDR3_anchors
+
             if ((self.igor_species is None) or (self.igor_chain is None)):
-                self.mdl = IgorModel.load_from_txt(self.igor_model_parms_file, self.igor_model_marginals_file)
-                # self.mdl = IgorModel(model_parms_file = self.igor_model_parms_file, model_marginals_file=self.igor_model_marginals_file)
+                # self.mdl = IgorModel.load_from_txt(self.igor_model_parms_file, self.igor_model_marginals_file)
+                self.mdl = IgorModel(model_parms_file = self.igor_model_parms_file,
+                                     model_marginals_file=self.igor_model_marginals_file,
+                                     fln_V_gene_CDR3_anchors= self.fln_V_gene_CDR3_anchors,
+                                     fln_J_gene_CDR3_anchors= self.fln_J_gene_CDR3_anchors)
             else:
                 self.mdl = IgorModel.load_default(self.igor_species, igor_option_path_dict[self.igor_chain])
 
@@ -4809,22 +4853,27 @@ class IgorTask:
             return self.mdl
 
     @classmethod
-    def default_model(cls, specie, chain, model_parms_file=None, model_marginals_file=None):
+    def default_model(cls, specie, chain, igor_wd=None, model_parms_file=None, model_marginals_file=None):
         """Return an IgorTask object"""
         try:
             cls = IgorTask()
             cls.igor_species = specie
             cls.igor_chain = igor_option_path_dict[chain]
+            cls.igor_wd = igor_wd
             # cls.igor_modeldirpath =  model_parms_file
             cls.run_datadir()
             cls.igor_model_dir_path = cls.igor_models_root_path + "/" + cls.igor_species + "/" + cls.igor_chain
+            cls.update_model_filenames(igor_model_dir_path=cls.igor_model_dir_path)
             cls.igor_path_ref_genome = cls.igor_model_dir_path + "/" + "ref_genome"
+            cls.update_ref_genome()
 
             if model_parms_file is None:
                 cls.igor_model_parms_file = cls.igor_model_dir_path + "/models/model_parms.txt"
                 cls.igor_model_marginals_file = cls.igor_model_dir_path + "/models/model_marginals.txt"
                 cls.mdl = IgorModel(model_parms_file=cls.igor_model_parms_file,
-                                    model_marginals_file=cls.igor_model_marginals_file)
+                                    model_marginals_file=cls.igor_model_marginals_file,
+                                    fln_V_gene_CDR3_anchors=cls.fln_V_gene_CDR3_anchors,
+                                    fln_J_gene_CDR3_anchors=cls.fln_J_gene_CDR3_anchors)
                 cls.load_IgorRefGenome()
             return cls
         except Exception as e:
@@ -4907,6 +4956,8 @@ class IgorTask:
         try:
             if igor_model_dir_path is not None:
                 self.igor_model_dir_path = igor_model_dir_path
+            # else:
+                # self.igor_model_dir_path = self.igor_wd + "/" + self.igor_batchname + "_mdldata"
 
             if igor_path_ref_genome is not None:
                 self.igor_path_ref_genome = igor_path_ref_genome
@@ -4950,31 +5001,13 @@ class IgorTask:
             if self.igor_batchname is None:
                 self.gen_random_batchname()
 
-            self.igor_fln_indexed_sequences = self.igor_wd + "/aligns/" + self.igor_batchname + "_indexed_sequences.csv"
+            self._update_align_batch_filenames(igor_batchname=igor_batchname, igor_wd=igor_wd)
 
-            # aligns
-            self.igor_fln_indexed_CDR3 = self.igor_wd + "/aligns/" + self.igor_batchname + "_indexed_CDR3s.csv"
+            self._update_infer_batch_filenames(igor_batchname=igor_batchname, igor_wd=igor_wd)
 
-            self.igor_fln_align_V_alignments = self.igor_wd + "/aligns/" + self.igor_batchname + "_V_alignments.csv"
-            self.igor_fln_align_J_alignments = self.igor_wd + "/aligns/" + self.igor_batchname + "_J_alignments.csv"
-            self.igor_fln_align_D_alignments = self.igor_wd + "/aligns/" + self.igor_batchname + "_D_alignments.csv"
+            self._update_evaluate_batch_filenames(igor_batchname=igor_batchname, igor_wd=igor_wd)
 
-            # inference
-            tmpstr = self.igor_wd + "/" + self.igor_batchname + "_inference/"
-            self.igor_fln_infer_final_parms = tmpstr + "final_parms.txt"
-            self.igor_fln_infer_final_marginals = tmpstr + "final_marginals.txt"
-            self.igor_fln_infer_likelihoods = tmpstr + "likelihoods.out"
-
-            # evaluate
-            tmpstr = self.igor_wd + "/" + self.igor_batchname + "_evaluate/"
-            self.igor_fln_evaluate_final_parms = tmpstr + "final_parms.txt"
-            self.igor_fln_evaluate_final_marginals = tmpstr + "final_marginals.txt"
-
-            # output
-            tmpstr = self.igor_wd + "/" + self.igor_batchname + "_output/"
-            self.igor_fln_output_pgen = tmpstr + "Pgen_counts.csv"
-            self.igor_fln_output_scenarios = tmpstr + "best_scenarios_counts.csv"
-            self.igor_fln_output_coverage = tmpstr + "coverage.csv"
+            self._update_output_batch_filenames(igor_batchname=igor_batchname, igor_wd=igor_wd)
 
             # Set all files as not existing by default
             import os.path
@@ -5021,6 +5054,61 @@ class IgorTask:
         self.igor_batchname = batchname
         self.update_batch_filenames()
 
+    def _update_align_batch_filenames(self, igor_batchname=None, igor_wd=None):
+        """Update align filenames using batchname and igor_wd"""
+        self.igor_fln_indexed_sequences = self.igor_wd + "/aligns/" + self.igor_batchname + "_indexed_sequences.csv"
+        # aligns
+        self.igor_fln_indexed_CDR3 = self.igor_wd + "/aligns/" + self.igor_batchname + "_indexed_CDR3s.csv"
+
+        self.igor_fln_align_V_alignments = self.igor_wd + "/aligns/" + self.igor_batchname + "_V_alignments.csv"
+        self.igor_fln_align_J_alignments = self.igor_wd + "/aligns/" + self.igor_batchname + "_J_alignments.csv"
+        self.igor_fln_align_D_alignments = self.igor_wd + "/aligns/" + self.igor_batchname + "_D_alignments.csv"
+
+    def _update_infer_batch_filenames(self, igor_batchname=None, igor_wd=None):
+        """Update inference filenames using batchname and igor_wd"""
+        # inference
+        tmpstr = self.igor_wd + "/" + self.igor_batchname + "_inference/"
+        self.igor_fln_infer_final_parms = tmpstr + "final_parms.txt"
+        self.igor_fln_infer_final_marginals = tmpstr + "final_marginals.txt"
+        self.igor_fln_infer_likelihoods = tmpstr + "likelihoods.out"
+
+    def _update_evaluate_batch_filenames(self, igor_batchname=None, igor_wd=None):
+        """Update evaluate filenames using batchname and igor_wd"""
+        # evaluate
+        tmpstr = self.igor_wd + "/" + self.igor_batchname + "_evaluate/"
+        self.igor_fln_evaluate_final_parms = tmpstr + "final_parms.txt"
+        self.igor_fln_evaluate_final_marginals = tmpstr + "final_marginals.txt"
+
+    def _update_output_batch_filenames(self, igor_batchname=None, igor_wd=None):
+        """Update output filenames using batchname and igor_wd"""
+        # output
+        tmpstr = self.igor_wd + "/" + self.igor_batchname + "_output/"
+        self.igor_fln_output_pgen = tmpstr + "Pgen_counts.csv"
+        self.igor_fln_output_scenarios = tmpstr + "best_scenarios_counts.csv"
+        self.igor_fln_output_coverage = tmpstr + "coverage.csv"
+
+    def _update_generate_batch_filenames(self, igor_batchname=None, igor_wd=None):
+        """Update generate filenames using batchname and igor_wd"""
+        # generate
+        tmpstr = self.igor_wd + "/" + self.igor_batchname + "_generated/"
+        self.igor_fln_generated_realizations_werr = tmpstr + "generated_realizations_werr.csv"
+        self.igor_fln_generated_seqs_werr = tmpstr + "generated_seqs_werr.csv"
+        self.igor_fln_generation_info = tmpstr + "generated_seqs_werr.out"
+
+    def _update_mdldata_batch_filenames(self):
+        self.igor_mdldata_dir = self.igor_wd + "/" + self.igor_batchname + "_mdldata/"
+        fln_dict = get_default_fln_names_for_model_dir(self.igor_mdldata_dir)
+
+        self.igor_fln_mdldata_parms = fln_dict['fln_model_parms']
+        self.igor_fln_mdldata_marginals = fln_dict['fln_model_marginals']
+        self.igor_fln_mdldata_genomicVs = fln_dict['fln_genomicVs']
+        self.igor_fln_mdldata_genomicDs = fln_dict['fln_genomicDs']
+        self.igor_fln_mdldata_genomicJs = fln_dict['fln_genomicJs']
+
+        self.igor_fln_mdldata_V_gene_CDR3_anchors = fln_dict['fln_V_gene_CDR3_anchors']
+        self.igor_fln_mdldata_J_gene_CDR3_anchors = fln_dict['fln_J_gene_CDR3_anchors']
+
+
     @classmethod
     def load_from_batchname(cls, batchname, wd=None, ):
         cls = IgorTask()
@@ -5060,6 +5148,9 @@ class IgorTask:
         if igor_read_seqs is not None:
             self.igor_read_seqs = igor_read_seqs
 
+        import pathlib
+        pathlib.Path(self.igor_wd).mkdir(parents=True, exist_ok=True)
+
         "igor -set_wd $WDPATH -batch foo -read_seqs ../demo/murugan_naive1_noncoding_demo_seqs.txt"
         cmd = self.igor_exec_path
         cmd = cmd + " -set_wd " + self.igor_wd
@@ -5081,47 +5172,109 @@ class IgorTask:
 
         if self.b_read_seqs is False:
             self.run_read_seqs(igor_read_seqs=igor_read_seqs)
-        cmd = self.igor_exec_path
-        cmd = cmd + " -set_wd " + self.igor_wd
-        cmd = cmd + " -batch " + self.igor_batchname
-        # TODO: USE COSTUM MODEL OR USE SPECIFIED SPECIES?
-        # I think that the safests is to use the
-        # FIXME: CHANGE TO CUSTOM GENOMICS
-        cmd = cmd + " -set_genomic "
 
-        if os.path.isfile(self.genomes.fln_genomicVs):
-            cmd = cmd + " --V " + self.genomes.fln_genomicVs
-        if os.path.isfile(self.genomes.fln_genomicDs):
-            cmd = cmd + " --D " + self.genomes.fln_genomicDs
-        if os.path.isfile(self.genomes.fln_genomicJs):
-            cmd = cmd + " --J " + self.genomes.fln_genomicJs
+        import pathlib
+        pathlib.Path(self.igor_wd).mkdir(parents=True, exist_ok=True)
 
-        cmd = cmd + " -set_CDR3_anchors "
+        if self.igor_mdldata_dir is not None:
 
-        if os.path.isfile(self.genomes.fln_V_gene_CDR3_anchors):
-            cmd = cmd + " --V " + self.genomes.fln_V_gene_CDR3_anchors
-        if os.path.isfile(self.genomes.fln_J_gene_CDR3_anchors):
-            cmd = cmd + " --J " + self.genomes.fln_J_gene_CDR3_anchors
+            cmd = self.igor_exec_path
+            cmd = cmd + " -set_wd " + self.igor_wd
+            cmd = cmd + " -batch " + self.igor_batchname
+            # I think that the safests is to use the
+            cmd = cmd + " -set_genomic "
 
-        cmd = cmd + " -align " + command_from_dict_options(self.igor_align_dict_options)
-        # return cmd
+            if os.path.isfile(self.igor_fln_mdldata_genomicVs):
+                cmd = cmd + " --V " + self.igor_fln_mdldata_genomicVs
+            if os.path.isfile(self.igor_fln_mdldata_genomicDs):
+                cmd = cmd + " --D " + self.igor_fln_mdldata_genomicDs
+            if os.path.isfile(self.igor_fln_mdldata_genomicJs):
+                cmd = cmd + " --J " + self.igor_fln_mdldata_genomicJs
+
+            if os.path.isfile(self.igor_fln_mdldata_V_gene_CDR3_anchors) or \
+                    os.path.isfile(self.igor_fln_mdldata_V_gene_CDR3_anchors):
+                cmd = cmd + " -set_CDR3_anchors "
+
+                if os.path.isfile(self.igor_fln_mdldata_V_gene_CDR3_anchors):
+                    cmd = cmd + " --V " + self.igor_fln_mdldata_V_gene_CDR3_anchors
+
+                if os.path.isfile(self.igor_fln_mdldata_J_gene_CDR3_anchors):
+                    cmd = cmd + " --J " + self.igor_fln_mdldata_J_gene_CDR3_anchors
+
+            cmd = cmd + " -align " + command_from_dict_options(self.igor_align_dict_options)
+
+        else:
+            cmd = self.igor_exec_path
+            cmd = cmd + " -set_wd " + self.igor_wd
+            cmd = cmd + " -batch " + self.igor_batchname
+            # I think that the safests is to use the
+            cmd = cmd + " -set_genomic "
+
+            if os.path.isfile(self.genomes.fln_genomicVs):
+                cmd = cmd + " --V " + self.genomes.fln_genomicVs
+            if os.path.isfile(self.genomes.fln_genomicDs):
+                cmd = cmd + " --D " + self.genomes.fln_genomicDs
+            if os.path.isfile(self.genomes.fln_genomicJs):
+                cmd = cmd + " --J " + self.genomes.fln_genomicJs
+
+            if os.path.isfile(self.genomes.fln_V_gene_CDR3_anchors) or \
+                    os.path.isfile(self.genomes.fln_J_gene_CDR3_anchors):
+                cmd = cmd + " -set_CDR3_anchors "
+
+                if os.path.isfile(self.genomes.fln_V_gene_CDR3_anchors):
+                    cmd = cmd + " --V " + self.genomes.fln_V_gene_CDR3_anchors
+
+                if os.path.isfile(self.genomes.fln_J_gene_CDR3_anchors):
+                    cmd = cmd + " --J " + self.genomes.fln_J_gene_CDR3_anchors
+
+            cmd = cmd + " -align " + command_from_dict_options(self.igor_align_dict_options)
+
+
+        # cmd = self.igor_exec_path
+        # cmd = cmd + " -set_wd " + self.igor_wd
+        # cmd = cmd + " -batch " + self.igor_batchname
+        # # TODO: USE COSTUM MODEL OR USE SPECIFIED SPECIES?
+        # # I think that the safests is to use the
+        # # FIXME: CHANGE TO CUSTOM GENOMICS
+        # cmd = cmd + " -set_genomic "
+        #
+        # if os.path.isfile(self.genomes.fln_genomicVs):
+        #     cmd = cmd + " --V " + self.genomes.fln_genomicVs
+        # if os.path.isfile(self.genomes.fln_genomicDs):
+        #     cmd = cmd + " --D " + self.genomes.fln_genomicDs
+        # if os.path.isfile(self.genomes.fln_genomicJs):
+        #     cmd = cmd + " --J " + self.genomes.fln_genomicJs
+        #
+        # cmd = cmd + " -set_CDR3_anchors "
+        #
+        # if os.path.isfile(self.genomes.fln_V_gene_CDR3_anchors):
+        #     cmd = cmd + " --V " + self.genomes.fln_V_gene_CDR3_anchors
+        # if os.path.isfile(self.genomes.fln_J_gene_CDR3_anchors):
+        #     cmd = cmd + " --J " + self.genomes.fln_J_gene_CDR3_anchors
+        #
+        # cmd = cmd + " -align " + command_from_dict_options(self.igor_align_dict_options)
+        # # return cmd
+
         print(cmd)
         cmd_stdout = run_command_print(cmd)
         # run_command_no_output(cmd)
         self.b_align = True  # FIXME: If run_command success then True
         return cmd_stdout
 
-    def run_evaluate(self, igor_read_seqs=None, N_scenarios=None):
+    def _run_evaluate(self, igor_read_seqs=None, N_scenarios=None):
         # "igor -set_wd $WDPATH -batch foo -species human -chain beta
         # -evaluate -output --scenarios 10"
         try:
-            print(self.to_dict())
+            # print(self.to_dict())
             import os.path
             if igor_read_seqs is not None:
                 self.igor_read_seqs = igor_read_seqs
 
             if self.b_align is False:
                 self.run_align(igor_read_seqs=self.igor_read_seqs)
+
+            import pathlib
+            pathlib.Path(self.igor_wd).mkdir(parents=True, exist_ok=True)
 
             cmd = self.igor_exec_path
             cmd = cmd + " -set_wd " + self.igor_wd
@@ -5212,64 +5365,158 @@ class IgorTask:
         # run_command(cmd)
         run_command_print(cmd)
 
-    # FIXME: IN DEV
+    def generate(self, N_seqs=None, mdl=None,
+                 igor_wd=None, igor_batchname=None,
+                 igor_model_parms_file=None, igor_model_marginals_file=None,
+                 igor_db=None, igor_fln_db=None,
+                 igor_species=None, igor_chain=None, clean_batch=True, return_df=True):
+        """
+        Generate Sequences using IgorTask
+        """
+        try:
+            if N_seqs is None:
+                N_seqs = 1
+
+            if igor_wd is not None:
+                self.igor_wd = igor_wd # tmp_generate_dir.name
+
+            # with tempfile.TemporaryDirectory(prefix='igor_generating_', dir='.') as tmp_generate_dirname:
+            #     self.igor_wd = tmp_generate_dirname
+            if mdl is not None:
+                self.mdl = mdl
+
+            self.update_batch_filenames()
+
+            self.igor_mdldata_dir = self.igor_wd + "/" + self.igor_batchname + "_mdldata"
+            self.write_mdldata_dir(self.igor_mdldata_dir)
+            self.update_model_filenames(self.igor_mdldata_dir)
+            self.update_ref_genome(self.igor_mdldata_dir)
+
+            pd_sequences = self._run_generate(N_seqs, return_df=return_df, clean_batch=clean_batch)
+            # TODO: ADD COLUMNS OF EVENTS
+            pd_sequences = get_dataframe_from_generated_files(self.igor_fln_generated_seqs_werr)
+
+        except Exception as e:
+            raise e
+        else:
+            return pd_sequences  # mdl_inferrred
+        finally:
+            if clean_batch:
+                self._run_clean_batch_generate()
+                self._run_clean_batch_mdldata()
+                # self.run_clean_batch()
+
+
+
+    def evaluate(self, input_sequences: Union[str, pd.DataFrame, np.ndarray, Path],
+                 mdl:IgorModel = None, N_scenarios = None, igor_wd=None, clean_batch=True):
+        """
+        Return evaluation of sequences
+        """
+        try:
+            # by default the igor_wd is the current directory unless something else is
+            tmp_evaluate_dir = tempfile.TemporaryDirectory(prefix='igor_evaluating_', dir='.')
+            if igor_wd is None:
+                igor_wd = tmp_evaluate_dir.name
+            else:
+                igor_wd = self.igor_wd
+
+            # FIXME: WHAT HAPPEN IF I WANT TO PRESERVE THE WORKING DIRECTORY?????
+
+            # self.igor_wd = igor_wd
+
+            # 2. Copy model to IgorTask
+            import copy
+            if mdl is not None:
+                self.mdl = copy.deepcopy(mdl)
+
+            # 3. Write Sequences in file if file not exist
+            fln_input_sequences = igor_wd + "/" + self.igor_batchname + "input_sequences.csv"
+            write_sequences_to_file(input_sequences, fln_input_sequences)
+
+            # 4. Export model and ref_genome to model_dir
+            path_mdl_data = igor_wd + "/" + self.igor_batchname + "_mdldata"
+            self.update_model_filenames(igor_model_dir_path=path_mdl_data)
+            self.update_ref_genome(igor_model_dir_path=path_mdl_data)
+            self.update_batch_filenames()
+            self.mdl.write_mdldata_dir(path_mdl_data)
+
+            # 3. Write Sequences in file if file not exist
+            write_sequences_to_file(input_sequences, fln_input_sequences)
+
+            # 5. Run evaluate model
+            self._run_evaluate(igor_read_seqs=fln_input_sequences, N_scenarios=N_scenarios)
+
+            # Save evaluations in database
+            try:
+                self.create_db()
+                self.load_db_from_indexed_sequences()
+                self.load_db_from_indexed_cdr3()
+                self.load_db_from_genomes()
+                self.load_db_from_alignments()
+                self.load_IgorModel()
+                self.load_db_from_models()
+                self.load_db_from_bestscenarios()
+                self.load_db_from_pgen()
+
+                base_fln_output = self.igor_fln_db.split(".db")[0]
+                output_fln_prefix = base_fln_output
+                output_fln_airr = output_fln_prefix + ".tsv"
+                self.igor_db.export_IgorBestScenarios_to_AIRR(output_fln_airr)
+                pd_airr_rearrangement = pd.read_csv(output_fln_airr, sep='\t')
+            except Exception as e:
+                raise e
+
+        except Exception as e:
+            raise e
+        else:
+            return pd_airr_rearrangement
+        finally:
+            tmp_evaluate_dir.cleanup()
+            if clean_batch:
+                self.run_clean_batch()
+        pass
+
     def infer(self, input_sequences: Union[None, str, Path, pd.DataFrame, np.array, list] = None,
-              model: Union[None, str, Path, IgorModel, IgorModel_Parms] = None):
+              model: Union[None, str, Path, IgorModel, IgorModel_Parms] = None,
+              igor_wd=None, batch_clean=True):
         """Run igor infer with new data and model
         :param input_sequences: Union[None, str, Path, pd.DataFrame, np.array, list] = None
         :param model: Union[None, str, Path, IgorModel, IgorModel_Parms] = None
         """
-
-
-        self.igor_batchname
-        self.igor_read_seqs
-        write_sequences_to_file(input_sequences, 'sequences.csv')
         try:
-            if type(input_sequences) == type(None):
-                # TODO: if None then use the
-                # self.igor_read_seqs don't change this variable
-                print("-- None", input_sequences)
-            elif type(input_sequences) == type(str):
-                print("-- str", model)
-                # TODO: if None then use the
-                self.igor_read_seqs = str(input_sequences)
-            elif type(input_sequences) == type(Path):
-                print("-- Path", input_sequences)
-                self.igor_read_seqs = str(input_sequences)
-            elif type(input_sequences) == type(pd.DataFrame):
-                # TODO: Export dataframe to csv
-                tmp_file
-                input_sequences.to_csv()
-                print("-- pd.DataFrame", input_sequences)
-            elif type(input_sequences) == type(np.array):
-                print("-- np.array", input_sequences)
-            elif type(input_sequences) == type(IgorModel()):
-                print("-- IgmorModel", input_sequences)
-            else:
-                print("-- waht??")
+            # 3. Write Sequences in file if file not exist
+            fln_input_sequences = igor_wd + "/" + self.igor_batchname + "input_sequences.csv"
+            write_sequences_to_file(input_sequences, fln_input_sequences)
+
+            # 4. Export model and ref_genome to model_dir
+            self.write_mdldata_dir()
+            # path_mdl_data = self.igor_wd + "/" + self.igor_batchname + "_mdldata"
+            self.update_model_filenames(igor_model_dir_path=self.igor_mdldata_dir)
+            self.update_ref_genome(igor_model_dir_path=self.igor_mdldata_dir)
+            self.update_batch_filenames()
+            # self.mdl.write_mdldata_dir(path_mdl_data)
+
+            # 5. Run infer model
+            self._run_infer(igor_read_seqs=fln_input_sequences)
+            self.load_IgorModel_from_infer_files()
         except Exception as e:
             raise e
+        else:
+            return self.mdl
+        finally:
+            self._run_clean_batch_infer()
 
-        print(model, type(model))
-        try:
-            if type(model) == type(None):
-                print("-- None", model)
-            elif type(model) == type(str):
-                print("-- str", model)
-            elif type(model) == type(Path):
-                print("-- Path", model)
-            elif type(model) == type(pd.DataFrame):
-                print("-- pd.DataFrame", model)
-            elif type(model) == type(np.array):
-                print("-- np.array", model)
-            elif type(model) == type(IgorModel()):
-                print("-- IgmorModel", model)
-            else:
-                print("-- waht??")
-        except Exception as e:
-            raise e
 
-    def run_infer(self, igor_read_seqs=None):
+
+    def _run_infer(self, igor_read_seqs=None,
+                   igor_model_parms_file=None,
+                   igor_model_marginals_file=None,
+                   fln_V_gene_CDR3_anchors=None,
+                   fln_J_gene_CDR3_anchors=None,
+                   igor_fln_db=None,
+                   igor_db=None,
+                   mdl:Union[IgorModel, None]=None):
         """Run inference and return IgorModel object"""
         # "igor -set_wd $WDPATH -batch foo -species human -chain beta
         # -evaluate -output --scenarios 10"
@@ -5278,60 +5525,105 @@ class IgorTask:
             if igor_read_seqs is not None:
                 self.igor_read_seqs = igor_read_seqs
 
+            if mdl is not None:
+                self.mdl = mdl
+
+            if self.mdl is None:
+                try:
+                    # 1. Load from default from igor_species and igor_chain
+                    self.load_IgorModel(igor_model_parms_file=igor_model_parms_file,
+                       igor_model_marginals_file=igor_model_marginals_file,
+                       fln_V_gene_CDR3_anchors=fln_V_gene_CDR3_anchors,
+                       fln_J_gene_CDR3_anchors=fln_J_gene_CDR3_anchors)
+                except:
+                    try:
+                        self.load_mdl_from_db(igor_fln_db=igor_fln_db, igor_db=igor_db)
+                    except:
+                        pass
+                    pass
+
+            import pathlib
+            pathlib.Path(self.igor_wd).mkdir(parents=True, exist_ok=True)
+
             if self.b_align is False:
                 self.run_align(igor_read_seqs=igor_read_seqs)
-                print("Alignment finished!")
+                print("== Alignment finished! ==")
 
-            cmd = self.igor_exec_path
-            cmd = cmd + " -set_wd " + self.igor_wd
-            cmd = cmd + " -batch " + self.igor_batchname
-            # TODO: USE COSTUM MODEL OR USE SPECIFIED SPECIES?
-            # I think that the safests is to use the
-            # cmd = cmd + " -species " + self.igor_species
-            # cmd = cmd + " -chain " + self.igor_chain
-            cmd = cmd + " -set_custom_model " + self.igor_model_parms_file + " " + self.igor_model_marginals_file
-            # here the evaluation
-            cmd = cmd + " -infer "  # + command_from_dict_options(self.igor_output_dict_options)
-            # return cmd
+            if self.mdl is not None:
+                self._update_mdldata_batch_filenames()
+                self.write_mdldata_dir(self.igor_mdldata_dir)
+                # if self.igor_mdldata_dir is not None:
+                #     self.update_model_filenames(self.igor_mdldata_dir)
+                #     self.update_ref_genome()
+
+                cmd = self.igor_exec_path
+                cmd = cmd + " -set_wd " + self.igor_wd
+                cmd = cmd + " -batch " + self.igor_batchname
+                cmd = cmd + " -set_custom_model " + self.igor_fln_mdldata_parms + " " + self.igor_fln_mdldata_marginals
+
+                if os.path.isfile(self.igor_fln_mdldata_V_gene_CDR3_anchors) or \
+                    os.path.isfile(self.igor_fln_mdldata_J_gene_CDR3_anchors):
+                    cmd = cmd + " -set_CDR3_anchors "
+                    if os.path.isfile(self.igor_fln_mdldata_V_gene_CDR3_anchors):
+                        cmd = cmd + " --V " + self.igor_fln_mdldata_V_gene_CDR3_anchors
+                    if os.path.isfile(self.igor_fln_mdldata_J_gene_CDR3_anchors):
+                        cmd = cmd + " --J " + self.igor_fln_mdldata_J_gene_CDR3_anchors
+                # here the evaluation
+                cmd = cmd + " -infer "
+                cmd = cmd + " " + command_from_dict_options(self.igor_infer_dict_options)
+
+            else:
+                cmd = self.igor_exec_path
+                cmd = cmd + " -set_wd " + self.igor_wd
+                cmd = cmd + " -batch " + self.igor_batchname
+                cmd = cmd + " -set_custom_model " + self.igor_model_parms_file + " " + self.igor_model_marginals_file
+                if (self.fln_V_gene_CDR3_anchors is not None) or \
+                        (self.fln_V_gene_CDR3_anchors is not None):
+                    cmd = cmd + " -set_CDR3_anchors "
+                    if self.fln_V_gene_CDR3_anchors is not None:
+                        cmd = cmd + " --V " + self.fln_V_gene_CDR3_anchors
+                    if self.fln_J_gene_CDR3_anchors is not None:
+                        cmd = cmd + " --J " + self.fln_J_gene_CDR3_anchors
+                # here the evaluation
+                cmd = cmd + " -infer "
+                cmd = cmd + " " + command_from_dict_options(self.igor_infer_dict_options)
+
+
             print(cmd)
-            # FIXME: REALLY BIG FLAW USE DICTIONARY FOR THE SPECIE AND CHAIN
-            # self.mdl = IgorModel.load_default(self.igor_species, igor_option_path_dict[self.igor_chain], modelpath=self.igor_models_root_path)
-            self.mdl = IgorModel(model_parms_file=self.igor_model_parms_file,
-                                 model_marginals_file=self.igor_model_marginals_file)
-            # output = run_command(cmd)
             output = run_command_print(cmd)
-            # run_command_no_output(cmd)
 
+            # run_command_no_output(cmd)
+            self.b_infer = True  # FIXME: If run_command success then True
+            self._update_infer_batch_filenames()
+            self.load_IgorModel_from_infer_files()
         except Exception as e:
             raise e
         else:
-            self.b_infer = True  # FIXME: If run_command success then True
-            self.load_IgorModel_from_infer_files()
             return self.mdl
             # return output
 
         # finally:
         #     self.run_clean_batch()
 
-    def run_generate(self, N_seqs=None, mdl=None, igor_wd=None, igor_batchname=None, igor_model_parms_file=None,
-                     igor_model_marginals_file=None,
-                     igor_db=None, igor_fln_db=None, igor_species=None, igor_chain=None, return_df=False):
+    def _run_generate(self, N_seqs:int=1, mdl:Union[None,IgorModel]=None, igor_wd=None, igor_batchname=None,
+                      igor_model_parms_file=None, igor_model_marginals_file=None,
+                      fln_V_gene_CDR3_anchors=None, fln_J_gene_CDR3_anchors=None,
+                      igor_db=None, igor_fln_db=None,
+                      igor_species=None, igor_chain=None, return_df=False,
+                      clean_batch=True):
         """
         Run IGoR generate command line.
         """
 
         try:
-            # Assing variables values
+            if mdl is not None:
+                self.mdl = mdl
+
             if igor_species is not None:
                 self.igor_species = igor_species
 
             if igor_chain is not None:
                 self.igor_chain = igor_chain
-
-            if (self.igor_species is not None) and (self.igor_chain is not None):
-                self.igor_model_parms_file, self.igor_model_marginals_file = get_default_models_paths_species_chain(self.igor_species,
-                                                                                                                    self.igor_chain,
-                                                                                                                    modelpath=None)
 
             if igor_wd is not None:
                 self.igor_wd = igor_wd
@@ -5345,10 +5637,6 @@ class IgorTask:
             if igor_model_marginals_file is not None:
                 self.igor_model_marginals_file = igor_model_marginals_file
 
-            if mdl is not None:
-                # load model from parms and marginals file
-                self.mdl = mdl
-
             if igor_fln_db is not None:
                 self.igor_fln_db = igor_fln_db
 
@@ -5356,34 +5644,53 @@ class IgorTask:
                 self.igor_db = igor_db
 
             if self.mdl is None:
-                # read from database
                 try:
-                    self.load_mdl_from_db()
-                except Exception as e:
-                    print(e)
+                    # 1. Load from default from igor_species and igor_chain
+                    self.load_IgorModel(igor_model_parms_file=igor_model_parms_file,
+                       igor_model_marginals_file=igor_model_marginals_file,
+                       fln_V_gene_CDR3_anchors=fln_V_gene_CDR3_anchors,
+                       fln_J_gene_CDR3_anchors=fln_J_gene_CDR3_anchors)
+                except:
+                    try:
+                        self.load_mdl_from_db(igor_fln_db=igor_fln_db, igor_db=igor_db)
+                    except:
+                        pass
+                    pass
+            import pathlib
+            pathlib.Path(self.igor_wd).mkdir(parents=True, exist_ok=True)
+            self._update_mdldata_batch_filenames()
+            self.write_mdldata_dir(self.igor_mdldata_dir)
 
-                # read from files
-                try:
-                    self.load_IgorModel()
-                except Exception as e:
-                    print(e)
+            self.update_model_filenames(self.igor_mdldata_dir)
+            self.update_ref_genome()
+
 
             cmd = self.igor_exec_path
             cmd = cmd + " -set_wd " + self.igor_wd
             cmd = cmd + " -batch " + self.igor_batchname
             cmd = cmd + " -set_custom_model " + self.igor_model_parms_file + " " + self.igor_model_marginals_file
-            if N_seqs is not None:
-                cmd = cmd + " -generate " + str(N_seqs)
-            else:
-                cmd = cmd + " -generate "
+            if (self.fln_V_gene_CDR3_anchors is not None) or \
+                    (self.fln_V_gene_CDR3_anchors is not None):
+                cmd = cmd + " -set_CDR3_anchors "
+                if self.fln_V_gene_CDR3_anchors is not None:
+                    cmd = cmd + " --V " + self.fln_V_gene_CDR3_anchors
+                if self.fln_J_gene_CDR3_anchors is not None:
+                    cmd = cmd + " --J " + self.fln_J_gene_CDR3_anchors
+            # if N_seqs is not None:
+            cmd = cmd + " -generate " + str(N_seqs)
+            cmd = cmd + " " + command_from_dict_options(self.igor_generate_dict_options)
+            # else:
+            #     cmd = cmd + " -generate "
             print(cmd)
 
             # run_command(cmd)
             run_command_print(cmd)
-            path_generated = self.igor_wd + "/" + self.igor_batchname + "_generated/"
-            self.igor_fln_generated_realizations_werr = path_generated + "generated_realizations_werr.csv"
-            self.igor_fln_generated_seqs_werr = path_generated + "generated_seqs_werr.csv"
-            self.igor_fln_generation_info = path_generated + "generated_seqs_werr.out"
+
+            self._update_generate_batch_filenames()
+            # path_generated = self.igor_wd + "/" + self.igor_batchname + "_generated/"
+            # self.igor_fln_generated_realizations_werr = path_generated + "generated_realizations_werr.csv"
+            # self.igor_fln_generated_seqs_werr = path_generated + "generated_seqs_werr.csv"
+            # self.igor_fln_generation_info = path_generated + "generated_seqs_werr.out"
             self.b_generate = True
 
             # FIXME: LOAD TO DATABASE CREATE PROPER TABLES FOR THIS
@@ -5392,14 +5699,13 @@ class IgorTask:
         except Exception as e:
             raise e
         else:
-            if return_df:
-                df = pd.read_csv(self.igor_fln_generated_seqs_werr, delimiter=';').set_index('seq_index')
-                return df
-        finally:
-            self.run_clean_batch()
+            return self.igor_fln_generated_seqs_werr, self.igor_fln_generated_realizations_werr, self.igor_fln_generation_info
+        # finally:
+        #     if clean_batch:
+        #         self.run_clean_batch()
 
     def run_generate_to_dataframe(self, N):
-        self.run_generate(self, N)
+        self._run_generate(self, N)
 
         # FIXME: LOAD TO DATABASE CREATE PROPER TABLES FOR THIS
         # import pandas as pd
@@ -5407,14 +5713,75 @@ class IgorTask:
         return df
 
     def run_clean_batch(self):
-        cmd = "rm -r " + self.igor_wd + "/" + self.igor_batchname + "_evaluate"
-        run_command_no_output(cmd)
-        cmd = "rm -r " + self.igor_wd + "/" + self.igor_batchname + "_output"
-        run_command_no_output(cmd)
-        cmd = "rm " + self.igor_wd + "/aligns/" + self.igor_batchname + "*.csv"
-        run_command_no_output(cmd)
-        cmd = "rm -r " + self.igor_wd + "/" + self.igor_batchname + "_generated"
-        run_command_no_output(cmd)
+        """Clean all files defined with batchname and igor_wd"""
+        try:
+            self._run_clean_batch_evaluate()
+            self._run_clean_batch_aligns()
+            self._run_clean_batch_infer()
+            self._run_clean_batch_generate()
+        except Exception as e:
+            print(e)
+            pass
+
+        # cmd = "rm -r " + self.igor_wd + "/" + self.igor_batchname + "_evaluate"
+        # run_command_no_output(cmd)
+        # cmd = "rm -r " + self.igor_wd + "/" + self.igor_batchname + "_output"
+        # run_command_no_output(cmd)
+        # cmd = "rm " + self.igor_wd + "/aligns/" + self.igor_batchname + "*.csv"
+        # run_command_no_output(cmd)
+        # cmd = "rm -r " + self.igor_wd + "/" + self.igor_batchname + "_generated"
+        # run_command_no_output(cmd)
+
+    def _run_clean_batch_aligns(self):
+        try:
+            cmd = "rm " + self.igor_wd + "/aligns/" + self.igor_batchname + "*.csv"
+            run_command_no_output(cmd)
+            cmd = "rmdir --ignore-fail-on-non-empty " + self.igor_wd + "/aligns"
+            run_command_no_output(cmd)
+        except Exception as e:
+            raise e
+
+    def _run_clean_batch_mdldata(self):
+        try:
+            cmd = "rm -r " + self.igor_wd + "/" + self.igor_batchname + "_mdldata"
+            run_command_no_output(cmd)
+        except Exception as e:
+            raise e
+
+    def _run_clean_batch_infer(self):
+        try:
+            cmd = "rm -r " + self.igor_wd + "/" + self.igor_batchname + "_inference"
+            run_command_no_output(cmd)
+            cmd = "rmdir --ignore-fail-on-non-empty " + self.igor_wd + "/" + self.igor_batchname + "_output"
+            run_command_no_output(cmd)
+        except Exception as e:
+            raise e
+
+    def _run_clean_batch_generate(self):
+        try:
+            cmd = "rm -r " + self.igor_wd + "/" + self.igor_batchname + "_generated"
+            run_command_no_output(cmd)
+        except Exception as e:
+            raise e
+
+    def _run_clean_batch_output(self):
+        try:
+            cmd = "rm -r " + self.igor_wd + "/" + self.igor_batchname + "_output"
+            run_command_no_output(cmd)
+        except Exception as e:
+            raise e
+
+    def _run_clean_batch_evaluate(self):
+        try:
+            cmd = "rm -r " + self.igor_wd + "/" + self.igor_batchname + "_evaluate"
+            run_command_no_output(cmd)
+            try:
+                self._run_clean_batch_output()
+            except:
+                pass
+        except Exception as e:
+            raise e
+
 
     def create_db(self, igor_fln_db=None):
         if igor_fln_db is not None:
@@ -5893,6 +6260,19 @@ class IgorTask:
             e_message = "IgorTask.export_from_db_IgorGenomes : igor_fln_db " + str(self.igor_fln_db)
             import sys
             raise type(e)(str(e) + '\n' + e_message).with_traceback(sys.exc_info()[2])
+
+    def write_mdldata_dir(self, igor_mdldata_dir:Union[str, None, Path] = None,
+                          mdl:Union[IgorModel, None] = None):
+        if igor_mdldata_dir is not None:
+            self.igor_mdldata_dir = igor_mdldata_dir
+
+        if self.igor_mdldata_dir is None:
+            self.igor_mdldata_dir = self.igor_wd + "/" + self.igor_batchname + "_mdldata"
+
+        if mdl is not None:
+            self.mdl = copy.deepcopy(mdl)
+
+        self.mdl.write_mdldata_dir(igor_mdldata_dir)
 
     #### AIRR methods ###
     def parse_scenarios_to_airr(self, igor_fln_output_scenarios, airr_fln_output_scenarios):
@@ -6642,42 +7022,56 @@ class IgorBestScenariosVDJ:
 
 #####################################################################################
 
-def generate(Nseqs, mdl:IgorModel):
+def generate(Nseqs, mdl:IgorModel, igor_wd=None, igor_batchname=None, clean_batch=True):
     """Return pandas dataframe with generated sequences Only sequences, not scenarios"""
     try:
-        # TODO:
-        # 1. Use a IgorModel to create an IgorTask
-        # 2. Create a temporary directory
-        # 3. generate sequences return_df = True
+        tmp_generate_dir = tempfile.TemporaryDirectory(prefix='igor_generating_', dir='.')
+        if igor_wd is None:
+            igor_wd = tmp_generate_dir.name
 
-        with tempfile.TemporaryDirectory(prefix='igor_generating_', dir='.') as tmp_generate_dirname:
-            task = IgorTask(mdl=mdl, igor_wd=tmp_generate_dirname)
-
-            task.gen_random_batchname()
-
-            task.update_batch_filenames()
-            path_mdl_data = tmp_generate_dirname + "/" + task.igor_batchname + "_mdldata"
-            task.update_model_filenames(igor_model_dir_path=path_mdl_data)
-            task.update_ref_genome()
-            task.mdl.write_model(task.igor_model_parms_file, task.igor_model_marginals_file)
-            mdl_inferrred = task.run_generate(Nseqs, mdl=mdl, return_df=True)
-
-            pd_sequences = task.run_generate(Nseqs, return_df=True)
+        task = IgorTask(mdl=mdl, igor_wd=igor_wd, igor_batchname=igor_batchname)
+        pd_sequences = task.generate(N_seqs=Nseqs, clean_batch=clean_batch)
 
     except Exception as e:
         raise e
     else:
-        return pd_sequences #mdl_inferrred
+        return pd_sequences
     finally:
-        task.run_clean_batch()
+        tmp_generate_dir.cleanup()
+
+    # try:
+    #     # TODO:
+    #     # 1. Use a IgorModel to create an IgorTask
+    #     # 2. Create a temporary directory
+    #     # 3. generate sequences return_df = True
+    #
+    #     with tempfile.TemporaryDirectory(prefix='igor_generating_', dir='.') as tmp_generate_dirname:
+    #         task = IgorTask(mdl=mdl, igor_wd=tmp_generate_dirname)
+    #
+    #         task.gen_random_batchname()
+    #
+    #         task.update_batch_filenames()
+    #         path_mdl_data = tmp_generate_dirname + "/" + task.igor_batchname + "_mdldata"
+    #         task.update_model_filenames(igor_model_dir_path=path_mdl_data)
+    #         task.update_ref_genome()
+    #         task.mdl.write_model(task.igor_model_parms_file, task.igor_model_marginals_file)
+    #         mdl_inferrred = task._run_generate(Nseqs, mdl=mdl, return_df=True)
+    #
+    #         pd_sequences = task._run_generate(Nseqs, return_df=True)
+    #
+    # except Exception as e:
+    #     raise e
+    # else:
+    #     return pd_sequences #mdl_inferrred
+    # finally:
+    #     task.run_clean_batch()
 
 
 def infer(input_sequences:Union[str, pd.DataFrame, np.ndarray, Path],
           mdl:IgorModel, igor_wd=None, batch_clean=True, return_likelihoods=True)->IgorModel:
-    # FIXME: IN DEV attach anchors from input model
     try:
         import tempfile
-        batch_clean = False
+        # batch_clean = False
         # 1. Create a temporary directory igor_wd=tmp_dir.name
         tmp_dir = tempfile.TemporaryDirectory(prefix='igor_inferring_', dir='.')
         if igor_wd is None:
@@ -6701,11 +7095,11 @@ def infer(input_sequences:Union[str, pd.DataFrame, np.ndarray, Path],
         task.update_model_filenames(igor_model_dir_path=path_mdl_data)
         task.update_ref_genome(igor_model_dir_path=path_mdl_data)
         task.update_batch_filenames()
-        task.mdl.write_mdl_data_dir(path_mdl_data)
-        print(task)
+        task.mdl.write_mdldata_dir(path_mdl_data)
+        # print(task)
 
         # 5. Run infer model
-        task.run_infer(igor_read_seqs=fln_input_sequences)
+        task._run_infer(igor_read_seqs=fln_input_sequences)
         task.load_IgorModel_from_infer_files()
 
         """
@@ -6742,7 +7136,7 @@ def evaluate(input_sequences:Union[str, pd.DataFrame, np.ndarray, Path],
 
     import tempfile
     try:
-        batch_clean = False
+        # batch_clean = False
         # 1. Create a temporary directory igor_wd=tmp_dir.name
         tmp_dir = tempfile.TemporaryDirectory(prefix='igor_evaluating_', dir='.')
         # if igor_wd is set then use that directory, create it if doesn't exist, but
@@ -6768,11 +7162,11 @@ def evaluate(input_sequences:Union[str, pd.DataFrame, np.ndarray, Path],
         task.update_model_filenames(igor_model_dir_path=path_mdl_data)
         task.update_ref_genome(igor_model_dir_path=path_mdl_data)
         task.update_batch_filenames()
-        task.mdl.write_mdl_data_dir(path_mdl_data)
-        print(task)
+        task.mdl.write_mdldata_dir(path_mdl_data)
+        # print(task)
 
         # 5. Run evaluate model
-        task.run_evaluate(igor_read_seqs=fln_input_sequences, N_scenarios=N_scenarios)
+        task._run_evaluate(igor_read_seqs=fln_input_sequences, N_scenarios=N_scenarios)
 
         # Save evaluations in database
         try:
@@ -6818,12 +7212,15 @@ def evaluate_pgen(input_sequences:Union[str, pd.DataFrame, np.ndarray, Path],
 #############################################
 # Alias and Functions to get direct objects
 def get_default_IgorModel(species, chain):
+    """Return a default IGoR's model"""
     return IgorModel.load_default(species, chain)
 
 def get_IgorModel_from_IgorRefGenome(ref_genome:IgorRefGenome):
+    """Return a IgorModel from a IgorRefGenome"""
     return IgorModel.make_default_model_from_IgorRefGenome(ref_genome)
 
 def get_imgt_list_species():
+    """Return list of available species in IMGT website"""
     return IgorRefGenome.get_imgt_list_species()
 
 def get_IgorRefGenome_VDJ_from_IMGT(imgt_species, imgt_chain):

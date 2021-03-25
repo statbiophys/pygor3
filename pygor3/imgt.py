@@ -2,7 +2,7 @@
 from __future__ import print_function
 import os
 # import IgorModel
-
+flag_verbose = False
 import requests
 from bs4 import BeautifulSoup
 from Bio import SeqIO
@@ -251,7 +251,8 @@ def download_Vgene_anchors(specie: str, chain: str, flnVGenome, ref_genes_path=N
             seqFunc = getFunction(rec.description)
             ofileAnch.write(rec.description + CSVDELIM + str(posAnch) +  CSVDELIM+str(seqFunc)+"\n")
         else:
-            print("No anchor is found for : " + rec.description)
+            if flag_verbose:
+                print("No anchor is found for : " + rec.description)
 
     ofileAnch.close()
     fln_dict = dict()
@@ -348,7 +349,8 @@ def download_Jgene_anchors(specie: str, chain: str, flnJGenome, ref_genes_path=N
             ofileAnch.write(rec.description + CSVDELIM + str(posAnch) + CSVDELIM + str(seqFunc) + "\n")
             # ofileAnch.write(rec.description + CSVDELIM + str(posAnch) + "\n")
         else:
-            print("No anchor is found for : " + rec.description)
+            if flag_verbose:
+                print("No anchor is found for : " + rec.description)
 
     ofileAnch.close()
     fln_dict = dict()
@@ -366,6 +368,7 @@ def download_ref_genome_VDJ(species: str, chain: str, **kwargs):
     :param chain: IMGT chain receptor name
     :return : dictionary of pandas DataFrame with
     """
+    # flag_verbose = False
     dictVGenome = download_gene_template(species, chain + 'V', **kwargs)
     dictDGenome = download_gene_template(species, chain + 'D', **kwargs)
     dictJGenome = download_gene_template(species, chain + 'J', **kwargs)
@@ -393,7 +396,8 @@ def download_ref_genome_VDJ(species: str, chain: str, **kwargs):
         # if v_genome in list2CYS:
             v_genomes_trim_list.append(v_genome)
         else:
-            print(v_genome.description)
+            if flag_verbose:
+                print(v_genome.description)
     save_records2fasta(v_genomes_trim_list, flnVGenome + "_trim")
 
     # J-PHE
@@ -416,12 +420,14 @@ def download_ref_genome_VDJ(species: str, chain: str, **kwargs):
         # elif j_genome in listJ_TRP:
             j_genomes_trim_list.append(j_genome)
         else:
-            print(j_genome.description)
+            if flag_verbose:
+                print(j_genome.description)
 
     save_records2fasta(j_genomes_trim_list, flnJGenome + "_trim")
-    print("----------------------")
-    print("Genomic VDJ templates in files: ")
-    print(flnVGenome, flnDGenome, flnJGenome)
+    if flag_verbose:
+        print("----------------------")
+        print("Genomic VDJ templates in files: ")
+        print(flnVGenome, flnDGenome, flnJGenome)
     dict_V = gen_short_names(flnVGenome, flnAnchors=Anchors_dict["flnVAnchors"])
     dict_J = gen_short_names(flnJGenome, flnAnchors=Anchors_dict["flnJAnchors"])
     dict_D = gen_short_names(flnDGenome)

@@ -3,6 +3,8 @@ from pygor3 import imgt
 from pygor3.utils import *
 from pygor3 import IgorRefGenome
 from pygor3 import IgorModel
+
+from pygor3 import get_IgorRefGenome_VDJ_from_IMGT
 from pandas._testing import assert_frame_equal
 
 import os
@@ -436,6 +438,9 @@ class MyTestCase(unittest.TestCase):
 
         hs_tra_imgt_ref_genome = IgorRefGenome.load_VJ_from_IMGT_website("Homo+sapiens", "TRA")
         self.assertIsInstance(hs_tra_imgt_ref_genome, IgorRefGenome)
+
+    def test_something(self):
+        ref_genome = get_IgorRefGenome_VDJ_from_IMGT("Homo+sapiens", "TRB")
 
 
     def tearDown(self) -> None:

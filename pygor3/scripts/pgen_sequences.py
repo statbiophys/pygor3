@@ -50,7 +50,7 @@ def main():
       exit()
 
     task.update_batch_filenames()
-    task.run_evaluate()
+    task._run_evaluate()
 
     # task = p3.IgorTask.load_from_batchname("testing")
     # task.igor_specie = "human"

@@ -1,3 +1,4 @@
+import copy
 # FIXME: PUT THIS IN __init__.py ? is a good practice?
 # option wrappers for IGoR
 # IGoR command line options
@@ -20,28 +21,47 @@ igor_align_dict_options = {
     '--all':
         {'active': True, 'value': '',
          'dict_options':
-             tmp_dict_options.copy()
+             copy.deepcopy(tmp_dict_options)
          },
     '--V':
         {'active': False, 'value': '',
          'dict_options':
-             tmp_dict_options.copy()
+             copy.deepcopy(tmp_dict_options)
          },
     '--D':
         {'active': False, 'value': '',
          'dict_options':
-             tmp_dict_options.copy()
+             copy.deepcopy(tmp_dict_options)
          },
     '--J':
         {'active': False, 'value': '',
          'dict_options':
-             tmp_dict_options.copy()
+             copy.deepcopy(tmp_dict_options)
          }
 }
 igor_align_dict_options['--V']['dict_options']['---thresh']['value'] = '50'
 
 
 igor_evaluate_dict_options = {
+    '--N_iter':
+        {'active': False, 'value': '5'},
+    '--L_thresh':
+        {'active': False, 'value': ''},
+    '--P_ratio_thresh':
+        {'active': False, 'value': '0.0'}, # Check all possible scenarios
+    '--MLSO':
+        {'active': False, 'value': ''},
+    '--infer_only':
+        {'active': False, 'value': ''},
+    '--not_infer':
+        {'active': False, 'value': ''},
+    '--fix_err':
+        {'active': False, 'value': ''},
+
+}
+
+
+igor_infer_dict_options = {
     '--N_iter':
         {'active': False, 'value': '5'},
     '--L_thresh':
@@ -83,6 +103,25 @@ igor_output_dict_options = {
          'dict_options':
              {}
          }
+}
+
+igor_generate_dict_options = {
+    '--noerr':
+        {'active': False, 'value': None,
+         'dict_options': {}
+        },
+    '--CDR3':
+        {'active': False, 'value': None,
+         'dict_options': {}
+        },
+    '--name':
+        {'active': False, 'value': None,
+         'dict_options': {}
+        },
+    '--seed':
+        {'active': False, 'value': None,
+         'dict_options': {}
+        }
 }
 
 # FIXME: MAKE A DICTIONARY
@@ -176,7 +215,4 @@ def update_igor_batch_dict(igor_wd, igor_batchname):
     igor_batch_dict['output_scenarios']['filename'] = tmp_prefix + "_output/" + "best_scenarios_counts.csv"
     igor_batch_dict['output_coverage']['filename'] = tmp_prefix + "_output/" + "coverage.csv"
 
-igor_options = {
-
-}
-
+igor_options = {}

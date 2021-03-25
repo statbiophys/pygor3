@@ -388,7 +388,7 @@ class MyTestCase(unittest.TestCase):
         path_mdl_data = self.tmp_dir.name + "/batch_mdldata"
         aaa = path_mdl_data + "/ref_genome"
         mdl_from_ref_genome
-        mdl_from_ref_genome.write_mdl_data_dir()
+        mdl_from_ref_genome.write_mdldata_dir()
 
         ref_genome_again = mdl_from_ref_genome.parms.get_IgorRefGenome()
         self.assertIsInstance(ref_genome_again, IgorRefGenome)

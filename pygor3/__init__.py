@@ -80,6 +80,7 @@ import pkg_resources
 sql_path = 'IgorDB.sql'  #
 sql_filepath = pkg_resources.resource_filename(__name__, sql_path)
 
+from .IgorDictionaries import *
 #from .IgorModel import *
 from .IgorIO import *
 from .IgorSqliteDB import *

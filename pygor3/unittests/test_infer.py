@@ -353,10 +353,21 @@ class MyTestCase(unittest.TestCase):
         self.assertIsInstance(new_mdl, IgorModel)
 
 
-
+    def test_infer_command(self):
+        mdl_ini = IgorModel.load_default("human", "tcr_beta")
+        print("%"*50)
+        mdl_new, df_likelihood = infer(self.pd_sequences, mdl_ini)
 
     # def tearDown(self) -> None:
     #     self.tmp_dir.cleanup()
+
+    def test_IgorTask_infer(self):
+        # TODO: FINISH ME
+        task = IgorTask.default_model("human", "tcr_beta")
+        task.infer(self.pd_sequences)
+
+
+
 
 
 if __name__ == '__main__':
