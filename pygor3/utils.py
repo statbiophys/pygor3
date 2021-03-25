@@ -434,7 +434,6 @@ def get_df_anchors_from_df_ref_genome(df_ref_genome):
         raise e
 
     return df_tmp_ref_genome.copy()
->>>>>>> 3d47be41fd316a5a03d1454aa2168244fc40512a
 
 # // A, C, G, T, R, Y, K, M, S, W, B, D, H, V, N
 heavy_pen_nuc44_vect = [
