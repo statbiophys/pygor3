@@ -103,10 +103,9 @@ def Process_Seqs( pr_pr_batchname, full_blast_info=False, keep_stop_codon=False 
     aligned = aligned[ keep ]
     # choose which igblast output to consider
     if keep_stop_codon is True :            
-        mask = aligned[ aligned["productive"] == 'F' ]
+        processed = aligned[ aligned["productive"] == 'F' ].copy()
     else :
-        mask = aligned[ aligned["vj_in_frame"] == 'F' ]
-    processed = aligned[mask].copy()
+        processed = aligned[ aligned["vj_in_frame"] == 'F' ].copy()
     del aligned
 
     # remove temporary igblast alignment file
