@@ -148,13 +148,46 @@ class MyTestCase(unittest.TestCase):
 
         task._run_clean_batch_generate()
         # task.run_clean_batch()
+        task._run_clean_batch_mdldata()
         shutil.rmtree(igor_wd_dirname)
 
     def test_infer(self):
         igor_wd_dirname = "igor_wd_temporario"
         task = IgorTask.default_model("human", "beta", igor_wd=igor_wd_dirname)
-        mdl = task.infer()
-        self.assertTrue(True)
+        pd_sequences = task.generate(10)
+        mdl_new = task.infer(pd_sequences)
+        print("task.igor_read_seqs: ", task.igor_read_seqs)
+        self.assertIsInstance(mdl_new, IgorModel)
+        task._run_clean_batch_infer()
+        task._run_clean_batch_aligns()
+        task._run_clean_batch_mdldata()
+        print("task.igor_read_seqs: ", task.igor_read_seqs)
+
+        self.assertTrue(mdl_new, IgorModel)
+
+    def test_pygor3_infer(self):
+        igor_wd_dirname = "igor_wd_temporario"
+        mdl = IgorModel.load_default("human", "tcr_beta")
+        pd_sequences = generate(10, mdl=mdl)
+        mdl_new, df_likelihoods = infer(pd_sequences, mdl=mdl)
+        # mdl_new.plot_Bayes_network('archivo.pdf')
+        self.assertIsInstance(mdl_new, IgorModel)
+        self.assertIsInstance(df_likelihoods, pd.DataFrame)
+
+
+    def test__run_evaluate(self):
+        # TODO: Modify run evaluate as infer and generate.
+        igor_wd_dirname = "igor_wd_temporario"
+
+        mdl = IgorModel.load_default("human", "tcr_beta")
+        pd_sequences = generate(10, mdl=mdl)
+
+        task = IgorTask(mdl=mdl)
+        task._run_evaluate()
+        # task.evaluate()
+        task.igor_fln_generated_seqs_werr
+        # aaa = evaluate(pd_sequences, mdl=mdl)
+        # print(aaa)
 
     def test_null_task(self):
         print(self.null_task.igor_wd)
@@ -164,7 +197,14 @@ class MyTestCase(unittest.TestCase):
 
     def test_something(self):
         # self.null_task.igor_
-        pass
+        ofile = tempfile.NamedTemporaryFile(mode='w', dir='.')
+        original_path = ofile.name
+        print(original_path)
+        ofile.name = "nombre_temporal.txt"
+        ofile.write("jojojo\n")
+        ofile.write("abasbgs\n")
+
+
     # def test_load_default(self):
     #     """test default task"""
     #     default_task = IgorTask.default_model("human", "beta")

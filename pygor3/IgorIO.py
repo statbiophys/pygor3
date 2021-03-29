@@ -4066,7 +4066,9 @@ class IgorModel:
         Export IgorModel and IgorRefGenome
         """
         try:
-            os.makedirs(model_dir_path, exist_ok=True)
+            import pathlib
+            pathlib.Path(model_dir_path).mkdir(parents=True, exist_ok=True)
+            # os.makedirs(model_dir_path, exist_ok=True)
             os.makedirs(model_dir_path + "/models", exist_ok=True)
             fln_dict = get_default_fln_names_for_model_dir(model_dir_path)
             self.write_model(fln_dict['fln_model_parms'], fln_dict['fln_model_marginals'])
@@ -5485,9 +5487,12 @@ class IgorTask:
         :param model: Union[None, str, Path, IgorModel, IgorModel_Parms] = None
         """
         try:
+            if igor_wd is not None:
+                self.igor_wd = igor_wd
             # 3. Write Sequences in file if file not exist
-            fln_input_sequences = igor_wd + "/" + self.igor_batchname + "input_sequences.csv"
-            write_sequences_to_file(input_sequences, fln_input_sequences)
+            # FIXME: -IN DEV- CHANGE THIS IN A WAY TO NOT DELETE igor_read_seqs.
+
+            # if a file is created during the process delete it
 
             # 4. Export model and ref_genome to model_dir
             self.write_mdldata_dir()
@@ -5498,7 +5503,20 @@ class IgorTask:
             # self.mdl.write_mdldata_dir(path_mdl_data)
 
             # 5. Run infer model
-            self._run_infer(igor_read_seqs=fln_input_sequences)
+            if input_sequences is None:
+                # use the self.igor_read_seqs
+                # Do not delete self.igor_read_seqs
+                self._run_infer(igor_read_seqs=self.igor_read_seqs)
+            else:
+                # write a temporary file
+                tmp_igor_read_seqs = self.igor_read_seqs
+                fln_input_sequences = self.igor_wd + "/" + self.igor_batchname + "_input_sequences.csv"
+                write_sequences_to_file(input_sequences, fln_input_sequences)
+                self._run_infer(igor_read_seqs=fln_input_sequences)
+                import os
+                os.unlink(fln_input_sequences)
+                self.igor_read_seqs = tmp_igor_read_seqs
+
             self.load_IgorModel_from_infer_files()
         except Exception as e:
             raise e
@@ -5735,6 +5753,8 @@ class IgorTask:
     def _run_clean_batch_aligns(self):
         try:
             cmd = "rm " + self.igor_wd + "/aligns/" + self.igor_batchname + "*.csv"
+            run_command_no_output(cmd)
+            cmd = "rm " + self.igor_wd + "/aligns/aligns_info.out"
             run_command_no_output(cmd)
             cmd = "rmdir --ignore-fail-on-non-empty " + self.igor_wd + "/aligns"
             run_command_no_output(cmd)
@@ -6272,7 +6292,7 @@ class IgorTask:
         if mdl is not None:
             self.mdl = copy.deepcopy(mdl)
 
-        self.mdl.write_mdldata_dir(igor_mdldata_dir)
+        self.mdl.write_mdldata_dir(self.igor_mdldata_dir)
 
     #### AIRR methods ###
     def parse_scenarios_to_airr(self, igor_fln_output_scenarios, airr_fln_output_scenarios):
