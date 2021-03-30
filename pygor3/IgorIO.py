@@ -4380,6 +4380,47 @@ class IgorModel:
 
         return airr_vj.to_dict()
 
+    def get_dataframe_from_fln_generated_realizations_werr(self, igor_fln_generated_realizations_werr, sep=';'):
+        print("igor_fln_generated_realizations_werr: ", igor_fln_generated_realizations_werr)
+        df2 = pd.read_csv(igor_fln_generated_realizations_werr, sep=';').set_index('seq_index')
+        events_name__nickname_dict = self.parms.get_event_dict('name', 'nickname')
+        events_nickname__event_type_dict = self.parms.get_event_dict('nickname', 'event_type')
+        events_nickname__seq_type_dict = self.parms.get_event_dict('nickname', 'seq_type')
+        df2.rename(columns=events_name__nickname_dict, inplace=True)
+
+        for column_name in df2.columns:
+            try:
+                if column_name in events_nickname__event_type_dict.keys():
+                    if events_nickname__event_type_dict[column_name] == 'GeneChoice':
+                        # remove parenthesis and make it an int column
+                        df2[column_name] = df2[column_name].apply(lambda x: int(eval(x)))
+                        seq_type = events_nickname__seq_type_dict[column_name]
+                        str_gene_type = seq_type[0].lower()
+                        gene_call_column_name = (str_gene_type+"_call")
+                        df2[gene_call_column_name] = df2[column_name].apply(lambda x: self.parms[column_name].name.loc[x])
+                        df2[column_name].apply(lambda x: self.parms[column_name].name.loc[x])
+
+                    elif events_nickname__event_type_dict[column_name] == 'Insertion':
+                        # Change to insertions values
+                        df2[column_name] = df2[column_name].apply(lambda x: int(eval(x)))
+                    elif events_nickname__event_type_dict[column_name] == 'Deletion':
+                        # Change to deletions values
+                        df2[column_name] = df2[column_name].apply(lambda x: int(eval(x)))
+                    elif events_nickname__event_type_dict[column_name] == 'DinucMarkov':
+                        # Change to deletions values
+                        df2[column_name] = df2[column_name].apply(lambda x: list(eval(x)))
+                    else:
+                        print("Problem column not found!")
+                        pass
+                else:
+                    if (column_name == 'Errors') or (column_name == 'Mismatches'):
+                        df2[column_name] = df2[column_name].apply(lambda x: list(eval(x)))
+
+            except Exception as e:
+                pass
+
+        return df2
+
 
 class IgorScenario:
     def __init__(self):
@@ -4640,6 +4681,10 @@ class IgorTask:
         try:
             if self.igor_wd is None:
                 self.gen_igor_wd()
+            else:
+                # if not None and path doesnt exist create it.
+                import pathlib
+                pathlib.Path(self.igor_wd).mkdir(parents=True, exist_ok=True)
         except Exception as e:
             print(e)
             raise e
@@ -4861,7 +4906,8 @@ class IgorTask:
             cls = IgorTask()
             cls.igor_species = specie
             cls.igor_chain = igor_option_path_dict[chain]
-            cls.igor_wd = igor_wd
+            if igor_wd is not None:
+                cls.igor_wd = igor_wd
             # cls.igor_modeldirpath =  model_parms_file
             cls.run_datadir()
             cls.igor_model_dir_path = cls.igor_models_root_path + "/" + cls.igor_species + "/" + cls.igor_chain
@@ -5396,7 +5442,7 @@ class IgorTask:
 
             pd_sequences = self._run_generate(N_seqs, return_df=return_df, clean_batch=clean_batch)
             # TODO: ADD COLUMNS OF EVENTS
-            pd_sequences = get_dataframe_from_generated_files(self.igor_fln_generated_seqs_werr)
+            pd_sequences = get_dataframe_from_fln_generated_seqs_werr(self.igor_fln_generated_seqs_werr)
 
         except Exception as e:
             raise e
@@ -5411,7 +5457,7 @@ class IgorTask:
 
 
     def evaluate(self, input_sequences: Union[str, pd.DataFrame, np.ndarray, Path],
-                 mdl:IgorModel = None, N_scenarios = None, igor_wd=None, clean_batch=True):
+                 N_scenarios = None, mdl:IgorModel = None, igor_wd=None, clean_batch=True):
         """
         Return evaluation of sequences
         """
@@ -5623,7 +5669,7 @@ class IgorTask:
         # finally:
         #     self.run_clean_batch()
 
-    def _run_generate(self, N_seqs:int=1, mdl:Union[None,IgorModel]=None, igor_wd=None, igor_batchname=None,
+    def _run_generate(self, N_seqs:int=1, mdl:Union[None,IgorModel]=None, seed=None, igor_wd=None, igor_batchname=None,
                       igor_model_parms_file=None, igor_model_marginals_file=None,
                       fln_V_gene_CDR3_anchors=None, fln_J_gene_CDR3_anchors=None,
                       igor_db=None, igor_fln_db=None,
@@ -5634,6 +5680,10 @@ class IgorTask:
         """
 
         try:
+            if seed is not None:
+                self.igor_generate_dict_options['--seed']['active'] = True
+                self.igor_generate_dict_options['--seed']['value'] = str(seed)
+
             if mdl is not None:
                 self.mdl = mdl
 
@@ -5808,7 +5858,9 @@ class IgorTask:
             self.igor_fln_db = igor_fln_db
         self.igor_db = IgorSqliteDB.create_db(self.igor_fln_db)
 
-    def load_db_from_indexed_sequences(self):
+    def load_db_from_indexed_sequences(self, igor_fln_indexed_sequences=None):
+        if igor_fln_indexed_sequences is not None:
+            self.igor_fln_indexed_sequences = igor_fln_indexed_sequences
         self.igor_db.load_IgorIndexedSeq_FromCSV(self.igor_fln_indexed_sequences)
 
     # load genome templates from fasta and csv files.
@@ -5825,10 +5877,17 @@ class IgorTask:
         # load
         print("loading Anchors data ...")
         # try:
-        self.igor_db.load_IgorGeneAnchors_FromCSV("V", self.genomes.fln_V_gene_CDR3_anchors)
-        self.igor_db.load_IgorGeneAnchors_FromCSV("J", self.genomes.fln_J_gene_CDR3_anchors)
+        self.load_db_from_anchors()
+        # self.igor_db.load_IgorGeneAnchors_FromCSV("V", self.genomes.fln_V_gene_CDR3_anchors)
+        # self.igor_db.load_IgorGeneAnchors_FromCSV("J", self.genomes.fln_J_gene_CDR3_anchors)
         # except Exception as e:
         #     print("ERROR : ", e)
+
+    def load_db_from_anchors(self):
+        """Load anchors from database"""
+        self.igor_db.load_IgorGeneAnchors_FromCSV("V", self.genomes.fln_V_gene_CDR3_anchors)
+        self.igor_db.load_IgorGeneAnchors_FromCSV("J", self.genomes.fln_J_gene_CDR3_anchors)
+
 
     def load_db_from_alignments(self):
         print(self.igor_fln_align_V_alignments)
@@ -5868,9 +5927,16 @@ class IgorTask:
         print(self.igor_fln_indexed_CDR3)
         self.igor_db.load_IgorIndexedCDR3_FromCSV(self.igor_fln_indexed_CDR3)
 
-    def load_db_from_bestscenarios(self):
+    def load_db_from_bestscenarios(self, igor_fln_output_scenarios:Union[None, str]=None,
+                                   mdl:Union[None, IgorModel]=None):
+        if igor_fln_output_scenarios is not None:
+            self.igor_fln_output_scenarios = igor_fln_output_scenarios
+        if mdl is not None:
+            self.mdl = mdl
         print(self.igor_fln_output_scenarios)
         self.igor_db.load_IgorBestScenarios_FromCSV(self.igor_fln_output_scenarios, self.mdl)
+
+
 
     def load_db_from_pgen(self):
         print(self.igor_fln_output_pgen)

@@ -3,7 +3,7 @@ import pandas as pd
 from pygor3 import IgorModel
 from pygor3 import IgorTask
 from pygor3 import generate
-from pygor3.utils import get_dataframe_from_generated_files
+from pygor3.utils import get_dataframe_from_fln_generated_seqs_werr
 from pygor3 import IgorRec_Event
 from pygor3 import IgorEvent_realization
 
@@ -34,7 +34,7 @@ class MyTestCase(unittest.TestCase):
         print(task.igor_fln_generated_realizations_werr)
         print(task.igor_fln_generation_info)
 
-        df = get_dataframe_from_generated_files(task.igor_fln_generated_seqs_werr)
+        df = get_dataframe_from_fln_generated_seqs_werr(task.igor_fln_generated_seqs_werr)
         print("df.columns: ", df.columns)
         # TODO: I WANT TO SHOW THIS AS AN AIRR FORMAT
         df2 = pd.read_csv(task.igor_fln_generated_realizations_werr, sep=';').set_index('seq_index')
@@ -96,6 +96,7 @@ class MyTestCase(unittest.TestCase):
         # bs_events_nickname_list = [events_name_nickname_dict[event_name] for event_name in bs_events_name_list]
 
         task._run_clean_batch_generate()
+        task._run_clean_batch_mdldata()
 
         # task.run_clean_batch()
         # if return_df:

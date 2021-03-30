@@ -298,7 +298,7 @@ def write_geneanchors_dataframe_to_csv(fln_anchor:Union[str, Path, TextIO], df_r
     except Exception as e:
         raise e
 
-def get_dataframe_from_generated_files(igor_fln_generated_seqs_werr):
+def get_dataframe_from_fln_generated_seqs_werr(igor_fln_generated_seqs_werr):
     df_seqs = pd.read_csv(igor_fln_generated_seqs_werr, delimiter=';').set_index('seq_index')
     return df_seqs
 # Get Dataframes functions

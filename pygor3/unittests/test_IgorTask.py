@@ -27,7 +27,7 @@ class MyTestCase(unittest.TestCase):
 
         fln_list = task._run_generate(10)
 
-        df = get_dataframe_from_generated_files(task.igor_fln_generated_seqs_werr)
+        df = get_dataframe_from_fln_generated_seqs_werr(task.igor_fln_generated_seqs_werr)
         print("df.columns: ", df.columns)
         print(df, len(df))
         self.assertIsInstance(df, pd.DataFrame)
@@ -46,7 +46,7 @@ class MyTestCase(unittest.TestCase):
         task.igor_generate_dict_options['--seed']['active'] = True
         task.igor_generate_dict_options['--seed']['value'] = 10
         fln_list = task._run_generate(10)
-        df = get_dataframe_from_generated_files(task.igor_fln_generated_seqs_werr)
+        df = get_dataframe_from_fln_generated_seqs_werr(task.igor_fln_generated_seqs_werr)
         print("df.columns: ", df.columns)
         print(df, len(df))
 
@@ -67,7 +67,7 @@ class MyTestCase(unittest.TestCase):
         task = IgorTask()
         task.mdl = mdl
         task._run_generate(10)
-        df = get_dataframe_from_generated_files(task.igor_fln_generated_seqs_werr)
+        df = get_dataframe_from_fln_generated_seqs_werr(task.igor_fln_generated_seqs_werr)
         print("df.columns: ", df.columns)
         print(df)
         task._run_clean_batch_mdldata()
