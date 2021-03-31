@@ -39,26 +39,35 @@ def PreProcessTask( igortask, full_blast_info=False, keep_stop_codon=False, igda
     verbose : bool
         Provide all passages description.   
     '''        
-        
+    
+    specie = igortask.igor_species
+    receptor = from_igor_chain_to_receptor(igortask.igor_chain)
+
     pr_pr_batchname = f"{igortask.igor_wd}/pre_process/{igortask.igor_batchname}"
     os.makedirs(f"{igortask.igor_wd}/pre_process", exist_ok=True)
 
     if verbose is True : 
-        print ( 'Loading indexed sequences...' )
+        print ( 'Loading sequences...' )
+
+    if igortask.igor_read_seqs is None:
+        raise IOError( 'Please provide read_seqs in the IgorTask.' )
+
+    if igortask.b_read_seqs is False:
+        igortask.run_read_seqs(igor_read_seqs=igortask.igor_read_seqs)
+
+    # WARNING!: igortask.igor_read_seqs is not a dataframe!
     get_fasta_from_dataframe( reads_data_frame=igortask.igor_read_seqs, 
                             batchname=pr_pr_batchname )
     if verbose is True : 
         print ( 'Aligning sequences...' )
     
-    specie = igortask.igor_species
-    receptor = from_igor_chain_to_receptor(igortask.igor_chain)
     Align_Seqs( specie=specie, receptor=receptor, pr_pr_batchname=pr_pr_batchname, igdata=igdata )
     if verbose is True : 
-        print ( 'Selecting sequences for Igor inference...' )
+        print ( 'Selecting sequences for Igor inference considering :' )
         if keep_stop_codon is True :            
-            print( 'Out of frame vj and inframe vj with stopping codons are considered.' )
+            print( 'inframe vj with stopping codons and out of frame vj.' )
         else :
-            print( 'Only out of frame vj are considered.' )
+            print( 'only out of frame vj.' )
              
     igortask.igor_raw_read_seqs = igortask.igor_read_seqs.copy()
     igortask.igor_read_seqs = Process_Seqs( pr_pr_batchname=pr_pr_batchname, 
@@ -111,9 +120,9 @@ def Process_Seqs( pr_pr_batchname, full_blast_info=False, keep_stop_codon=False 
 
     # remove temporary igblast alignment file
     if full_blast_info == True : 
-        print( )
+        print( "Full alignemnt informations stored in :\n%s" % filein )
     else : 
         os.remove( filein )       
    
     processed.to_csv( f'{pr_pr_batchname}.csv.gz', columns=["sequence"], compression="gzip" )     
-    return processed["sequence"]
+    return f'{pr_pr_batchname}.csv.gz'
