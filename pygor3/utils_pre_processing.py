@@ -52,9 +52,6 @@ def PreProcessTask( igortask, full_blast_info=False, keep_stop_codon=False, igda
     if igortask.igor_read_seqs is None:
         raise IOError( 'Please provide read_seqs in the IgorTask.' )
 
-    if igortask.b_read_seqs is False:
-        igortask.run_read_seqs(igor_read_seqs=igortask.igor_read_seqs)
-
     # WARNING!: igortask.igor_read_seqs is not a dataframe!
     get_fasta_from_dataframe( reads_data_frame=igortask.igor_read_seqs, 
                             batchname=pr_pr_batchname )
