@@ -1278,6 +1278,8 @@ class IgorSqliteDB:
             except sqlite3.Error as e:
                 print(e)
 
+        self.gen_IgorBestScenarios_cols_list()
+
     def insert_IgorBestScenarios_FromCSVline(self, cur, csvline):
         # sql = ''' INSERT INTO IgorBestScenarios({}) VALUES({}) '''
         csvline = csvline.replace('\n', '')

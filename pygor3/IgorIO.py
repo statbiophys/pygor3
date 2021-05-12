@@ -1064,7 +1064,8 @@ class IgorEvent_realization:
             # return self.name+";"+str(self.value)+";"+str(self.id)
 
     def __repr__(self):
-        return "Event_realization(" + str(self.id) + ")"
+        return self.to_dict()
+        # return "Event_realization(" + str(self.id) + ")"
 
     def to_dict(self):
         return {
@@ -1080,6 +1081,10 @@ class IgorEvent_realization:
         cls.value = value
         cls.name = name
         return cls
+
+    @classmethod
+    def from_pandas(cls, df:pd.DataFrame):
+        return df.to_records()
 
     @classmethod
     def from_dict(self, event_dict: dict):
@@ -1143,6 +1148,25 @@ class IgorRec_Event:
         #            self.nickname = nickname
         self.update_name()
 
+        self._pd_realizations = None
+        try:
+            self.update_pd_realizations_from_realizations()
+        except:
+            pass
+
+    @property
+    def pd_realizations(self):
+        return self._pd_realizations
+
+    @pd_realizations.setter
+    def pd_realizations(self, value):
+        self.update_realizations_from_dataframe(value)
+        self._pd_realizations = self.get_realization_DataFrame()
+
+    @pd_realizations.deleter
+    def pd_realizations(self):
+        del self._pd_realizations
+
     def __getitem__(self, item):
         return self.realizations[item]
 
@@ -1179,13 +1203,16 @@ class IgorRec_Event:
         self.realizations.append(realization)
         self.realizations = sorted(self.realizations)
         self.update_name()
+        self.update_pd_realizations_from_realizations()
 
-    def get_realization(self, index: int) -> IgorEvent_realization:
+
+    def get_realization(self, index:Union[int,list]) -> IgorEvent_realization:
         """get realization object by index
         :param index: Id of realization
         :return : IgorEvent_realization
         """
         try:
+            # TODO: CHANGE THIS TO USE PANDAS DATAFRAME
             tmp_list = [realization for realization in self.realizations if realization.id == index]
             return tmp_list[0]
         except Exception as e:
@@ -1244,6 +1271,11 @@ class IgorRec_Event:
             self.realizations = sorted(self.realizations)
         self.update_name()
 
+    def update_pd_realizations_from_realizations(self, realizations:Union[None,list]=None):
+        if realizations is not None:
+            self.realizations = realizations
+        self.pd_realizations = self.get_realization_DataFrame()
+
     @classmethod
     def from_default_nickname(cls, nickname: str):
         cls = IgorRec_Event.to_dict(IgorRec_Event_default_dict[nickname])
@@ -1255,6 +1287,7 @@ class IgorRec_Event:
         self.realizations.append(realization)
         self.realizations = sorted(self.realizations)
         self.update_name()
+        self.pd_realizations = self.get_realization_DataFrame()
 
     def update_name(self):
         """Updates the name of the event (will have no effect if the RecEvent
@@ -1314,7 +1347,10 @@ class IgorRec_Event:
         """ return an Event realizations as a pandas DataFrame to manipulate it.
 
         """
-        return pd.DataFrame.from_records([realiz.to_dict() for realiz in self.realizations], index='id').sort_index()
+        try:
+            return pd.DataFrame.from_records([realiz.to_dict() for realiz in self.realizations], index='id').sort_index()
+        except Exception as e:
+            raise e
 
 
 
@@ -2176,13 +2212,17 @@ class IgorModel_Parms:
             raise Exception(
                 'RecEvent with name \"' + event_nickname_or_name + "\" not found.")
 
-    def get_Event_realization(self, event_nickname: str, index: int) -> IgorRec_Event:
+    def get_Event_realization(self, event_nickname: str, index:Union[int, list]) -> IgorRec_Event:
         """Return event realization by event_nickname and index
         :param event_nickname: Nickname of event to get realization.
         :param index: Id of realization in event.
         :return: IgorRec_Event with nickname 'event_nickname' and id 'index'.
         """
-        return self.get_Event(event_nickname).get_realization(index)
+        ps_realiz = self.parms.Event_dict[event_nickname].loc[index]
+        return IgorEvent_realization.from_tuple(index, ps_realiz.value, ps_realiz.name)
+        # return self.get_Event(event_nickname).get_realization(index)
+        # elif isinstance(index, list):
+        #     return [self.get_Event(event_nickname).get_realization(id) for id in index]
 
     def gen_EventDict_DataFrame(self):
         self.Event_dict = dict()
@@ -2721,6 +2761,20 @@ class IgorModel:
     def J_anchors(self):
         return self.genomic_dataframe_dict['J']['anchor_index'].dropna().astype(int)
 
+
+    def V_anchor(self, id: int):
+        try:
+            return self.V_anchors.loc[id]
+        except Exception as e:
+            raise e
+
+
+    def J_anchor(self, id: int):
+        try:
+            return self.J_anchors.loc[id]
+        except Exception as e:
+            raise e
+
     @classmethod
     def make_default_model_from_IgorRefGenome(cls, genomes:IgorRefGenome):
         cls = IgorModel()
@@ -3033,6 +3087,10 @@ class IgorModel:
             raise e
 
     def get_zero_xarray_from_list(self, strEvents_list: list):
+        """Get xarray with labels and dimensions for strEvents_list
+        :param strEvents_list: list of events nickname.
+        :return: xarray with dimensions and coordinates with zero as values.
+        """
         # strEvents_list = ['v_choice', 'j_choice']
         strEvents_tuple = tuple(strEvents_list)
 
@@ -3048,6 +3106,68 @@ class IgorModel:
             da[strCoord] = (event_nickname, labels)
 
         return da
+
+    def get_observable_xarray_from_function(self, observable_func, variables_tuple_list):
+        """
+        observable_func(x,y,z)
+        variables_tuple_list = [('v_choice', 'id'), ('vd_ins', 'value'), ('v_3_del', 'value')]
+        """
+
+        # 1. Get the nicknames only
+        strEvents_list = [var[0] for var in variables_tuple_list]
+        strEvents_tuple = tuple(strEvents_list)
+
+        # Use model parms to create xarray with values
+        da_shape_list = [len(self.parms.Event_dict[str_event_nickname]) for str_event_nickname in strEvents_list]
+        da_shape_tuple = tuple(da_shape_list)
+
+        data_arr = np.zeros(da_shape_tuple)
+
+        # create meshgrid
+        tmp_list_2_broadcast = list()
+        for event_nickname, choose_type in variables_tuple_list:
+            if choose_type == 'id':
+                tmp_list_2_broadcast.append(self.parms.Event_dict[event_nickname].index.values)
+            else:
+                tmp_list_2_broadcast.append(self.parms.Event_dict[event_nickname][choose_type].values)
+
+        if len(strEvents_list) > 1:
+            variables_mesh = np.meshgrid(*tmp_list_2_broadcast)
+            vect_observable_func = np.vectorize(observable_func)
+            data_arr = vect_observable_func(*variables_mesh)
+
+        da = xr.DataArray(data_arr, dims=strEvents_tuple)
+        # da.assign_coords()
+        for strDim in strEvents_list:
+            da[strDim] = range(len(da[strDim]))
+        # self.xdata[key][strDim] = range(len(self.xdata[key][strDim]))
+
+        # for event_nickname in strEvents_list:
+        #     da[event_nickname] = self.parms.Event_dict[event_nickname].index.values
+        #     labels = self.parms.Event_dict[event_nickname]['name'].values
+        #     strCoord = 'lbl__' + event_nickname
+        #     da[strCoord] = (event_nickname, labels)
+
+        return da
+
+    def get_observable_from_df_scenarios(self, observable_function, df_scenarios:pd.DataFrame):
+        """
+        Return a pandas series with the calculated observable over the df_scenarios dataframe.
+        :param observable_function: This function should use the varibles with self.realization
+        :param df_scenarios: Scenarios dataframe loaded with self.get_dataframe_scenarios.
+        """
+        return df_scenarios.apply(lambda row: observable_function(row), axis=1)
+
+
+    def get_realization_value_from_df_scenarios(self, df_scenarios, event_nickname):
+        return self.get_observable_from_df_scenarios(lambda x: self.realization(x, event_nickname).value, df_scenarios)
+
+    def get_ones_xarray_from_list(self, strEvents_list: list):
+        """Get xarray with labels and dimensions for strEvents_list
+        :param strEvents_list: list of events nickname.
+        :return: xarray with dimensions and coordinates with one as values.
+        """
+        return xr.ones_like(self.get_zero_xarray_from_list(strEvents_list))
 
     def VE_get_Pmarginals_initial_factors(self):
         factors = list()
@@ -4381,54 +4501,341 @@ class IgorModel:
         return airr_vj.to_dict()
 
     def get_dataframe_from_fln_generated_realizations_werr(self, igor_fln_generated_realizations_werr, sep=';'):
-        print("igor_fln_generated_realizations_werr: ", igor_fln_generated_realizations_werr)
-        df2 = pd.read_csv(igor_fln_generated_realizations_werr, sep=';').set_index('seq_index')
-        events_name__nickname_dict = self.parms.get_event_dict('name', 'nickname')
-        events_nickname__event_type_dict = self.parms.get_event_dict('nickname', 'event_type')
-        events_nickname__seq_type_dict = self.parms.get_event_dict('nickname', 'seq_type')
-        df2.rename(columns=events_name__nickname_dict, inplace=True)
+        try:
+            print("igor_fln_generated_realizations_werr: ", igor_fln_generated_realizations_werr)
+            df2 = pd.read_csv(igor_fln_generated_realizations_werr, sep=';').set_index('seq_index')
+            events_name__nickname_dict = self.parms.get_event_dict('name', 'nickname')
+            events_nickname__event_type_dict = self.parms.get_event_dict('nickname', 'event_type')
+            events_nickname__seq_type_dict = self.parms.get_event_dict('nickname', 'seq_type')
+            df2.rename(columns=events_name__nickname_dict, inplace=True)
 
-        for column_name in df2.columns:
-            try:
-                if column_name in events_nickname__event_type_dict.keys():
-                    if events_nickname__event_type_dict[column_name] == 'GeneChoice':
-                        # remove parenthesis and make it an int column
-                        df2[column_name] = df2[column_name].apply(lambda x: int(eval(x)))
-                        seq_type = events_nickname__seq_type_dict[column_name]
-                        str_gene_type = seq_type[0].lower()
-                        gene_call_column_name = (str_gene_type+"_call")
-                        df2[gene_call_column_name] = df2[column_name].apply(lambda x: self.parms[column_name].name.loc[x])
-                        df2[column_name].apply(lambda x: self.parms[column_name].name.loc[x])
+            for column_name in df2.columns:
+                try:
+                    if column_name in events_nickname__event_type_dict.keys():
+                        if events_nickname__event_type_dict[column_name] == 'GeneChoice':
+                            # remove parenthesis and make it an int column
+                            df2[column_name] = df2[column_name].apply(lambda x: int(eval(x)))
+                            seq_type = events_nickname__seq_type_dict[column_name]
+                            str_gene_type = seq_type[0].lower()
+                            # gene_call_column_name = (str_gene_type+"_call")
+                            # df2[gene_call_column_name] = df2[column_name].apply(lambda x: self.parms[column_name].name.loc[x])
+                            df2[column_name].apply(lambda x: self.parms[column_name].name.loc[x])
 
-                    elif events_nickname__event_type_dict[column_name] == 'Insertion':
-                        # Change to insertions values
-                        df2[column_name] = df2[column_name].apply(lambda x: int(eval(x)))
-                    elif events_nickname__event_type_dict[column_name] == 'Deletion':
-                        # Change to deletions values
-                        df2[column_name] = df2[column_name].apply(lambda x: int(eval(x)))
-                    elif events_nickname__event_type_dict[column_name] == 'DinucMarkov':
-                        # Change to deletions values
-                        df2[column_name] = df2[column_name].apply(lambda x: list(eval(x)))
+                        elif events_nickname__event_type_dict[column_name] == 'Insertion':
+                            # Change to insertions values
+                            df2[column_name] = df2[column_name].apply(lambda x: int(eval(x)))
+                        elif events_nickname__event_type_dict[column_name] == 'Deletion':
+                            # Change to deletions values
+                            df2[column_name] = df2[column_name].apply(lambda x: int(eval(x)))
+                        elif events_nickname__event_type_dict[column_name] == 'DinucMarkov':
+                            # Change to deletions values
+                            df2[column_name] = df2[column_name].apply(lambda x: eval(x.replace("(", "[").replace(")", "]")))
+                        else:
+                            print("IgorModel.get_dataframe_from_fln_generated_realizations_werr: column not found!")
                     else:
-                        print("Problem column not found!")
-                        pass
-                else:
-                    if (column_name == 'Errors') or (column_name == 'Mismatches'):
-                        df2[column_name] = df2[column_name].apply(lambda x: list(eval(x)))
+                        if (column_name == 'Errors') or (column_name == 'Mismatches'):
+                            df2[column_name] = df2[column_name].apply(lambda x: eval(x.replace("(", "[").replace(")", "]")))
 
+                except Exception as e:
+                    pass
+
+            return df2
+        except Exception as e:
+            raise e
+
+    def get_dataframe_scenarios(self, fln_scenarios):
+        df_scenarios = self.get_dataframe_from_fln_generated_realizations_werr(fln_scenarios)
+        self.get_df_normalize_prob(df_scenarios)
+        return df_scenarios
+
+
+
+    @staticmethod
+    def get_df_normalize_prob(df_scenarios):
+        df_scenarios['norm_scenario_proba_cond_seq'] = get_df_normalize_prob(df_scenarios)
+
+    def get_probability_matrix_from_event_list_and_scenarios_dataframe(self, event_list:list, df_scenarios:pd.DataFrame):
+        """Get probability xarray tensor from IGoR's scenarios dataframe for a given list of events
+        :param event_list: Nickname's events list.
+        :param df_scenarios: Dataframe with nicknames as headers.
+        :return: xarray of joint probability for event_list calculated from
+        the weighted ocurrencies in df_scenarios.
+        """
+        # Initialize xarray tensor
+        da_events_prob = self.get_zero_xarray_from_list(event_list)
+        df_scenarios['norm_scenario_proba_cond_seq'] = get_df_normalize_prob(df_scenarios)
+        aaa = df_scenarios.groupby(event_list)['norm_scenario_proba_cond_seq'].apply(lambda x: x.sum())
+        for iii, value in aaa.iteritems():
+            coordenadas = dict(zip(aaa.index.names, iii))
+            # print(coordenadas, value)  # da_vj_zero[coordenadas])
+            da_events_prob[coordenadas] = value
+
+        return da_events_prob
+
+    def get_IgorEvent_realization(self, ps_scenario, event_nickname: Union[None, str, list]=None):
+        if event_nickname is None:
+            try:
+                realization_dict = dict()
+                for nickname in self.get_events_nicknames_list():
+                    realization_dict[nickname] = self.parms.get_Event_realization(event_nickname, ps_scenario[event_nickname])
+                return realization_dict
             except Exception as e:
-                pass
+                raise e
+        else:
+            try:
+                return self.parms.get_Event_realization(event_nickname, ps_scenario[event_nickname])
+            except Exception as e:
+                raise e
 
-        return df2
+
+    def get_IgorEvent_realization_for_nickname(self, ps_scenario, event_nickname:str):
+        try:
+            return self.parms.get_Event_realization(event_nickname, ps_scenario[event_nickname])
+        except Exception as e:
+            raise e
+
+    def realization(self, ps_scenario, event_nickname:str)->IgorEvent_realization:
+        """
+        Return realization of scenario.
+        """
+        try:
+            id = ps_scenario[event_nickname]
+            # FIXME: isinstance(id, pd.Series)
+            realiz = self.parms.Event_dict[event_nickname].loc[id]
+            if isinstance(realiz, pd.DataFrame):
+                return IgorEvent_realization.from_tuple(id.values, realiz.value.values, realiz.name.values)
+            else:
+                return IgorEvent_realization.from_tuple(id, realiz['value'], realiz['name'])
+            # return IgorEvent_realization.from_tuple(np.array(id), np.array(aver.value), np.array(aver.name))
+        except Exception as e:
+            raise e
+        # return self.parms.Event_dict['v_choice'].loc[id]
+        # return self.get_IgorEvent_realization_for_nickname(ps_scenario, event_nickname)
+
+
+    def get_df_realizations_dinucl(self, df_scenarios, event_nickname):
+        """Return a new dataframe of the Dinucl Markov event with columns id, value and name"""
+        id = df_scenarios[event_nickname]
+        if id.dtype == 'object':
+            # iterate over
+            df_realizations = pd.DataFrame(id)
+            df_realizations = df_realizations.rename(columns={event_nickname: 'id'})
+            df_realizations['value'] = df_realizations['id'].apply(
+                lambda x: self.parms.Event_dict[event_nickname].loc[x].value.values)
+            df_realizations['name'] = df_realizations['id'].apply(
+                lambda x: self.parms.Event_dict[event_nickname].loc[x].name.values)
+
+        return df_realizations
+
+    def realizations_dict(self, ps_scenario):
+        """
+        Return Ordered dictionary of realization of scenario.
+        """
+        try:
+            realizations_dict = collections.OrderedDict()
+            for event_nickname in self.parms.Event_dict.keys():
+                realizations_dict[event_nickname] = self.realization(ps_scenario, event_nickname)
+            return realizations_dict
+            # return IgorEvent_realization.from_tuple(np.array(id), np.array(aver.value), np.array(aver.name))
+        except Exception as e:
+            raise e
+
+
+    def get_df_realizations(self, df_scenarios, event_nickname:Union[None, str]=None):
+        """
+        Return a dataframe column with the id, value and name column of the realization
+        """
+
+        event_realization = self.realization(df_scenarios, event_nickname)
+        # TODO: TO A DATAFRAME
+        data = {'id': event_realization.id,
+                'value': event_realization.value,
+                'name': event_realization.name}
+
+        return pd.DataFrame(data, index=df_scenarios.index)
+
+
+    def w_average_function_df_scenarios(self, observable_func, df_scenarios:pd.DataFrame):
+        """Return average of function weigthed with the probability scenarios"""
+        average_value = (df_scenarios['norm_scenario_proba_cond_seq'] * self.get_observable_from_df_scenarios(observable_func, df_scenarios)).sum()
+        return average_value
+
+    def w_mean_df_scenarios(self, column_name:str, df_scenarios:pd.DataFrame):
+        """Return weighted mean with the normalized probabilities for each
+        scenario (norm_scenario_proba_cond_seq)
+        :param column_name: column name of df_scenario to calculate the average
+        :param df_scenarios: Scenarios with normalize probability. Loaded with self.get_dataframe_scenarios()
+        """
+        # group_column_name = df_scenarios.groupby(column_name)['norm_scenario_proba_cond_seq'].apply(
+        #     lambda x: x.sum())
+        return (df_scenarios['norm_scenario_proba_cond_seq'] * df_scenarios[column_name]).sum()
+
+    def w_variance_df_scenarios(self, colname_1:str, df_scenarios:pd.DataFrame):
+        """Return weighted covariance with the normalized probabilities of the column names given for each
+        scenario (norm_scenario_proba_cond_seq)
+        :param colname_1: column name of df_scenario to calculate the weighted covariance
+        :param colname_2: column name of df_scenario to calculate the weighted covariance
+        :param df_scenarios: Scenarios with normalize probability. Loaded with self.get_dataframe_scenarios()
+        """
+        w_mean_colname_1 = self.w_mean_df_scenarios(colname_1, df_scenarios)
+
+        # FIXME: FINISH THIS COV = w_mean_df_scenarios(
+        #  self.w_average_function_df_scenarios( lambda product_x_y, df_scenarios)
+        # self.w_average_function_df_scenarios()
+        return (df_scenarios['norm_scenario_proba_cond_seq'] * ((df_scenarios[colname_1] - w_mean_colname_1)**2)).sum()
+
+    def w_covariance_df_scenarios(self, colname_1:str, colname_2:str, df_scenarios:pd.DataFrame):
+        """Return weighted covariance with the normalized probabilities of the column names given for each
+        scenario (norm_scenario_proba_cond_seq)
+        :param colname_1: column name of df_scenario to calculate the weighted covariance
+        :param colname_2: column name of df_scenario to calculate the weighted covariance
+        :param df_scenarios: Scenarios with normalize probability. Loaded with self.get_dataframe_scenarios()
+        """
+        w_mean_colname_1 = self.w_mean_df_scenarios(colname_1, df_scenarios)
+        w_mean_colname_2 = self.w_mean_df_scenarios(colname_2, df_scenarios)
+        # FIXME: FINISH THIS COV = w_mean_df_scenarios(
+        #  self.w_average_function_df_scenarios( lambda product_x_y, df_scenarios)
+        # self.w_average_function_df_scenarios()
+        return (df_scenarios['norm_scenario_proba_cond_seq'] * ((df_scenarios[colname_1] - w_mean_colname_1)*(df_scenarios[colname_2] - w_mean_colname_2))).sum()
+
+
+    def get_P_marginal_from_df_scenarios_cols(self, df_scenarios, colname_list):
+        """Get marginalize probabilities of df_scenarios"""
+        return df_scenarios.groupby(colname_list)['norm_scenario_proba_cond_seq'].apply(
+            lambda x: x.sum())
+
+    def get_P_from_scenarios_cols(self, df_scenarios, colname_list):
+        """
+        Return xarray with marginalize probabilities of listed columns in dataframe scenarios df_scenarios
+        :param df_scenarios: Scenarios with normalize probability. Loaded with self.get_dataframe_scenarios()
+        :param colname_list: List of variables preserve for marginalization
+        """
+        df_marginal = self.get_P_marginal_from_df_scenarios_cols(df_scenarios, colname_list)
+        # groupby_colname = df_scenarios.groupby(colname_list)['norm_scenario_proba_cond_seq'].apply(
+        #     lambda x: x.sum())
+        da = df_marginal.to_xarray()
+        da.values = np.nan_to_num(da.values, 0)
+        return da
+
+
+    def get_VDJ_CDR3_from_scenario(self, ps_scenario):
+        """
+        Return the numbers of amino acids in vd insertions
+        """
+        try:
+            v_choice = self.realization(ps_scenario, 'v_choice')
+            j_choice = self.realization(ps_scenario, 'j_choice')
+            d_gene = self.realization(ps_scenario, 'd_gene')
+
+            v_3_del = self.realization(ps_scenario, 'v_3_del')
+            d_5_del = self.realization(ps_scenario, 'd_5_del')
+            d_3_del = self.realization(ps_scenario, 'd_3_del')
+            j_5_del = self.realization(ps_scenario, 'j_5_del')
+
+            # vd_ins = mdl.realization(ps_scenario, 'vd_ins')
+            vd_dinucl = self.realization(ps_scenario, 'vd_dinucl')
+
+            # dj_ins = mdl.realization(ps_scenario, 'dj_ins')
+            dj_dinucl = self.realization(ps_scenario, 'dj_dinucl')
+
+            v_anchor = self.V_anchor(v_choice.id)
+            j_anchor = self.J_anchor(j_choice.id)
+
+            # TODO: mdl.get_CDR3_seq(ps_scenario)
+            ##### V_Gene
+            v_gene_len = len(v_choice.value)
+            # mdl.get_CDR3_seq(ps_scenario)
+            v_ini = 0
+            v_end = v_gene_len
+            str_v_3_palidrome = ""
+            if v_3_del.value < 0:
+                str_v_3_palidrome = dna_complementary((v_choice.value[v_3_del.value:])[::-1])
+            else:
+                v_end = v_end - v_3_del.value
+
+            str_V_segment = v_choice.value[v_ini:v_end] + str_v_3_palidrome
+
+            ##### D_gene
+            d_gene_len = len(d_gene.value)
+            d_ini = 0
+            d_end = d_gene_len
+            str_d_5_palidrome = ""
+            if d_5_del.value < 0:
+                int_ini = 0
+                str_d_5_palidrome = dna_complementary((d_gene.value[:-d_5_del.value])[::-1])
+            else:
+                d_ini = d_5_del.value
+
+            str_d_3_palidrome = ""
+            if d_3_del.value < 0:
+                str_d_3_palidrome = dna_complementary((d_gene.value[d_3_del.value:])[::-1])
+            else:
+                d_end = d_end - d_3_del.value
+
+            str_D_segment = str_d_5_palidrome + d_gene.value[d_ini:d_end] + str_d_3_palidrome
+
+            ##### J_gene
+            j_gene_len = len(j_choice.value)
+            j_ini = 0
+            j_end = j_gene_len
+            str_j_5_palindrome = ""
+            if j_5_del.value < 0:
+                j_ini = 0
+                str_j_5_palindrome = dna_complementary((j_choice.value[:-j_5_del.value])[::-1])
+            else:
+                j_ini = j_5_del.value
+
+            str_J_segment = str_j_5_palindrome + j_choice.value[j_ini:j_end]
+
+            str_VD_segment = "".join(vd_dinucl.value)
+            str_DJ_segment = "".join(dj_dinucl.value[::-1])
+
+            if (v_anchor > v_end) or (j_anchor < j_ini):
+                return np.NaN
+            else:
+                str_sequence = str_V_segment[
+                               v_anchor:] + str_VD_segment + str_D_segment + str_DJ_segment + str_J_segment[:j_anchor]
+                if len(str_sequence) % 3 == 0:
+                    return dna_translate(str_sequence)
+                else:
+                    return np.NaN
+        except Exception as e:
+            return None
+
+    def get_VDJ_CDR3_from_df_scenario(self, df_scenario):
+        return self.get_observable_from_df_scenarios(self.get_VDJ_CDR3_from_scenario, df_scenario)
+
+
+
 
 
 class IgorScenario:
-    def __init__(self):
-        self.seq_index = -1
-        self.scenario_rank = -1
-        self.scenario_proba_cond_seq = -1
+    def __init__(self, seq_index:Union[None, int]=None,
+                 scenario_rank:Union[None, int]=None,
+                 scenario_proba_cond_seq:Union[None, int]=None,
+                 realizations_ids_dict:Union[None, dict]=None):
+        if seq_index is None:
+            self.seq_index = -1
+        else:
+            self.seq_index = seq_index
+
+        if scenario_rank is None:
+            self.scenario_rank = -1
+        else:
+            self.scenario_rank = scenario_rank
+
+        if scenario_proba_cond_seq is None:
+            self.scenario_proba_cond_seq = -1
+        else:
+            self.scenario_proba_cond_seq = scenario_proba_cond_seq
+
+        if realizations_ids_dict is None:
+            self.realizations_ids_dict = dict()
+        else:
+            self.realizations_ids_dict = realizations_ids_dict
+
         # self.events_ordered_list = list()
-        self.realizations_ids_dict = dict()
+
         # given a templated list with ids
         self.mdl = None
         # self.mdl.parms.Event_dict[strEv].loc[self.id_d_gene]['name']
@@ -4465,7 +4872,6 @@ class IgorScenario:
         header_line = "seq_index;scenario_rank;scenario_proba_cond_seq;GeneChoice_V_gene_Undefined_side_prio7_size35;GeneChoice_J_gene_Undefined_side_prio7_size14;GeneChoice_D_gene_Undefined_side_prio6_size2;Deletion_V_gene_Three_prime_prio5_size21;Deletion_D_gene_Five_prime_prio5_size21;Deletion_D_gene_Three_prime_prio5_size21;Deletion_J_gene_Five_prime_prio5_size23;Insertion_VD_genes_Undefined_side_prio4_size31;DinucMarkov_VD_genes_Undefined_side_prio3_size16;Insertion_DJ_gene_Undefined_side_prio2_size31;DinucMarkov_DJ_gene_Undefined_side_prio1_size16;Mismatches"
         header_fields = header_line.split(";")
         events_list = header_fields[3:]
-        print("hoajs")
 
     # FIXME:
     @classmethod
@@ -4497,6 +4903,23 @@ class IgorScenario:
                     cls.realizations_ids_dict[col_name] = eval(sqlRecordScenario[ii])
 
         return cls
+
+    @classmethod
+    def load_from_dict(self, dicto):
+        dicto_copy = dicto.copy()
+        cls = IgorScenario()
+        if 'seq_index' in dicto_copy:
+            cls.seq_index = dicto_copy['seq_index']
+            dicto_copy.pop('seq_index')
+        if 'scenario_rank' in dicto_copy:
+            cls.scenario_rank = dicto_copy['scenario_rank']
+            dicto_copy.pop('scenario_rank')
+        if 'scenario_proba_cond_seq' in dicto_copy:
+            cls.scenario_proba_cond_seq = dicto_copy['scenario_proba_cond_seq']
+            dicto_copy.pop('scenario_proba_cond_seq')
+        cls.realizations_ids_dict = dicto_copy
+        return cls
+
 
     def export_to_AIRR_line(self, scenario_col_list: list, sep='\t'):
         str_line = ""
@@ -4859,9 +5282,15 @@ class IgorTask:
                                      fln_V_gene_CDR3_anchors= self.fln_V_gene_CDR3_anchors,
                                      fln_J_gene_CDR3_anchors= self.fln_J_gene_CDR3_anchors)
             else:
-                self.mdl = IgorModel.load_default(self.igor_species, igor_option_path_dict[self.igor_chain])
+                try:
+                    # self.mdl = IgorModel.load_default(self.igor_species, igor_option_path_dict[self.igor_chain])
+                    self.mdl = IgorModel.load_default(self.igor_species, self.igor_chain)
+                except KeyError as ke:
+                    self.mdl = IgorModel.load_default(self.igor_species, igor_option_path_dict[self.igor_chain])
+                except Exception as e:
+                    raise e
 
-            print("Model loaded")
+            # print("Model loaded")
         except Exception as e:
             e_message = "WARNING: IgorTask.load_IgorModel" + str(self)
             import sys
@@ -4900,7 +5329,7 @@ class IgorTask:
             return self.mdl
 
     @classmethod
-    def default_model(cls, specie, chain, igor_wd=None, model_parms_file=None, model_marginals_file=None):
+    def default_model(cls, specie, chain, igor_wd=None, model_parms_file=None, model_marginals_file=None, **kwargs):
         """Return an IgorTask object"""
         try:
             cls = IgorTask()
@@ -5430,6 +5859,12 @@ class IgorTask:
 
             # with tempfile.TemporaryDirectory(prefix='igor_generating_', dir='.') as tmp_generate_dirname:
             #     self.igor_wd = tmp_generate_dirname
+            if (igor_species is not None) and (igor_chain is not None):
+                try:
+                    self.mdl = IgorModel.load_default(igor_species, igor_chain)
+                except Exception as e:
+                    raise e
+
             if mdl is not None:
                 self.mdl = mdl
 
@@ -5454,10 +5889,24 @@ class IgorTask:
                 self._run_clean_batch_mdldata()
                 # self.run_clean_batch()
 
+    def get_dataframe_from_fln_generated_seqs_werr(self, igor_fln_generated_seqs_werr=None):
+        if igor_fln_generated_seqs_werr is not None:
+            self.igor_fln_generated_seqs_werr = igor_fln_generated_seqs_werr
 
+        return get_dataframe_from_fln_generated_seqs_werr(self.igor_fln_generated_seqs_werr)
+
+    def get_dataframe_from_fln_generated_realizations_werr(self, igor_fln_generated_realizations_werr=None,
+                                                           mdl:Union[None, IgorModel]=None):
+        if igor_fln_generated_realizations_werr is not None:
+            self.igor_fln_generated_realizations_werr = igor_fln_generated_realizations_werr
+
+        if mdl is not None:
+            self.mdl = mdl
+
+        return self.mdl.get_dataframe_from_fln_generated_realizations_werr(self.igor_fln_generated_realizations_werr)
 
     def evaluate(self, input_sequences: Union[str, pd.DataFrame, np.ndarray, Path],
-                 N_scenarios = None, mdl:IgorModel = None, igor_wd=None, clean_batch=True):
+                 N_scenarios = None, mdl:IgorModel = None, igor_wd=None, clean_batch=True, airr_format=True):
         """
         Return evaluation of sequences
         """
@@ -5489,9 +5938,6 @@ class IgorTask:
             self.update_batch_filenames()
             self.mdl.write_mdldata_dir(path_mdl_data)
 
-            # 3. Write Sequences in file if file not exist
-            write_sequences_to_file(input_sequences, fln_input_sequences)
-
             # 5. Run evaluate model
             self._run_evaluate(igor_read_seqs=fln_input_sequences, N_scenarios=N_scenarios)
 
@@ -5508,10 +5954,14 @@ class IgorTask:
                 self.load_db_from_pgen()
 
                 base_fln_output = self.igor_fln_db.split(".db")[0]
-                output_fln_prefix = base_fln_output
+                output_fln_prefix = base_fln_output + "_rearrangement"
                 output_fln_airr = output_fln_prefix + ".tsv"
-                self.igor_db.export_IgorBestScenarios_to_AIRR(output_fln_airr)
-                pd_airr_rearrangement = pd.read_csv(output_fln_airr, sep='\t')
+                if airr_format:
+                    self.igor_db.export_IgorBestScenarios_to_AIRR(output_fln_airr)
+                    pd_airr_rearrangement = pd.read_csv(output_fln_airr, sep='\t')
+                else:
+                    pd_airr_rearrangement = self.mdl.get_dataframe_from_fln_generated_realizations_werr(
+                        self.igor_fln_output_scenarios)
             except Exception as e:
                 raise e
 
@@ -5523,7 +5973,7 @@ class IgorTask:
             tmp_evaluate_dir.cleanup()
             if clean_batch:
                 self.run_clean_batch()
-        pass
+
 
     def infer(self, input_sequences: Union[None, str, Path, pd.DataFrame, np.array, list] = None,
               model: Union[None, str, Path, IgorModel, IgorModel_Parms] = None,
@@ -5856,6 +6306,9 @@ class IgorTask:
     def create_db(self, igor_fln_db=None):
         if igor_fln_db is not None:
             self.igor_fln_db = igor_fln_db
+        if self.igor_fln_db is None:
+            # Generate it using batchname
+            self.igor_fln_db = self.igor_batchname + ".db"
         self.igor_db = IgorSqliteDB.create_db(self.igor_fln_db)
 
     def load_db_from_indexed_sequences(self, igor_fln_indexed_sequences=None):
@@ -6366,6 +6819,21 @@ class IgorTask:
         # open(igor_fln_output_scenarios)
         # 2.
         pass
+
+    def get_dataframe_scenarios(self, igor_fln_output_scenarios:Union[None, str]=None,
+                                                           mdl:Union[None, IgorModel]=None):
+        try:
+            if igor_fln_output_scenarios is None:
+                igor_fln_output_scenarios = self.igor_fln_output_scenarios
+
+            if mdl is not None:
+                self.mdl = mdl
+
+            return self.mdl.get_dataframe_from_fln_generated_realizations_werr(
+                self.igor_fln_output_scenarios)
+
+        except Exception as e:
+            raise e
 
 
 ### IGOR BEST SCENARIOS VDJ ###
@@ -7108,7 +7576,9 @@ class IgorBestScenariosVDJ:
 
 #####################################################################################
 
-def generate(Nseqs, mdl:IgorModel, igor_wd=None, igor_batchname=None, clean_batch=True):
+def generate(Nseqs, mdl:IgorModel, igor_wd=None, igor_batchname=None,
+             seed=None,
+             clean_batch=True):
     """Return pandas dataframe with generated sequences Only sequences, not scenarios"""
     try:
         tmp_generate_dir = tempfile.TemporaryDirectory(prefix='igor_generating_', dir='.')
@@ -7116,6 +7586,11 @@ def generate(Nseqs, mdl:IgorModel, igor_wd=None, igor_batchname=None, clean_batc
             igor_wd = tmp_generate_dir.name
 
         task = IgorTask(mdl=mdl, igor_wd=igor_wd, igor_batchname=igor_batchname)
+
+        if seed is not None:
+            task.igor_generate_dict_options['--seed']['active'] = True
+            task.igor_generate_dict_options['--seed']['value'] = str(seed)
+
         pd_sequences = task.generate(N_seqs=Nseqs, clean_batch=clean_batch)
 
     except Exception as e:
@@ -7210,7 +7685,7 @@ def infer(input_sequences:Union[str, pd.DataFrame, np.ndarray, Path],
 
 
 def evaluate(input_sequences:Union[str, pd.DataFrame, np.ndarray, Path],
-             mdl:IgorModel, N_scenarios=None, igor_wd=None, batch_clean=True):
+             mdl:IgorModel, N_scenarios=None, igor_wd=None, airr_format=True, batch_clean=True):
     """
     Evaluate input sequences with provided model
     :param input_sequences:Union[str, pd.DataFrame, np.ndarray, Path]
@@ -7254,25 +7729,34 @@ def evaluate(input_sequences:Union[str, pd.DataFrame, np.ndarray, Path],
         # 5. Run evaluate model
         task._run_evaluate(igor_read_seqs=fln_input_sequences, N_scenarios=N_scenarios)
 
-        # Save evaluations in database
-        try:
-            task.create_db()
-            task.load_db_from_indexed_sequences()
-            task.load_db_from_indexed_cdr3()
-            task.load_db_from_genomes()
-            task.load_db_from_alignments()
-            task.load_IgorModel()
-            task.load_db_from_models()
-            task.load_db_from_bestscenarios()
-            task.load_db_from_pgen()
+        if airr_format:
+            # Save evaluations in database
+            try:
+                task.create_db()
+                task.load_db_from_indexed_sequences()
+                task.load_db_from_indexed_cdr3()
+                task.load_db_from_genomes()
+                task.load_db_from_alignments()
+                task.load_IgorModel()
+                task.load_db_from_models()
+                task.load_db_from_bestscenarios()
+                task.load_db_from_pgen()
 
-            base_fln_output = task.igor_fln_db.split(".db")[0]
-            output_fln_prefix = base_fln_output
-            output_fln_airr = output_fln_prefix + ".tsv"
-            task.igor_db.export_IgorBestScenarios_to_AIRR(output_fln_airr)
-            pd_airr_rearrangement = pd.read_csv(output_fln_airr, sep='\t')
-        except Exception as e:
-            raise e
+                base_fln_output = task.igor_fln_db.split(".db")[0]
+                output_fln_prefix = base_fln_output
+                output_fln_airr = output_fln_prefix + ".tsv"
+                task.igor_db.export_IgorBestScenarios_to_AIRR(output_fln_airr)
+                pd_airr_rearrangement = pd.read_csv(output_fln_airr, sep='\t')
+            except Exception as e:
+                raise e
+
+        else:
+            try:
+                pd_airr_rearrangement = task.mdl.get_dataframe_from_fln_generated_realizations_werr(
+                    task.igor_fln_output_scenarios)
+            except Exception as e:
+                raise e
+
     except Exception as e:
         raise e
     else:

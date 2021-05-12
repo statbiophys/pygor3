@@ -440,6 +440,13 @@ def get_df_anchors_from_df_ref_genome(df_ref_genome):
 
     return df_tmp_ref_genome.copy()
 
+
+def get_df_normalize_prob(df_scenarios):
+    """Get a series with the normalize probabilities using scenario_proba_cond_seq"""
+    len_df = len(df_scenarios.groupby('seq_index'))
+    return df_scenarios.groupby('seq_index')['scenario_proba_cond_seq'].transform(
+        lambda x: x / (len_df * x.sum()))
+
 # // A, C, G, T, R, Y, K, M, S, W, B, D, H, V, N
 heavy_pen_nuc44_vect = [
 5, -14, -14, -14, -14, 2, -14, 2, 2, -14, -14, 1, 1, 1, 0,
@@ -638,3 +645,8 @@ def get_gene_segment(str_gene_template, int_gene_5_del=None, int_gene_3_del=None
 def dna_complementary(str_seq):
     from Bio.Seq import Seq
     return str(Seq(str_seq).complement())
+
+
+def dna_translate(str_seq):
+    from Bio.Seq import Seq
+    return str(Seq(str_seq).translate())
