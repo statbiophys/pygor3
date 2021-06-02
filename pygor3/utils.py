@@ -650,3 +650,173 @@ def dna_complementary(str_seq):
 def dna_translate(str_seq):
     from Bio.Seq import Seq
     return str(Seq(str_seq).translate())
+
+
+
+def from_df_scenario_aln_to_da_scenario_aln(df_scenario_aln, dict_id_2_nt:Union[None, dict]=None):
+    """
+    Return a numpy array with the dict_id_2_nt dictionary
+    :param df_scenario_aln: IgorModel.get_df_scenario_aln_from_scenario(ps_scenario) output for a scenario.
+    :param dict_id_2_nt: Default dictionary {-1: '-', 0: 'A', 1: 'C', 2: 'G', 3: 'T'}
+    :return : numpy array with the values defined from dictionary ready to plot using imshow, matplot, etc.
+    """
+    try:
+        nrows = len(df_scenario_aln.index)
+        ncols = df_scenario_aln.aln_scenario_len
+        aln_scenario_np = -np.ones((nrows, ncols))
+        if dict_id_2_nt is None:
+            from .IgorDefaults import Igor_dict_id_2_nt
+            dict_id_2_nt = Igor_dict_id_2_nt # mdl.parms['vd_dinucl']['value'].to_dict()
+
+        dict_nt_2_id = {v: k for k, v in dict_id_2_nt.items()}
+        for ii, row in df_scenario_aln.iterrows():
+            # add a map with a dictionary defined
+            np_gene_segment = np.array(list(map(lambda nt: dict_nt_2_id[nt], list(row['gene_segment']))))
+            aln_ini_gene_segment = row['offset']
+            aln_end_gene_segment = row['offset'] + len(row['gene_segment'])
+            aln_scenario_np[ii, aln_ini_gene_segment:aln_end_gene_segment] = np_gene_segment
+
+        list_cols_4_alignment = ["segment_description", "gene_description", "offset", "palindrome_5_end", "gene_ini",
+                                 "gene_end", "gene_cut", "palindrome_3_end", "gene_segment"]
+
+        da_scenario_aln = xr.DataArray(aln_scenario_np, dims=('segment', 'nucleotide'),
+                                       coords={
+                                           "segment_description": ('segment', df_scenario_aln["segment_description"].values),
+                                           "gene_description": ('segment', df_scenario_aln["gene_description"].values),
+                                           "palindrome_5_end": ('segment', df_scenario_aln["palindrome_5_end"].values),
+                                           "gene_ini": ('segment', df_scenario_aln["gene_ini"].values),
+                                           "gene_end": ('segment', df_scenario_aln["gene_end"].values),
+                                           "gene_cut": ('segment', df_scenario_aln["gene_cut"].values),
+                                           "palindrome_3_end": ('segment', df_scenario_aln["palindrome_3_end"].values),
+                                           "gene_segment": ('segment', df_scenario_aln["gene_segment"].values),
+                                           "offset": ('segment', df_scenario_aln["offset"].values)
+                                       },
+                                       attrs={
+                                           "anchors_CDR3": (df_scenario_aln.aln_pos_V_anchor, df_scenario_aln.aln_pos_J_anchor),
+                                           "dict_id_2_nt" : dict_id_2_nt
+                                       }
+                                       )
+        # da_mi = xr.DataArray(data_0, dims=('x', 'y'), coords={'x': event_lista_nicknames, 'y': event_lista_nicknames})
+
+        # print(df_scenario_aln["gene_description"].values)
+        # print(da_scenario_aln)
+        #
+        # df_scenario_aln.aln_scenario_len
+        # df_scenario_aln.aln_pos_V_anchor
+        # df_scenario_aln.aln_pos_J_anchor
+
+        return da_scenario_aln #aln_scenario_np
+    except Exception as e:
+        raise e
+
+
+def plot_scenario_from_da_scenario_aln(da_scenario_aln, nt_lim:Union[None,tuple,list]=None, show_CDR3=True):
+    """
+    Returns a fig and ax with the recombination scenario
+    :param da_scenario_aln: Xarray DataArray with the scenario alignment matrix in convention to plot
+    """
+
+    # da_scenario_aln = from_df_scenario_aln_to_np_aln_scenario(df_scenario_aln)
+    aln_scenario_np = da_scenario_aln.values
+
+    import matplotlib as mpl
+    import matplotlib.pyplot as plt
+    from matplotlib.ticker import MaxNLocator
+
+    cmap_dna = mpl.colors.ListedColormap(['white', '#fcff92', '#70f970', '#ff99b1', '#4eade1'])
+
+    # fig, ax = plt.subplots(figsize=(40, 40))
+
+    # ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+    # ax.set_aspect('equal')
+
+    fig, ax = plt.subplots(figsize=(20, 10))
+    ax.imshow(aln_scenario_np, cmap=cmap_dna, vmin=-1.5, vmax=3.5)
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+
+    anchors_CDR3_ini = da_scenario_aln.attrs["anchors_CDR3"][0]
+    anchors_CDR3_end = da_scenario_aln.attrs["anchors_CDR3"][1]
+
+    if show_CDR3:
+        if anchors_CDR3_ini is not None:
+            ax.axvline(anchors_CDR3_ini - 0.5)
+            xlim_ini = anchors_CDR3_ini - 3.5
+        else:
+            xlim_ini = 0
+
+        if anchors_CDR3_end is not None:
+            ax.axvline(anchors_CDR3_end - 0.5)
+            xlim_end = anchors_CDR3_end + 2.5
+        else:
+            xlim_end = da_scenario_aln['nucleotide'].size
+
+    if nt_lim is not None:
+        xlim_ini = nt_lim[0]
+        xlim_end = nt_lim[1]
+
+    ax.set_xlim(xlim_ini, xlim_end)
+
+    from .IgorDefaults import Igor_dict_id_2_nt
+    dict_id_2_nt = Igor_dict_id_2_nt
+    dict_4_lbls = dict_id_2_nt.copy()
+    dict_4_lbls[-1] = ''
+    for i in range(aln_scenario_np.shape[0]):
+        for j in range(int(xlim_ini + 0.5), int(xlim_end + 0.5)):  # aln_scenario_np.shape[1]):
+            text = ax.text(j, i, dict_4_lbls[aln_scenario_np[i, j]], ha="center", va="center", color="gray")
+
+    ax.set_yticks(np.arange(len(da_scenario_aln['gene_description'].values)))
+    ax.set_yticklabels(da_scenario_aln['gene_description'].values)
+    return fig, ax
+
+# def func_D_KL(p_x_y, p_x, p_y):
+#     logxy_x_y = np.log(p_x_y / (p_x * p_y))
+#     if logxy_x_y == -np.inf or logxy_x_y == np.nan:
+#         logxy_x_y = 0
+#     return p_x_y*logxy_x_y
+
+
+def ufunc_log_pxy_over_px_py(p_xy, p_x, p_y):
+    if p_xy == (p_x * p_y):# to avoid 0/0 division
+        return np.log2(1) #0
+    else:
+        # print('xy != x*y :', xy, x, y, x * y, xy / (x * y))
+        # if (p_x == 0 or p_y==0):
+        #     print('xy != x*y :', p_xy, p_x, p_y, p_x * p_y, p_xy / (p_x * p_y))
+        r = p_xy / (p_x * p_y)
+        return np.log2(r)
+
+def get_D_KL_from_xarray(da_P_X_Y, da_P_X, da_P_Y):
+    """
+    base 10 : Mutual information of
+    I_matrix = xr.apply_ufunc(func_D_KL, P_X_Y, P_X, P_Y)
+    return I_matrix.sum()
+    """
+    da_log2 = xr.zeros_like(da_P_X_Y)
+    import itertools
+    str_dim_x = da_P_X_Y.dims[0]
+    str_dim_y = da_P_X_Y.dims[1]
+    for realiz_id_x, realiz_id_y in itertools.product(da_P_X_Y[str_dim_x], da_P_X_Y[str_dim_y]):
+        p_xy = da_P_X_Y.loc[{str_dim_x:realiz_id_x, str_dim_y:realiz_id_y}]
+        p_x = da_P_X.loc[{str_dim_x: realiz_id_x}]
+        p_y = da_P_Y.loc[{str_dim_y: realiz_id_y}]
+        log_p_xy_over_p_x_p_y = ufunc_log_pxy_over_px_py(p_xy, p_x, p_y)
+        da_log2.loc[{str_dim_x: realiz_id_x, str_dim_y: realiz_id_y}] = log_p_xy_over_p_x_p_y
+        # da_log2.loc[{str_dim_x:realiz_id_x, str_dim_y:realiz_id_y}] =
+    print("da_log2: ", da_log2)
+    print("da_P_X_Y: ", da_P_X_Y)
+    mutual_information = xr.dot(da_P_X_Y, da_log2)
+    print("mutual_information (", str_dim_x, ", ", str_dim_y, "): ", mutual_information)
+    return mutual_information
+
+    # ufunc_log_pxy_over_px_p = lambda xy, x, y: np.log2(xy / (x * y))
+    log_Pxy_over_Px_Py = xr.apply_ufunc(ufunc_log_pxy_over_px_py, da_P_X_Y, da_P_X, da_P_Y, vectorize=True)
+    # log_Pxy_over_Px_Py
+    # print(log_Pxy_over_Px_Py)
+    # print(np.nan_to_num(log_Pxy_over_Px_Py.values))
+
+
+    log_Pxy_over_Px_Py.values = np.nan_to_num(log_Pxy_over_Px_Py.values, neginf=0, nan=0)
+    # print(log_Pxy_over_Px_Py)
+    mutual_information = xr.dot(da_P_X_Y, log_Pxy_over_Px_Py)
+    return mutual_information
+

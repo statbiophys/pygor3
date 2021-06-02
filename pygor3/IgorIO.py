@@ -1344,11 +1344,23 @@ class IgorRec_Event:
         return tmp
 
     def get_realization_DataFrame(self):
-        """ return an Event realizations as a pandas DataFrame to manipulate it.
-
+        """ Return an Event realizations as a pandas DataFrame with id, value and name columns
+        and attributes
+        - event_type
+        - seq_type
+        - seq_side
+        - priority
+        - NOT event name, because conflicts with pandas dataframe name
+        - nickname
         """
         try:
-            return pd.DataFrame.from_records([realiz.to_dict() for realiz in self.realizations], index='id').sort_index()
+            df_event = pd.DataFrame.from_records([realiz.to_dict() for realiz in self.realizations], index='id').sort_index()
+            df_event.event_type = self.event_type
+            df_event.seq_type = self.seq_type
+            df_event.seq_side = self.seq_side
+            df_event.priority = self.priority
+            df_event.nickname = self.nickname
+            return df_event
         except Exception as e:
             raise e
 
@@ -3213,6 +3225,10 @@ class IgorModel:
         return factors
 
     def VE_get_Pmarginal_of_event(self, strEvent):
+        """
+        Variable elimination to get probabily marginals of event strEvent
+        :parm strEvent: event nickname
+        """
         # FIXME: use xdata instead of self.parms
         sorted_events = self.parms.get_Event_list_sorted()
         sorted_events_to_marginalize = [event for event in sorted_events if not event.event_type == "DinucMarkov"]
@@ -3241,6 +3257,94 @@ class IgorModel:
                 self.Pmarginal[key] = darray
             else:
                 self.Pmarginal[key] = self.VE_get_Pmarginal_of_event(key)
+
+    def get_P_joint(self, not_sum_out_nickname_list:list):
+        """
+        Return xarray DataArray of the joint probability of nickname event list
+        :param not_sum_out_nickname_list: list of nickname events to get
+        the probability joint distribution. DinucMarkov events not accepted.
+        """
+        try:
+            # TODO: CHECK THAT NO DINUCMARKOV EVENT PRESENT IN not_not_sum_out_nickname_list
+            # use all or any
+            sorted_events = self.parms.get_Event_list_sorted()
+            # print(list(map(lambda x: x.nickname, sorted_events)))
+            # not_sum_out_nickname_list = ['j_choice', 'd_gene']  # Events to get joint distribution
+            sorted_nicknames_to_sum_out = [event.nickname for event in sorted_events if (
+                        not event.event_type == "DinucMarkov" and not event.nickname in not_sum_out_nickname_list)]
+
+            factors = self.VE_get_Pmarginals_initial_factors()
+            for event_nickname_to_eliminate in sorted_nicknames_to_sum_out:
+                factors = self.VE_get_factors_by_sum_out_variable(event_nickname_to_eliminate, factors)
+
+            # Now multiply the remaining factors to get the marginal.
+            P_joint = 1
+            for factor in factors:
+                P_joint = P_joint * factor
+
+            return P_joint
+        except Exception as e:
+            raise e
+
+
+    def get_mutual_information_events(self, event_nickname1, event_nickname2):
+        """ Return xarray with
+        """
+        try:
+            da_P_x_y = self.get_P_joint([event_nickname1, event_nickname2])
+            da_P_x = self.Pmarginal[event_nickname1]
+            da_P_y = self.Pmarginal[event_nickname2]
+            return get_D_KL_from_xarray(da_P_x_y, da_P_x, da_P_y)
+        except Exception as e:
+            raise e
+
+    def get_mutual_information(self):
+        """
+        Return xarray with mutual information
+        """
+        # sorted_events = self.parms.get_Event_list_sorted()
+        # GeneChoice_list = [event for event in sorted_events if event.event_type == 'GeneChoice']
+        # Insertion_list = [event for event in sorted_events if event.event_type == 'Insertion']
+        # Deletion_list = [event for event in sorted_events if event.event_type == 'Deletion']
+        # DinucMarkov_list = [event for event in sorted_events if event.event_type == 'DinucMarkov']
+        # events_no_DinucMarkov = [event for event in sorted_events if not event.event_type == 'DinucMarkov']
+
+        dict_nickname_event_type = self.parms.get_event_dict('nickname', 'event_type')
+        dict_events = {key: val for key, val in dict_nickname_event_type.items() if val != 'DinucMarkov'}
+        event_lista_nicknames = list(dict_events.keys())
+        data_0 = np.zeros((len(event_lista_nicknames), len(event_lista_nicknames)))
+        da_mi = xr.DataArray(data_0, dims=('x', 'y'), coords={'x': event_lista_nicknames, 'y': event_lista_nicknames})
+        da_mi.name = 'mutual_information'
+
+
+        import itertools
+        for event_nickname_x, event_nickname_y in itertools.product(event_lista_nicknames, event_lista_nicknames):
+
+            if event_nickname_x != event_nickname_y:
+                mi = self.get_mutual_information_events(event_nickname_x, event_nickname_y)
+                # da_mi.loc[{"x": event_nickname_x, "y": event_nickname_y}] = mi
+            else:
+                mi = 0
+            da_mi.loc[{"x": event_nickname_x, "y": event_nickname_y}] = mi
+            # print(event_nickname_x, event_nickname_y, mi)
+        return da_mi
+
+
+    def get_entropy_event(self, event_nickname):
+        """
+
+        """
+        log2_Pmarginal = np.log2(self.Pmarginal[event_nickname])
+        log2_Pmarginal.values = np.nan_to_num(log2_Pmarginal.values, neginf=0)
+        da_entropy = xr.dot(self.Pmarginal[event_nickname], log2_Pmarginal)
+        return da_entropy
+
+    def get_entropy_decomposition(self):
+        pass
+
+    @staticmethod
+    def get_cross_entropy(self):
+        pass
 
     # # FIXME: MAKE IT GENERAL
     # def generate_Pmarginals(self):
@@ -3975,6 +4079,9 @@ class IgorModel:
             events_set.add(event.nickname)
         return list(events_set)
 
+    def get_sorted_events_nicknames_list(self):
+        return [ event.nickname for event in mdl.parms.get_Event_list_sorted()]
+
     # PLOTS:
     def plot_Bayes_network(self, filename=None):
         if filename is None:
@@ -4201,6 +4308,194 @@ class IgorModel:
         except Exception as e:
             raise e
         # self.write_ref_genome(**fln_dict)
+
+    def get_nicknames_for_gene_segment(self, strGene):
+        """
+        Return tuple ('GeneChoice_nickname', 'Five_prime_nickname', 'Three_prime_nickname')
+        to be used to construct a scenario sequence with the function get_gene_segment
+        :param strGene: V, D or J are only accepted.
+        """
+        if strGene in ['V', 'D', 'J']:
+            str_seq_type = str(strGene).upper() + "_gene"
+            list_seq_type_events = [event for event in self.parms.Event_list if event.seq_type == str_seq_type]
+            # separate GeneChoice and Deletion
+            str_event_type = 'GeneChoice'
+            list_event_type_GeneChoice = [event for event in list_seq_type_events if event.event_type == str_event_type]
+            event_nickname_GeneChoice = list_event_type_GeneChoice[
+                0].nickname  # in principle is only 1, but for future extensions could be 2 (D gene)
+
+            str_event_type = 'Deletion'
+            list_event_type_Deletion = [event for event in list_seq_type_events if event.event_type == str_event_type]
+
+            # 5 prime
+            str_seq_side = 'Five_prime'
+            list_seq_side_Five_prime = [event for event in list_event_type_Deletion if event.seq_side == str_seq_side]
+            if len(list_seq_side_Five_prime) > 0:
+                event_nickname_Five_prime = list_seq_side_Five_prime[0].nickname
+            else:
+                event_nickname_Five_prime = None
+            # 3 prime
+            str_seq_side = 'Three_prime'
+            list_seq_side_Three_prime = [event for event in list_event_type_Deletion if event.seq_side == str_seq_side]
+            if len(list_seq_side_Three_prime) > 0:
+                event_nickname_Three_prime = list_seq_side_Three_prime[0].nickname
+            else:
+                event_nickname_Three_prime = None
+
+            return event_nickname_GeneChoice, event_nickname_Five_prime, event_nickname_Three_prime
+
+        elif strGene in ['VD']:
+            # FIXME: THIS SHOULD BE FIX IN IGOR FOR VD, but is too late to change it!!!!
+            str_seq_type = str(strGene).upper() + "_genes"
+            list_seq_type_events = [event for event in self.parms.Event_list if event.seq_type == str_seq_type]
+            # separate GeneChoice and Deletion
+            str_event_type = 'DinucMarkov'
+            list_event_type_DinucMarkov = [event for event in list_seq_type_events if event.event_type == str_event_type]
+            event_nickname_DinucMarkov = list_event_type_DinucMarkov[0].nickname
+            return event_nickname_DinucMarkov
+        elif strGene in ['DJ', 'VJ']:
+            str_seq_type = str(strGene).upper() + "_gene"
+            list_seq_type_events = [event for event in self.parms.Event_list if event.seq_type == str_seq_type]
+            # separate GeneChoice and Deletion
+            str_event_type = 'DinucMarkov'
+            list_event_type_DinucMarkov = [event for event in list_seq_type_events if
+                                           event.event_type == str_event_type]
+            event_nickname_DinucMarkov = list_event_type_DinucMarkov[0].nickname
+            return event_nickname_DinucMarkov
+
+    def get_gene_segment_dict(self, strGene:str, ps_scenario:pd.Series):
+        """Return cuted gene or expanded with palidromic insertions for a scenario
+        :param strGene: 'V', 'D', 'J', 'VD', 'DJ', or 'VJ'
+        :param ps_scenario: scenario as a pandas Series.
+        """
+        if strGene in ['V', 'D', 'J']:
+            tuple_nickname_gene_segment = self.get_nicknames_for_gene_segment(strGene)
+            list_realization_value = list()
+            str_description = ""
+            for ev_nickname in tuple_nickname_gene_segment:
+                if ev_nickname is None:
+                    list_realization_value.append(None)
+                else:
+                    ev_realiz = self.realization(ps_scenario, ev_nickname)
+                    list_realization_value.append(ev_realiz.value)
+                    str_description = str_description + ev_realiz.name + " ("+ ev_nickname+": " + str(ev_realiz.id) + ")"
+
+            str_gene_template = list_realization_value[0]
+            int_gene_5_del = list_realization_value[1]
+            int_gene_3_del = list_realization_value[2]
+            gene_segment_dict = get_gene_segment(str_gene_template, int_gene_5_del=int_gene_5_del,
+                                                 int_gene_3_del=int_gene_3_del)
+
+            if not int_gene_5_del is None:
+                str_description = str_description + ", 5'del : " + str(int_gene_5_del)
+
+            if not int_gene_3_del is None:
+                str_description = str_description + ", 3'del : " + str(int_gene_3_del)
+            gene_segment_dict['gene_description'] = str_description
+
+            return gene_segment_dict
+        elif strGene in ['VD', 'VJ']:
+            nickname_dinucl = self.get_nicknames_for_gene_segment(strGene)
+            ev_realiz_dinucl = self.realization(ps_scenario, nickname_dinucl)
+            dinucl_segment_dict = collections.OrderedDict()
+
+            dinucl_segment_dict['gene_segment'] = "".join(ev_realiz_dinucl.value)
+            dinucl_segment_dict['gene_description'] = strGene +", ins: "+ str(len(ev_realiz_dinucl.value))
+
+            return dinucl_segment_dict
+        elif strGene in ['DJ']:
+            nickname_dinucl = self.get_nicknames_for_gene_segment(strGene)
+            ev_realiz_dinucl = self.realization(ps_scenario, nickname_dinucl)
+            dinucl_segment_dict = collections.OrderedDict()
+
+            dinucl_segment_dict['gene_segment'] = "".join(ev_realiz_dinucl.value[::-1])
+            dinucl_segment_dict['gene_description'] = strGene +", ins: "+ str(len(ev_realiz_dinucl.value))
+
+            return dinucl_segment_dict
+        else:
+            return None
+
+    def get_df_scenario_aln_from_scenario(self, ps_scenario):
+        """
+        Return a Dataframe with the informations need it to show an alignment from a scenario.
+        :param ps_scenario: Pandas Series (row from df_scenarios)
+        """
+        offset = 0
+        # TODO: MAKE THIS LIST A GLOBAL VARIBLE IN UTILS WITH A GOOD NAME.
+        list_cols_4_alignment = ["segment_description", "gene_description", "offset", "palindrome_5_end", "gene_ini",
+                                 "gene_end", "gene_cut", "palindrome_3_end", "gene_segment"]
+        df_scenario_aln = pd.DataFrame(columns=list_cols_4_alignment)
+        # FIXME: This is for VDJ, VJ is missing
+        VDJ_aln_list = ['V', 'VD', 'D', 'DJ', 'J']
+        VJ_aln_list = ['V', 'VJ', 'J']
+        if self.parms.event_GeneChoice_D is None:
+            choose_aln_list = VJ_aln_list
+        else:
+            choose_aln_list = VDJ_aln_list
+        for ii, strGene in enumerate(choose_aln_list):
+            ordered_dicto = self.get_gene_segment_dict(strGene, ps_scenario)
+            dicto = dict(ordered_dicto)
+            dicto['segment_description'] = strGene
+            dicto['offset'] = offset
+            # print(dicto)
+            df_scenario_aln.loc[ii] = dicto  # , ignore_index=True)
+            offset = offset + len(ordered_dicto['gene_segment'])
+
+        df_scenario_aln.aln_scenario_len = offset
+
+        V_offset = df_scenario_aln.loc[df_scenario_aln['segment_description'] == 'V'].offset.values[0]
+        J_offset = df_scenario_aln.loc[df_scenario_aln['segment_description'] == 'J'].offset.values[0]
+
+        try:
+            V_anchor = self.V_anchor(ps_scenario[self.parms.event_GeneChoice_V.nickname])
+            df_scenario_aln.aln_pos_V_anchor = V_offset + V_anchor
+        except Exception as e:
+            df_scenario_aln.aln_pos_V_anchor = None
+            print(e, "V anchor not found")
+            pass
+        try:
+            J_anchor = self.J_anchor(ps_scenario[self.parms.event_GeneChoice_J.nickname])
+            df_scenario_aln.aln_pos_J_anchor = J_offset + J_anchor
+        except Exception as e:
+            df_scenario_aln.aln_pos_J_anchor = None
+            print(e, "J anchor not found")
+            pass
+
+        # print(df_scenario_aln)
+        # print(df_scenario_aln.aln_pos_V_anchor)
+        # print(df_scenario_aln.aln_pos_J_anchor)
+        # print(df_scenario_aln.aln_scenario_len)
+        return df_scenario_aln
+
+    def write_df_scenario_aln_FASTA(self, fln_scenario_fasta, ps_scenario):
+        """
+        Write a scenario alignment in a fasta file.
+        :param fln_scenario_fasta: Filename to write align scenario
+        :param ps_scenario: Pandas Series scenario
+        """
+        with open(fln_scenario_fasta, 'w') as ofile:
+            df_scenario_aln = self.get_df_scenario_aln_from_scenario(ps_scenario)
+            for index, row in df_scenario_aln.iterrows():
+                ngaps_right = df_scenario_aln.aln_scenario_len - (row["offset"]  + len(row["gene_segment"]) )
+                fasta_desription = row["gene_description"]
+                fasta_sequence = '-'*row["offset"] + row["gene_segment"] + '-'*ngaps_right
+                ofile.write(">"+ fasta_desription+"\n")
+                ofile.write(fasta_sequence + "\n")
+
+    def plot_scenario(self, ps_scenario, nt_lim:Union[None,tuple,list]=None, show_CDR3=True):
+        """
+        Return matplotlib fig, ax
+        :param ps_scenario: Pandas Series scenario
+        :param nt_lim:Union[None,tuple,list] region limits to show the scenario alignment
+        default give boundaries around CDR3, if no anchors in model, show the whole scenario
+        :param show_CDR3: Show CDR3 lines default(=True)
+        """
+        df_scenario_aln = self.get_df_scenario_aln_from_scenario(ps_scenario)
+        da_scenario_aln = from_df_scenario_aln_to_da_scenario_aln(df_scenario_aln)
+        fig, ax = plot_scenario_from_da_scenario_aln(da_scenario_aln, nt_lim=nt_lim, show_CDR3=show_CDR3)
+        return fig, ax
+
+
 
 
     # FIXME: DEPRECATED
@@ -4602,6 +4897,10 @@ class IgorModel:
             id = ps_scenario[event_nickname]
             # FIXME: isinstance(id, pd.Series)
             realiz = self.parms.Event_dict[event_nickname].loc[id]
+
+            if isinstance(id, list):
+                return IgorEvent_realization.from_tuple(id, realiz.value.values, realiz.name.values)
+
             if isinstance(realiz, pd.DataFrame):
                 return IgorEvent_realization.from_tuple(id.values, realiz.value.values, realiz.name.values)
             else:
@@ -4632,10 +4931,16 @@ class IgorModel:
         Return Ordered dictionary of realization of scenario.
         """
         try:
+            # realizations_dict = collections.OrderedDict()
+            # for event_nickname in self.parms.Event_dict.keys():
+            #     realizations_dict[event_nickname] = self.realization(ps_scenario, event_nickname)
+            # return realizations_dict
+
             realizations_dict = collections.OrderedDict()
-            for event_nickname in self.parms.Event_dict.keys():
+            for event_nickname in [x.nickname for x in self.parms.get_Event_list_sorted()]:
                 realizations_dict[event_nickname] = self.realization(ps_scenario, event_nickname)
             return realizations_dict
+
             # return IgorEvent_realization.from_tuple(np.array(id), np.array(aver.value), np.array(aver.name))
         except Exception as e:
             raise e
@@ -4804,6 +5109,69 @@ class IgorModel:
 
     def get_VDJ_CDR3_from_df_scenario(self, df_scenario):
         return self.get_observable_from_df_scenarios(self.get_VDJ_CDR3_from_scenario, df_scenario)
+
+    def get_mutual_information_events_from_df_scenarios(self, df_scenarios, event_nickname_x, event_nickname_y):
+        """
+        Return mutual information in log10 of the desired events
+        """
+        P_x_y = self.get_P_from_scenarios_cols(df_scenarios, [event_nickname_x, event_nickname_y])
+        P_x = self.get_P_from_scenarios_cols(df_scenarios, [event_nickname_x])
+        P_y = self.get_P_from_scenarios_cols(df_scenarios, [event_nickname_y])
+        I_X_Y = get_D_KL_from_xarray(P_x_y, P_x, P_y)
+        return I_X_Y
+
+    def get_mutual_information_from_df_scenarios(self, df_scenarios):
+        """
+        Return an xarray with the information the mutual information calculated from scenarios dataframe
+        :param df_scenarios: Scenarios with normalize probability. Loaded with self.get_dataframe_scenarios()
+        """
+        try:
+            #self.get_sorted_events_nicknames_list()
+            dict_nickname_event_type = self.parms.get_event_dict('nickname', 'event_type')
+            dict_events = {key: val for key, val in dict_nickname_event_type.items() if val != 'DinucMarkov'}
+            event_lista_nicknames = list(dict_events.keys())
+            data_0 = np.zeros((len(event_lista_nicknames), len(event_lista_nicknames)))
+            da_mi = xr.DataArray(data_0, dims=('x', 'y'), coords={'x': event_lista_nicknames, 'y': event_lista_nicknames})
+            da_mi.name = 'mutual_information'
+
+            import itertools
+            for event_nickname_x, event_nickname_y in itertools.product(event_lista_nicknames, event_lista_nicknames):
+                if event_nickname_x != event_nickname_y:
+                    mi = self.get_mutual_information_events_from_df_scenarios(df_scenarios, event_nickname_x,
+                                                                             event_nickname_y)
+                    da_mi.loc[{"x": event_nickname_x, "y": event_nickname_y}] = mi
+                else:
+                    da_mi.loc[{"x": event_nickname_x, "y": event_nickname_y}] = 0.0
+                    # print(event_nickname_x, event_nickname_y, mi)
+            return da_mi
+        except Exception as e:
+            raise e
+        # P_x_y = self.get_P_from_scenarios_cols(df_scenarios, [event_nickname_x, event_nickname_y])
+        # P_x = self.get_P_from_scenarios_cols(df_scenarios, [event_nickname_x])
+        # P_y = self.get_P_from_scenarios_cols(df_scenarios, [event_nickname_y])
+
+    @staticmethod
+    def plot_mutual_information(da_mi, ax=None, **kwargs):
+        try:
+
+            da_mi_xticks = np.arange(len(da_mi.x))
+            da_mi_yticks = np.arange(len(da_mi.y))
+            if ax is None:
+                import matplotlib.pyplot as plt
+                fig, ax = plt.subplots(figsize=(10, 10))
+
+            da_mi.assign_coords(x=da_mi_xticks, y=da_mi_yticks).plot(ax=ax, cmap='gnuplot2_r')
+
+            ax.set_xticks(da_mi_xticks)
+            ax.set_yticks(da_mi_yticks)
+            ax.set_xticklabels(da_mi.x.values)
+            ax.set_yticklabels(da_mi.y.values)
+            ax.set_xlabel(None)
+            ax.set_ylabel(None)
+            ax.set_aspect('equal')
+            return ax
+        except Exception as e:
+            raise e
 
 
 

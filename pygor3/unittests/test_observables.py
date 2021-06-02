@@ -4,13 +4,293 @@ import subprocess
 import numpy as np
 import xarray
 import itertools
+import matplotlib as mpl
 import matplotlib.pyplot as plt
+from pygor3.utils import *
 
 class MyTestCase(unittest.TestCase):
-    def setUp(self) -> None:
-        self.mdl_hb = IgorModel.load_default("human", "tcr_beta")
-        N_seqs = 10
-        self.pd_input_sequences = generate(N_seqs, self.mdl_hb, seed=10)
+    # def setUp(self) -> None:
+    #     self.mdl_hb = IgorModel.load_default("human", "tcr_beta")
+    #     N_seqs = 10
+    #     self.pd_input_sequences = generate(N_seqs, self.mdl_hb, seed=10)
+
+    def test_realiz(self):
+        mdl = get_default_IgorModel("human", "tcr_beta")
+        fln_scenarios = "delete_me/ttmmpp_output/best_scenarios_counts.csv"
+        df_scenarios = mdl.get_dataframe_scenarios(fln_scenarios)
+
+        ps_scenario = df_scenarios.iloc[0]
+
+        event_nickname = 'vd_dinucl'
+        id_vd_dinucl = ps_scenario[event_nickname]
+        realiz_vd_dinucl = mdl.parms.Event_dict[event_nickname].loc[id_vd_dinucl]
+        print("realiz_vd_dinucl: ", type(realiz_vd_dinucl))
+        print(realiz_vd_dinucl)
+        if isinstance(id_vd_dinucl, pd.Series):
+            rrr = IgorEvent_realization.from_tuple(id_vd_dinucl.values, realiz_vd_dinucl.value.values, realiz_vd_dinucl.name.values)
+        else:
+            rrr = IgorEvent_realization.from_tuple(id_vd_dinucl, realiz_vd_dinucl.value.values,
+                                                   realiz_vd_dinucl.name.values)
+        print("rrr: ", type(rrr))
+        ppp = mdl.realization(ps_scenario, event_nickname)
+
+
+        event_nickname = 'v_choice'
+        id_v_choice = ps_scenario[event_nickname]
+        realiz_v_choice = mdl.parms.Event_dict[event_nickname].loc[id_v_choice]
+        print("realiz_v_choice: ", type(realiz_v_choice))
+        print(realiz_v_choice)
+
+
+
+    def test_scenario_fasta(self):
+        mdl = get_default_IgorModel("human", "tcr_beta")
+        fln_scenarios = "delete_me/ttmmpp_output/best_scenarios_counts.csv"
+        df_scenarios = mdl.get_dataframe_scenarios(fln_scenarios)
+
+        ps_scenario = df_scenarios.iloc[0]
+        get_gene_segment
+
+
+    def test_gene_segments(self):
+        # FIXME: IN DEV
+        str_seq = "GGTGCTGTCGTCTCTCAACATCCGAGCTGGGTTATCTGTAAGAGTGGAACCTCTGTGAAGATCGAGTGCCGTTCCCTGGACTTTCAGGCCACAACTATGTTTTGGTATCGTCAGTTCCCGAAACAGAGTCTCATGCTGATGGCAACTTCCAATGAGGGCTCCAAGGCCACATACGAGCAAGGCGTCGAGAAGGACAAGTTTCTCATCAACCATGCAAGCCTGACCTTGTCCACTCTGACAGTGACCAGTGCCCATCCTGAAGACAGCAGCTTCTACATCTGCAGTGCTGGGGAAGGGCAGCCTGGAAACACCATATATTTTGGAGAGGGAAGTTGGCTCACTGTTGTAG"
+        mdl = get_default_IgorModel("human", "tcr_beta")
+        df_scenarios = evaluate(str_seq, mdl, N_scenarios=10, airr_format=False)
+        ps_scenario = df_scenarios.iloc[0]
+
+        offset = 0
+        list_cols_4_alignment = ["segment_description", "gene_description", "offset", "palindrome_5_end", "gene_ini",
+                                 "gene_end", "gene_cut", "palindrome_3_end", "gene_segment"]
+        df_scenario_aln = pd.DataFrame(columns=list_cols_4_alignment)
+        for ii, strGene in enumerate(['V', 'VD', 'D', 'DJ', 'J']):
+            ordered_dicto = mdl.get_gene_segment_dict(strGene, ps_scenario)
+            dicto = dict(ordered_dicto)
+            dicto['segment_description'] = strGene
+            dicto['offset'] = offset
+            print(dicto)
+            df_scenario_aln.loc[ii] = dicto #, ignore_index=True)
+            offset = offset + len(ordered_dicto['gene_segment'])
+
+        df_scenario_aln.aln_scenario_len = offset + len(dicto['gene_segment']) # maximun of (offset + len(gene_segment)) - minimun offset
+
+        V_offset = df_scenario_aln.loc[df_scenario_aln['segment_description'] == 'V'].offset.values[0]
+        J_offset = df_scenario_aln.loc[df_scenario_aln['segment_description'] == 'J'].offset.values[0]
+
+        df_scenario_aln.aln_pos_V_anchor = V_offset + mdl.V_anchor(ps_scenario[mdl.parms.event_GeneChoice_V.nickname])
+        df_scenario_aln.aln_pos_J_anchor = J_offset + mdl.J_anchor(ps_scenario[mdl.parms.event_GeneChoice_J.nickname])
+
+        print(df_scenario_aln)
+        print(df_scenario_aln.aln_pos_V_anchor)
+        print(df_scenario_aln.aln_pos_J_anchor)
+        print(df_scenario_aln.aln_scenario_len)
+
+    def test_get_df_scenario_aln_from_scenario(self):
+        str_seq = "GGTGCTGTCGTCTCTCAACATCCGAGCTGGGTTATCTGTAAGAGTGGAACCTCTGTGAAGATCGAGTGCCGTTCCCTGGACTTTCAGGCCACAACTATGTTTTGGTATCGTCAGTTCCCGAAACAGAGTCTCATGCTGATGGCAACTTCCAATGAGGGCTCCAAGGCCACATACGAGCAAGGCGTCGAGAAGGACAAGTTTCTCATCAACCATGCAAGCCTGACCTTGTCCACTCTGACAGTGACCAGTGCCCATCCTGAAGACAGCAGCTTCTACATCTGCAGTGCTGGGGAAGGGCAGCCTGGAAACACCATATATTTTGGAGAGGGAAGTTGGCTCACTGTTGTAG"
+        mdl = get_default_IgorModel("human", "tcr_beta")
+        df_scenarios = evaluate(str_seq, mdl, N_scenarios=10, airr_format=False)
+        fln_scenario_fasta = "aver.fasta"
+        ps_scenario = df_scenarios.iloc[0]
+        mdl.write_df_scenario_aln_FASTA(fln_scenario_fasta, ps_scenario)
+        with open(fln_scenario_fasta, 'a') as ofile:
+            ofile.write("> input_sequence \n")
+            ofile.write(str_seq+"\n")
+
+    def test_numpy_aln_matrix(self):
+        # str_seq = "GGTGCTGTCGTCTCTCAACATCCGAGCTGGGTTATCTGTAAGAGTGGAACCTCTGTGAAGATCGAGTGCCGTTCCCTGGACTTTCAGGCCACAACTATGTTTTGGTATCGTCAGTTCCCGAAACAGAGTCTCATGCTGATGGCAACTTCCAATGAGGGCTCCAAGGCCACATACGAGCAAGGCGTCGAGAAGGACAAGTTTCTCATCAACCATGCAAGCCTGACCTTGTCCACTCTGACAGTGACCAGTGCCCATCCTGAAGACAGCAGCTTCTACATCTGCAGTGCTGGGGAAGGGCAGCCTGGAAACACCATATATTTTGGAGAGGGAAGTTGGCTCACTGTTGTAG"
+        # mdl = get_default_IgorModel("human", "tcr_beta")
+        mdl = get_default_IgorModel("human", "tcr_alpha")
+        seqs = generate(1, mdl, seed=0)
+        str_seq = seqs.loc[0]['nt_sequence']
+
+        df_scenarios = evaluate(str_seq, mdl, N_scenarios=10, airr_format=False)
+        ps_scenario = df_scenarios.iloc[0]
+        df_scenario_aln = mdl.get_df_scenario_aln_from_scenario(ps_scenario)
+        da = from_df_scenario_aln_to_da_scenario_aln(df_scenario_aln)
+        da.plot()
+        plt.show()
+
+
+
+        # nrows = len(df_scenario_aln.index)
+        # ncols = df_scenario_aln.aln_scenario_len
+        # aln_scenario_np = -np.ones((nrows, ncols))
+        # dict_id_2_nt = {-1: '-', 0: 'A', 1: 'C', 2: 'G', 3: 'T'} #mdl.parms['vd_dinucl']['value'].to_dict()
+        # dict_nt_2_id = {v: k for k, v in dict_id_2_nt.items()}
+        # for ii, row in df_scenario_aln.iterrows():
+        #     # add a map with a dictionary defined
+        #     np_gene_segment = np.array(list( map(lambda nt: dict_nt_2_id[nt], list(row['gene_segment']) ) ) )
+        #     aln_ini_gene_segment = row['offset']
+        #     aln_end_gene_segment = row['offset'] + len(row['gene_segment'])
+        #     aln_scenario_np[ii, aln_ini_gene_segment:aln_end_gene_segment] = np_gene_segment
+        #
+        # print(aln_scenario_np)
+
+    def test_plot_scenario_from_da_scenario_aln(self):
+        # str_seq = "GGTGCTGTCGTCTCTCAACATCCGAGCTGGGTTATCTGTAAGAGTGGAACCTCTGTGAAGATCGAGTGCCGTTCCCTGGACTTTCAGGCCACAACTATGTTTTGGTATCGTCAGTTCCCGAAACAGAGTCTCATGCTGATGGCAACTTCCAATGAGGGCTCCAAGGCCACATACGAGCAAGGCGTCGAGAAGGACAAGTTTCTCATCAACCATGCAAGCCTGACCTTGTCCACTCTGACAGTGACCAGTGCCCATCCTGAAGACAGCAGCTTCTACATCTGCAGTGCTGGGGAAGGGCAGCCTGGAAACACCATATATTTTGGAGAGGGAAGTTGGCTCACTGTTGTAG"
+        mdl = get_default_IgorModel("human", "tcr_alpha")
+        seqs = generate(1, mdl, seed=0)
+        str_seq = seqs.loc[0]['nt_sequence']
+
+        df_scenarios = evaluate(str_seq, mdl, N_scenarios=10, airr_format=False)
+        ps_scenario = df_scenarios.iloc[0]
+        print("ps_scenario: ", ps_scenario)
+        df_scenario_aln = mdl.get_df_scenario_aln_from_scenario(ps_scenario)
+        da_scenario_aln = from_df_scenario_aln_to_da_scenario_aln(df_scenario_aln)
+        print(da_scenario_aln.sizes)
+        print(da_scenario_aln['nucleotide'].size)
+        print(da_scenario_aln['nucleotide'].shape)
+        fig, ax = plot_scenario_from_da_scenario_aln(da_scenario_aln, nt_lim=(240, 320))
+        plt.show()
+
+    def test_IgorModel_plot_scenario(self):
+        mdl = get_default_IgorModel("human", "tcr_alpha")
+        seqs = generate(1, mdl, seed=0)
+        str_seq = seqs.loc[0]['nt_sequence']
+
+        df_scenarios = evaluate(str_seq, mdl, N_scenarios=10, airr_format=False)
+        ps_scenario = df_scenarios.iloc[0]
+        print("ps_scenario: ", ps_scenario)
+        df_scenario_aln = mdl.get_df_scenario_aln_from_scenario(ps_scenario)
+        da_scenario_aln = from_df_scenario_aln_to_da_scenario_aln(df_scenario_aln)
+        print(da_scenario_aln.sizes)
+        print(da_scenario_aln['nucleotide'].size)
+        print(da_scenario_aln['nucleotide'].shape)
+        fig, ax = plot_scenario_from_da_scenario_aln(da_scenario_aln, nt_lim=(240, 320))
+        plt.show()
+
+
+
+    def test_bahal(self):
+        colors = ['white', 'red', 'blue', 'orange', 'green']
+        dna_values = ['-'] + list(mdl.parms['vd_dinucl']["value"].values)
+        cmap_dna = mpl.colors.ListedColormap(['white', '#fcff92', '#70f970', '#ff99b1', '#4eade1'])
+        # cmap_dna
+
+        # fig, ax = plt.subplots(figsize=(40, 40))
+        # ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+        # ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+        # ax.set_aspect('equal')
+
+        fig, ax = plt.subplots(figsize=(200, 10))
+        ax.imshow(aln_scenario_np, cmap=cmap_dna, vmin=-1.5, vmax=3.5)
+
+        da_scenario_aln.attrs["anchors_CDR3"][1]
+
+        anchors_CDR3_ini = da_scenario_aln.attrs["anchors_CDR3"][0]
+        anchors_CDR3_end = da_scenario_aln.attrs["anchors_CDR3"][1]
+
+        ax.axvline(anchors_CDR3_ini-0.5)
+        ax.axvline(anchors_CDR3_end-0.5)
+
+        xlim_ini = anchors_CDR3_ini - 3.5
+        xlim_end = anchors_CDR3_end + 2.5
+        ax.set_xlim(xlim_ini, xlim_end)
+        # ax.set_xlim(250, 320)
+
+        # TODO: MODIFY THIS TO GET
+        dict_id_2_nt = Igor_dict_id_2_nt
+        dict_4_lbls = dict_id_2_nt.copy()
+        dict_4_lbls[-1] = ''
+        for i in range(aln_scenario_np.shape[0]):
+            for j in range(int(xlim_ini+0.5), int(xlim_end+0.5)): #aln_scenario_np.shape[1]):
+                text = ax.text(j, i, dict_4_lbls[aln_scenario_np[i, j]], ha="center", va="center", color="gray")
+
+        da_scenario_aln['gene_description'].values
+        # ax.set_xticks(np.arange(len(farmers)))
+        ax.set_yticks(np.arange(len(da_scenario_aln['gene_description'].values)))
+        # ... and label them with the respective list entries
+        # ax.set_xticklabels(farmers)
+        ax.set_yticklabels(da_scenario_aln['gene_description'].values)
+
+
+
+        # da_aln = xr.DataArray(aln_np)
+        # da_aln.plot()
+        plt.show()
+
+
+        # mdl.get_gene_segment_dict('D', ps_scenario)['gene_segment']
+        # mdl.get_gene_segment_dict('J', ps_scenario)['gene_segment']
+        #
+        # mdl.get_gene_segment_dict('VD', ps_scenario)['gene_segment']
+        # mdl.get_gene_segment_dict('DJ', ps_scenario)['gene_segment']
+        # so now I need to use this segments to make a fasta
+
+    def test_mutual_information(self):
+        mdl = get_default_IgorModel("human", "tcr_beta")
+        fln_scenarios = "delete_me/ttmmpp_output/best_scenarios_counts.csv"
+        df_scenarios = mdl.get_dataframe_scenarios(fln_scenarios)
+
+        event_nickname_x = 'v_choice'
+        event_nickname_y = 'j_choice'
+        P_x_y = mdl.get_P_from_scenarios_cols(df_scenarios, [event_nickname_x, event_nickname_y])
+        P_x = mdl.get_P_from_scenarios_cols(df_scenarios, [event_nickname_x])
+        P_y = mdl.get_P_from_scenarios_cols(df_scenarios, [event_nickname_y])
+
+        I_X_Y = get_D_KL_from_xarray(P_x_y, P_x, P_y)
+        print("I_X_Y: ", I_X_Y)
+
+        # print(P_x * P_y.values)
+        # print( np.matmul(P_x, P_y) )
+        func = lambda xy, x, y: np.log(xy/(x*y))
+        log_Pxy_over_Px_Py = xr.apply_ufunc(func, P_x_y, P_x, P_y)
+        log_Pxy_over_Px_Py
+        print(log_Pxy_over_Px_Py)
+        print(np.nan_to_num(log_Pxy_over_Px_Py.values))
+        log_Pxy_over_Px_Py.values = np.nan_to_num(log_Pxy_over_Px_Py.values, neginf=0)
+        print(log_Pxy_over_Px_Py)
+        mutual_information = xr.dot(P_x_y, log_Pxy_over_Px_Py)
+        print("mutual_information: ", mutual_information)
+
+    def test_mutual_information_matrix(self):
+        fig, ax = plt.subplots(2,2)
+        mdl = get_default_IgorModel("human", "tcr_beta")
+        entropy = mdl.get_entropy_event('v_choice')  # FIXME: DEV
+        print("entropy: ", entropy)
+        mi = mdl.get_mutual_information_events('v_choice', 'vd_ins')
+        print(mi)
+        print('-'*50)
+
+        da_mi_mdl = mdl.get_mutual_information()
+
+        print(da_mi_mdl)
+        mdl.plot_mutual_information(da_mi_mdl, ax=ax[0][0])
+        plt.show()
+
+
+        # fln_scenarios = "delete_me/ttmmpp_output/best_scenarios_counts.csv"
+        # df_scenarios = mdl.get_dataframe_scenarios(fln_scenarios)
+        #
+        #
+        # da_mi_scenarios = mdl.get_mutual_information_from_df_scenarios(df_scenarios)
+        # mdl.plot_mutual_information(da_mi_scenarios, ax=ax[1][0])
+        # # oops =
+        #
+        # print(da_mi_scenarios)
+        # da_oops = xr.zeros_like(da_mi_mdl)
+        # print(da_oops)
+        # da_oops.values = np.tril(da_mi_mdl) + np.triu(da_mi_scenarios)
+        # mdl.plot_mutual_information(da_oops, ax=ax[0][1])
+        #
+        # plt.show()
+
+
+    def test_stuffs(self):
+        mdl = get_default_IgorModel("human", "tcr_beta")
+        mdl.get_events_nicknames_list()
+        da_P_joint = mdl.get_P_joint(['v_choice'])
+        print(da_P_joint)
+        da_P_joint.plot()
+        dict_nickname_event_type = self.parms.get_event_dict('nickname', 'event_type')
+        dict_events = {key: val for key, val in dict_nickname_event_type.items() if val != 'DinucMarkov'}
+        event_lista_nicknames = list(dict_events.keys())
+        data_0 = np.zeros((len(event_lista_nicknames), len(event_lista_nicknames)))
+        da_mi = xr.DataArray(data_0, dims=('x', 'y'), coords={'x': event_lista_nicknames, 'y': event_lista_nicknames})
+        da_mi.name = 'mutual_information'
+
+        mdl.get_mutual_information()
+        plt.show()
 
     def test_sequences_generation(self):
         self.assertIsInstance(self.pd_input_sequences, pd.DataFrame)
