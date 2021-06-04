@@ -83,7 +83,7 @@ def get_default_fln_dict_ref_genomes_species_chain(IgorSpecie:str, IgorChain:str
     if modelspath is None:
         try:
             modelspath = run_get_igor_datadir() + "/models"
-            print("modelpath : ", modelspath)
+            # print("modelpath : ", modelspath)
         except Exception as e:
             print("ERROR: getting default igor datadir.", e)
 
@@ -158,7 +158,7 @@ def get_default_models_paths_species_chain(IgorSpecie, IgorChain, modelpath=None
     if modelpath is None:
         try:
             modelpath = run_get_igor_datadir() + "/models"
-            print("modelpath : ", modelpath)
+            # print("modelpath : ", modelpath)
         except Exception as e:
             print("ERROR: getting default igor datadir.", e)
 
@@ -710,7 +710,7 @@ def from_df_scenario_aln_to_da_scenario_aln(df_scenario_aln, dict_id_2_nt:Union[
         raise e
 
 
-def plot_scenario_from_da_scenario_aln(da_scenario_aln, nt_lim:Union[None,tuple,list]=None, show_CDR3=True):
+def plot_scenario_from_da_scenario_aln(da_scenario_aln, nt_lim:Union[None,tuple,list]=None, show_CDR3=True, ax=None):
     """
     Returns a fig and ax with the recombination scenario
     :param da_scenario_aln: Xarray DataArray with the scenario alignment matrix in convention to plot
@@ -783,7 +783,10 @@ def ufunc_log_pxy_over_px_py(p_xy, p_x, p_y):
         # if (p_x == 0 or p_y==0):
         #     print('xy != x*y :', p_xy, p_x, p_y, p_x * p_y, p_xy / (p_x * p_y))
         r = p_xy / (p_x * p_y)
-        return np.log2(r)
+        if r == 0:
+            return 0
+        else:
+            return np.log2(r)
 
 def get_D_KL_from_xarray(da_P_X_Y, da_P_X, da_P_Y):
     """
@@ -793,19 +796,19 @@ def get_D_KL_from_xarray(da_P_X_Y, da_P_X, da_P_Y):
     """
     da_log2 = xr.zeros_like(da_P_X_Y)
     import itertools
-    str_dim_x = da_P_X_Y.dims[0]
-    str_dim_y = da_P_X_Y.dims[1]
-    for realiz_id_x, realiz_id_y in itertools.product(da_P_X_Y[str_dim_x], da_P_X_Y[str_dim_y]):
+    str_dim_x = da_P_X.dims[0]
+    str_dim_y = da_P_Y.dims[0]
+    for realiz_id_x, realiz_id_y in itertools.product(da_P_X_Y[str_dim_x].values, da_P_X_Y[str_dim_y].values):
         p_xy = da_P_X_Y.loc[{str_dim_x:realiz_id_x, str_dim_y:realiz_id_y}]
         p_x = da_P_X.loc[{str_dim_x: realiz_id_x}]
         p_y = da_P_Y.loc[{str_dim_y: realiz_id_y}]
         log_p_xy_over_p_x_p_y = ufunc_log_pxy_over_px_py(p_xy, p_x, p_y)
         da_log2.loc[{str_dim_x: realiz_id_x, str_dim_y: realiz_id_y}] = log_p_xy_over_p_x_p_y
         # da_log2.loc[{str_dim_x:realiz_id_x, str_dim_y:realiz_id_y}] =
-    print("da_log2: ", da_log2)
-    print("da_P_X_Y: ", da_P_X_Y)
+    # print("da_log2: ", da_log2)
+    # print("da_P_X_Y: ", da_P_X_Y)
     mutual_information = xr.dot(da_P_X_Y, da_log2)
-    print("mutual_information (", str_dim_x, ", ", str_dim_y, "): ", mutual_information)
+    print("mutual_information (", str_dim_x, ", ", str_dim_y, "): ", mutual_information.values)
     return mutual_information
 
     # ufunc_log_pxy_over_px_p = lambda xy, x, y: np.log2(xy / (x * y))

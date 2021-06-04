@@ -2382,8 +2382,13 @@ class IgorModel_Parms:
                     import matplotlib.pyplot as plt
                     fig, ax = plt.subplots()
                 ax.set_aspect('equal')
+                dict_nickname_seq_type = self.get_event_dict('nickname', 'seq_type')
+                colors_list = list(
+                    map(lambda x: Igor_seq_type_color_dict[dict_nickname_seq_type[x]], list(self.G.nodes())))
+
                 nx.draw(self.G, pos=pos, ax=ax, with_labels=True, arrows=True, arrowsize=20,
-                        node_size=800, font_size=10, font_weight='bold')  # FIXME: make a better plot: cutting edges.
+                        node_size=800, alpha=0.5, font_size=10, font_weight='bold',
+                        nodelist=self.G.nodes(), node_color=colors_list)  # FIXME: make a better plot: cutting edges.
 
                 return ax
             except Exception as e:
@@ -3318,14 +3323,15 @@ class IgorModel:
 
 
         import itertools
-        for event_nickname_x, event_nickname_y in itertools.product(event_lista_nicknames, event_lista_nicknames):
-
+        for event_nickname_x, event_nickname_y in itertools.combinations_with_replacement(event_lista_nicknames, 2):
+        # for event_nickname_x, event_nickname_y in itertools.product(event_lista_nicknames, event_lista_nicknames):
             if event_nickname_x != event_nickname_y:
                 mi = self.get_mutual_information_events(event_nickname_x, event_nickname_y)
-                # da_mi.loc[{"x": event_nickname_x, "y": event_nickname_y}] = mi
+                da_mi.loc[{"x": event_nickname_x, "y": event_nickname_y}] = mi
+                da_mi.loc[{"x": event_nickname_y, "y": event_nickname_x}] = mi
             else:
                 mi = 0
-            da_mi.loc[{"x": event_nickname_x, "y": event_nickname_y}] = mi
+                da_mi.loc[{"x": event_nickname_x, "y": event_nickname_y}] = mi
             # print(event_nickname_x, event_nickname_y, mi)
         return da_mi
 
@@ -3336,7 +3342,7 @@ class IgorModel:
         """
         log2_Pmarginal = np.log2(self.Pmarginal[event_nickname])
         log2_Pmarginal.values = np.nan_to_num(log2_Pmarginal.values, neginf=0)
-        da_entropy = xr.dot(self.Pmarginal[event_nickname], log2_Pmarginal)
+        da_entropy = - xr.dot(self.Pmarginal[event_nickname], log2_Pmarginal)
         return da_entropy
 
     def get_entropy_decomposition(self):
@@ -3738,7 +3744,6 @@ class IgorModel:
         import numpy as np
         v_genLabel = np.vectorize(genLabel)
         import matplotlib.pyplot as plt
-        fig, ax = plt.subplots()
         da = self.xdata[event_nickname]
         for parent_nickname in da.dims:  # attrs['parents']
             da["lbl__" + parent_nickname].values = v_genLabel(da["lbl__" + parent_nickname].values)
@@ -3755,6 +3760,7 @@ class IgorModel:
             ax.set_xticks(XX)
             ax.set_xticklabels(v_genLabel(lbl_XX), rotation=90)
             ax.set_title(titulo)
+            fig.tight_layout()
             return fig, ax
         elif len(parents_list) == 1:
             if not 'cmap' in kwargs.keys():
@@ -3768,6 +3774,7 @@ class IgorModel:
             lbl_XX = da['lbl__' + event_nickname].values
             ax.set_title(titulo)
             ax.set_aspect('equal')
+            fig.tight_layout()
             return fig, ax
         elif len(parents_list) == 2:
             if not 'cmap' in kwargs.keys():
@@ -3781,10 +3788,12 @@ class IgorModel:
                 lbl_parents = str(",".join(da.attrs['parents']))
                 titulo = "$P($" + event_nickname + "$ = $ " + lbl_ev_realiz + " $|$" + lbl_parents + "$)$"
                 ax[ii].set_title(titulo)
+            fig.tight_layout()
             return fig, ax
         else:
             fig, ax = plt.subplots()
             ax.set_title("Dimensionality not supportted for event : ", event_nickname)
+            fig.tight_layout()
             return fig, ax
 
     def plot_event_Insertion(self, event_nickname: str, **kwargs):
@@ -3793,7 +3802,6 @@ class IgorModel:
         import numpy as np
         v_genLabel = np.vectorize(genLabel)
         import matplotlib.pyplot as plt
-        fig, ax = plt.subplots()
         da = self.xdata[event_nickname]
 
         parents_list = da.attrs['parents']
@@ -3808,6 +3816,7 @@ class IgorModel:
             ax.set_xticks(XX)
             ax.set_xticklabels(lbl_XX, rotation=90)
             ax.set_title(titulo)
+            fig.tight_layout()
             return fig, ax
         elif len(parents_list) == 1:
             titulo = "$P($" + event_nickname + "$|$" + ",".join(da.attrs['parents']) + "$)$"
@@ -3818,6 +3827,7 @@ class IgorModel:
             lbl_XX = da['lbl__' + event_nickname].values
             ax.set_title(titulo)
             ax.set_aspect('equal')
+            fig.tight_layout()
             return fig, ax
         elif len(parents_list) == 2:
             # da = self.xdata[event_nickname]
@@ -3830,19 +3840,21 @@ class IgorModel:
                 print(lbl_ev_realiz, lbl_parents)
                 titulo = "$P($" + event_nickname + "$ = $ " + lbl_ev_realiz + " $|$" + lbl_parents + "$)$"
                 ax[ii].set_title(titulo)
+            fig.tight_layout()
             return fig, ax
         else:
             fig, ax = plt.subplots()
             ax.set_title("Dimensionality not supportted for event : ", event_nickname)
+            fig.tight_layout()
             return fig, ax
 
     def plot_event_Deletion(self, event_nickname: str, **kwargs):
         """ Return GeneChoice plot """
-
+        # FIXME: I THINK THAT THE BEST WAY SHOULD BE ONLY RETURN AX,
+        #  and to save the figure in a pdf use the matplotlib function getcf() get current figure.
         import numpy as np
         v_genLabel = np.vectorize(genLabel)
         import matplotlib.pyplot as plt
-        fig, ax = plt.subplots()
         da = self.xdata[event_nickname]
 
         parents_list = da.attrs['parents']
@@ -3857,6 +3869,7 @@ class IgorModel:
             ax.set_xticks(XX)
             ax.set_xticklabels(lbl_XX, rotation=90)
             ax.set_title(titulo)
+            fig.tight_layout()
             return fig, ax
         elif len(parents_list) == 1:
             if not 'cmap' in kwargs.keys():
@@ -3869,6 +3882,7 @@ class IgorModel:
             lbl_XX = da['lbl__' + event_nickname].values
             ax.set_title(titulo)
             ax.set_aspect('equal')
+            fig.tight_layout()
             return fig, ax
         elif len(parents_list) == 2:
             if not 'cmap' in kwargs.keys():
@@ -3882,10 +3896,12 @@ class IgorModel:
                 da[{event_nickname: ev_realiz.values}].plot(ax=ax[ii], cmap='gnuplot2_r')
                 titulo = "$P($" + event_nickname + "$ = $ " + lbl_ev_realiz + " $|$" + lbl_parents + "$)$"
                 ax[ii].set_title(titulo)
+            fig.tight_layout()
             return fig, ax
         else:
             fig, ax = plt.subplots()
             ax.set_title("Dimensionality not supportted for event : ", event_nickname)
+            fig.tight_layout()
             return fig, ax
 
     def plot_event_DinucMarkov(self, event_nickname: str, **kwargs):
@@ -3924,6 +3940,7 @@ class IgorModel:
         for i, j in zip(*ZZ.nonzero()):
             ax.text(j, i, ZZ[i, j], color='white', ha='center', va='center')
 
+        fig.tight_layout()
         return fig, ax
 
     def export_plot_events(self, outfilename_prefix):
@@ -3961,6 +3978,23 @@ class IgorModel:
                     del fig
                 else:
                     print("ERROR: EVENT NOT RECOGNIZE", event_nickname)
+
+    def plot_Event(self, event_nickname: str, ax=None, **kwargs):
+        event = self.parms.get_Event(event_nickname)
+        if event.event_type == 'GeneChoice':
+            return self.plot_event_GeneChoice(event_nickname)
+        elif event.event_type == 'Insertion':
+            return self.plot_event_Insertion(event_nickname)
+        elif event.event_type == 'Deletion':
+            fig, ax = self.plot_event_Deletion(event_nickname)
+            fig.tight_layout()
+            return fig, ax
+        elif event.event_type == 'DinucMarkov':
+            fig, ax = self.plot_event_DinucMarkov(event_nickname)
+            fig.tight_layout()
+            return fig, ax
+        else:
+            print("ERROR: EVENT NOT RECOGNIZE", event_nickname)
 
     def export_plot_Pmarginals(self, outfilename_prefix):
         import matplotlib.pyplot as plt
@@ -4482,7 +4516,7 @@ class IgorModel:
                 ofile.write(">"+ fasta_desription+"\n")
                 ofile.write(fasta_sequence + "\n")
 
-    def plot_scenario(self, ps_scenario, nt_lim:Union[None,tuple,list]=None, show_CDR3=True):
+    def plot_scenario(self, ps_scenario, nt_lim:Union[None,tuple,list]=None, show_CDR3=True, ax=None):
         """
         Return matplotlib fig, ax
         :param ps_scenario: Pandas Series scenario
@@ -4492,7 +4526,7 @@ class IgorModel:
         """
         df_scenario_aln = self.get_df_scenario_aln_from_scenario(ps_scenario)
         da_scenario_aln = from_df_scenario_aln_to_da_scenario_aln(df_scenario_aln)
-        fig, ax = plot_scenario_from_da_scenario_aln(da_scenario_aln, nt_lim=nt_lim, show_CDR3=show_CDR3)
+        fig, ax = plot_scenario_from_da_scenario_aln(da_scenario_aln, nt_lim=nt_lim, show_CDR3=show_CDR3, ax=ax)
         return fig, ax
 
 
@@ -5135,11 +5169,14 @@ class IgorModel:
             da_mi.name = 'mutual_information'
 
             import itertools
-            for event_nickname_x, event_nickname_y in itertools.product(event_lista_nicknames, event_lista_nicknames):
+            # for event_nickname_x, event_nickname_y in itertools.product(event_lista_nicknames, event_lista_nicknames):
+            # mutual information I(X, Y) = I(Y, X)
+            for event_nickname_x, event_nickname_y in itertools.combinations_with_replacement(event_lista_nicknames, 2):
                 if event_nickname_x != event_nickname_y:
                     mi = self.get_mutual_information_events_from_df_scenarios(df_scenarios, event_nickname_x,
                                                                              event_nickname_y)
                     da_mi.loc[{"x": event_nickname_x, "y": event_nickname_y}] = mi
+                    da_mi.loc[{"x": event_nickname_y, "y": event_nickname_x}] = mi
                 else:
                     da_mi.loc[{"x": event_nickname_x, "y": event_nickname_y}] = 0.0
                     # print(event_nickname_x, event_nickname_y, mi)

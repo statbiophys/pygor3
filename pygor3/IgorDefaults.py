@@ -19,7 +19,16 @@
 Igor_event_type_list = ['GeneChoice', 'Deletion', 'Insertion', 'DinucMarkov']
 
 Igor_seq_type_list = ["V_gene", "VD_genes", "D_gene", "DJ_gene", "VJ_gene", "J_gene", "VDJ_genes", "Undefined_gene"]
-
+Igor_seq_type_color_dict = {
+    'V_gene': '#009ed9',
+    'VD_genes': '#dd8a00',
+    'D_gene': '#a2dd00',
+    'DJ_gene': '#dd8a00',
+    'VJ_gene': '#dd8a00',
+    'J_gene': '#da2ba6',
+    'VDJ_genes': '#040404',
+    'Undefined_gene': '#aaaaaa'
+}
 Igor_seq_side_list = ["Five_prime", "Three_prime", "Undefined_side"]
 
 Igor_nickname_list = ["v_choice", "j_choice", "d_gene", "v_3_del",

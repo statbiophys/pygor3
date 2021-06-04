@@ -151,6 +151,7 @@ class MyTestCase(unittest.TestCase):
         df_scenarios = evaluate(str_seq, mdl, N_scenarios=10, airr_format=False)
         ps_scenario = df_scenarios.iloc[0]
         print("ps_scenario: ", ps_scenario)
+        mdl.plot_scenario(ps_scenario)
         df_scenario_aln = mdl.get_df_scenario_aln_from_scenario(ps_scenario)
         da_scenario_aln = from_df_scenario_aln_to_da_scenario_aln(df_scenario_aln)
         print(da_scenario_aln.sizes)
