@@ -631,6 +631,9 @@ def get_gene_segment(str_gene_template, int_gene_5_del=None, int_gene_3_del=None
         str_gene_3_palindrome = ""
 
     segment_dict = collections.OrderedDict()
+    segment_dict['gene_template'] = str_gene_template
+    segment_dict['int_gene_5_del'] = int_gene_5_del
+    segment_dict['int_gene_3_del'] = int_gene_3_del
     segment_dict['palindrome_5_end'] = str_gene_5_palindrome
     segment_dict['gene_ini'] = int_ini
     segment_dict['gene_end'] = int_end
@@ -650,6 +653,48 @@ def dna_complementary(str_seq):
 def dna_translate(str_seq):
     from Bio.Seq import Seq
     return str(Seq(str_seq).translate())
+
+
+def str_seq_to_np_seq(str_seq, dict_nt_2_id:Union[None, dict]=None):
+    """
+    Return a numpy array with the mapping values defined in dict_nt_2_id
+    :param str_seq: String of nucleotide sequence.
+    :param dict_nt_2_id: Dictionary with defined transformation of nucleotides (default Igor_dict_nt_2_id)
+    """
+    if dict_nt_2_id is None:
+        from .IgorDefaults import Igor_dict_nt_2_id
+        dict_nt_2_id = Igor_dict_nt_2_id
+    np_seq = np.array(list(map(lambda nt: dict_nt_2_id[nt], list(str_seq))))
+    return np_seq
+
+def np_seq_to_str_seq(np_seq, dict_id_2_nt:Union[None, dict]=None):
+    if dict_id_2_nt is None:
+        from .IgorDefaults import Igor_dict_id_2_nt
+        dict_id_2_nt = Igor_dict_id_2_nt
+    return "".join(list(map(lambda nt: dict_id_2_nt[nt], np_seq )))
+
+def get_aln_scenario_np_from_da_scenario_aln(df_scenario_aln, dict_id_2_nt:Union[None, dict]=None):
+    # TODO: IN DEV, CHECK UNITTEST: test_plot -> test_from_df_scenario_aln_to_da_scenario_aln
+    nrows = len(df_scenario_aln.index)
+    ncols = df_scenario_aln.aln_scenario_len
+    aln_scenario_np = -np.ones((nrows, ncols))
+
+    from .IgorDefaults import Igor_dict_id_2_nt
+    dict_id_2_nt = Igor_dict_id_2_nt.copy()  # mdl.parms['vd_dinucl']['value'].to_dict()
+
+    dict_nt_2_id = {v: k for k, v in dict_id_2_nt.items()}
+    for ii, row in df_scenario_aln.iterrows():
+        # add a map with a dictionary defined
+        np_palindrome_5_end = None
+        np_gene_segment = np.array(list(map(lambda nt: dict_nt_2_id[nt], list(row['gene_segment']))))
+        np_palindrome_3_end = None
+
+        np_gene_del_5_end = None
+        np_gene_del_3_end = None
+
+        aln_ini_gene_segment = row['offset']
+        aln_end_gene_segment = row['offset'] + len(row['gene_segment'])
+        aln_scenario_np[ii, aln_ini_gene_segment:aln_end_gene_segment] = np_gene_segment
 
 
 
@@ -683,6 +728,7 @@ def from_df_scenario_aln_to_da_scenario_aln(df_scenario_aln, dict_id_2_nt:Union[
                                        coords={
                                            "segment_description": ('segment', df_scenario_aln["segment_description"].values),
                                            "gene_description": ('segment', df_scenario_aln["gene_description"].values),
+                                           "gene_template": ('segment', df_scenario_aln["gene_template"].values),
                                            "palindrome_5_end": ('segment', df_scenario_aln["palindrome_5_end"].values),
                                            "gene_ini": ('segment', df_scenario_aln["gene_ini"].values),
                                            "gene_end": ('segment', df_scenario_aln["gene_end"].values),
@@ -811,15 +857,16 @@ def get_D_KL_from_xarray(da_P_X_Y, da_P_X, da_P_Y):
     print("mutual_information (", str_dim_x, ", ", str_dim_y, "): ", mutual_information.values)
     return mutual_information
 
-    # ufunc_log_pxy_over_px_p = lambda xy, x, y: np.log2(xy / (x * y))
-    log_Pxy_over_Px_Py = xr.apply_ufunc(ufunc_log_pxy_over_px_py, da_P_X_Y, da_P_X, da_P_Y, vectorize=True)
-    # log_Pxy_over_Px_Py
-    # print(log_Pxy_over_Px_Py)
-    # print(np.nan_to_num(log_Pxy_over_Px_Py.values))
-
-
-    log_Pxy_over_Px_Py.values = np.nan_to_num(log_Pxy_over_Px_Py.values, neginf=0, nan=0)
-    # print(log_Pxy_over_Px_Py)
-    mutual_information = xr.dot(da_P_X_Y, log_Pxy_over_Px_Py)
-    return mutual_information
+    # FIXME: TOO slow FIND A FASTER WAY
+    # # ufunc_log_pxy_over_px_p = lambda xy, x, y: np.log2(xy / (x * y))
+    # log_Pxy_over_Px_Py = xr.apply_ufunc(ufunc_log_pxy_over_px_py, da_P_X_Y, da_P_X, da_P_Y, vectorize=True)
+    # # log_Pxy_over_Px_Py
+    # # print(log_Pxy_over_Px_Py)
+    # # print(np.nan_to_num(log_Pxy_over_Px_Py.values))
+    #
+    #
+    # log_Pxy_over_Px_Py.values = np.nan_to_num(log_Pxy_over_Px_Py.values, neginf=0, nan=0)
+    # # print(log_Pxy_over_Px_Py)
+    # mutual_information = xr.dot(da_P_X_Y, log_Pxy_over_Px_Py)
+    # return mutual_information
 

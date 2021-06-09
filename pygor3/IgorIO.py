@@ -3296,10 +3296,20 @@ class IgorModel:
         """ Return xarray with
         """
         try:
-            da_P_x_y = self.get_P_joint([event_nickname1, event_nickname2])
-            da_P_x = self.Pmarginal[event_nickname1]
-            da_P_y = self.Pmarginal[event_nickname2]
-            return get_D_KL_from_xarray(da_P_x_y, da_P_x, da_P_y)
+            if not nx.d_separated(self.parms.G, {event_nickname1}, {event_nickname2}, {}):
+                da_P_x_y = self.get_P_joint([event_nickname1, event_nickname2])
+                da_P_x = self.Pmarginal[event_nickname1]
+                da_P_y = self.Pmarginal[event_nickname2]
+
+                da_P_x_times_P_y = (da_P_x * da_P_y)
+                da_log_P_ratio = xr.zeros_like(da_P_x_y)
+                da_log_P_ratio.values = np.nan_to_num(
+                    np.log2(da_P_x_y / da_P_x_times_P_y), nan=0.0, neginf=0.0
+                )
+                return xr.dot(da_P_x_y, da_log_P_ratio)
+                # return get_D_KL_from_xarray(da_P_x_y, da_P_x, da_P_y)
+            else:
+                return 0
         except Exception as e:
             raise e
 
@@ -4456,7 +4466,9 @@ class IgorModel:
         """
         offset = 0
         # TODO: MAKE THIS LIST A GLOBAL VARIBLE IN UTILS WITH A GOOD NAME.
-        list_cols_4_alignment = ["segment_description", "gene_description", "offset", "palindrome_5_end", "gene_ini",
+        list_cols_4_alignment = ["segment_description", "gene_description", "gene_template",
+                                 "int_gene_5_del", "int_gene_3_del",
+                                 "offset", "palindrome_5_end", "gene_ini",
                                  "gene_end", "gene_cut", "palindrome_3_end", "gene_segment"]
         df_scenario_aln = pd.DataFrame(columns=list_cols_4_alignment)
         # FIXME: This is for VDJ, VJ is missing
@@ -4470,6 +4482,7 @@ class IgorModel:
             ordered_dicto = self.get_gene_segment_dict(strGene, ps_scenario)
             dicto = dict(ordered_dicto)
             dicto['segment_description'] = strGene
+            # dicto['segment_sequence'] = strGene
             dicto['offset'] = offset
             # print(dicto)
             df_scenario_aln.loc[ii] = dicto  # , ignore_index=True)
@@ -4524,6 +4537,11 @@ class IgorModel:
         default give boundaries around CDR3, if no anchors in model, show the whole scenario
         :param show_CDR3: Show CDR3 lines default(=True)
         """
+        # FIXME: A BETTER WAY TO MANAGE THE SCENARIO SHOULD BE IMPLEMENTED
+        #  1. From a list of seq_genes (V, VD, D, VJ, J) associate the events of deletion and insertions
+        #  2. For an event like D get the realization of 'd_gene' and its corresponding deletions
+        #  3. Now get the array with the markers of the convinient positions using mdl.realization
+        #  and observables.
         df_scenario_aln = self.get_df_scenario_aln_from_scenario(ps_scenario)
         da_scenario_aln = from_df_scenario_aln_to_da_scenario_aln(df_scenario_aln)
         fig, ax = plot_scenario_from_da_scenario_aln(da_scenario_aln, nt_lim=nt_lim, show_CDR3=show_CDR3, ax=ax)
@@ -6143,7 +6161,7 @@ class IgorTask:
         self.b_align = True  # FIXME: If run_command success then True
         return cmd_stdout
 
-    def _run_evaluate(self, igor_read_seqs=None, N_scenarios=None):
+    def _run_evaluate(self, igor_read_seqs=None, N_scenarios=None, Pgen=True):
         # "igor -set_wd $WDPATH -batch foo -species human -chain beta
         # -evaluate -output --scenarios 10"
         try:
@@ -6171,7 +6189,7 @@ class IgorTask:
             self.igor_output_dict_options["--scenarios"]['active'] = True
             if N_scenarios is not None:
                 self.igor_output_dict_options["--scenarios"]['value'] = str(N_scenarios)
-            self.igor_output_dict_options["--Pgen"]['active'] = True
+            self.igor_output_dict_options["--Pgen"]['active'] = Pgen
             cmd = cmd + " -evaluate " + command_from_dict_options(self.igor_evaluate_dict_options)
             cmd = cmd + " -output " + command_from_dict_options(self.igor_output_dict_options)
             # return cmd
@@ -8159,6 +8177,8 @@ def evaluate(input_sequences:Union[str, pd.DataFrame, np.ndarray, Path],
             try:
                 pd_airr_rearrangement = task.mdl.get_dataframe_from_fln_generated_realizations_werr(
                     task.igor_fln_output_scenarios)
+                pd_igor_pgen = pd.read_csv(task.igor_fln_output_pgen, sep=';', index_col='seq_index')
+                pd_airr_rearrangement['Pgen_estimate'] = pd_igor_pgen
             except Exception as e:
                 raise e
 
@@ -8173,7 +8193,7 @@ def evaluate(input_sequences:Union[str, pd.DataFrame, np.ndarray, Path],
 
 
 def evaluate_pgen(input_sequences:Union[str, pd.DataFrame, np.ndarray, Path],
-             mdl:IgorModel, igor_wd=None, batch_clean=True):
+             mdl:IgorModel, igor_wd=None, batch_clean=True, airr_format=True, pgen_columns:Union[None, list]=None):
     """
     Evaluate input sequences with provided model
     :param input_sequences:Union[str, pd.DataFrame, np.ndarray, Path]
@@ -8181,8 +8201,12 @@ def evaluate_pgen(input_sequences:Union[str, pd.DataFrame, np.ndarray, Path],
     :param batch_clean: Remove all temporary files True by default.
     """
     # columns = ['sequence_id', 'sequence', 'v_call', 'd_call', 'j_call', 'pgen', 'scenario_rank', 'scenario_proba_cond_seq']
-    pgen_columns = ['sequence_id', 'sequence', 'v_call', 'd_call', 'j_call', 'pgen']
-    return evaluate(input_sequences, mdl, N_scenarios=1, igor_wd=igor_wd, batch_clean=batch_clean)[pgen_columns]
+    if pgen_columns is None:
+        if airr_format:
+            pgen_columns = ['sequence_id', 'sequence', 'v_call', 'd_call', 'j_call', 'pgen']
+        else:
+            pgen_columns = ['Pgen_estimate']
+    return evaluate(input_sequences, mdl, N_scenarios=1, igor_wd=igor_wd, batch_clean=batch_clean, airr_format=airr_format)[pgen_columns]
 
 #############################################
 # Alias and Functions to get direct objects

@@ -245,19 +245,46 @@ class MyTestCase(unittest.TestCase):
         print("mutual_information: ", mutual_information)
 
     def test_mutual_information_matrix(self):
-        fig, ax = plt.subplots(2,2)
+        # FIXME: DEV
         mdl = get_default_IgorModel("human", "tcr_beta")
-        entropy = mdl.get_entropy_event('v_choice')  # FIXME: DEV
-        print("entropy: ", entropy)
-        mi = mdl.get_mutual_information_events('v_choice', 'vd_ins')
+        event_nickname1 = 'v_choice'
+        event_nickname2 = 'vd_ins'
+        da_P_x_y = mdl.get_P_joint([event_nickname1, event_nickname2])
+        da_P_x = mdl.Pmarginal[event_nickname1]
+        da_P_y = mdl.Pmarginal[event_nickname2]
+        # mi = get_D_KL_from_xarray(da_P_x_y, da_P_x, da_P_y)
+
+        # np_P_x_joint_y = np.matmul(da_P_x.values[np.newaxis].T, da_P_y.values[np.newaxis])  # , da_P_x_y.values
+        # da_P_x.values, da_P_y.values.T
+        # rl = np.outer(np.ones((5,)), np.linspace(-2, 2, 5))
+        # rl
+        print('-' * 50)
+        mi = mdl.get_mutual_information_events(event_nickname1, event_nickname2)
         print(mi)
-        print('-'*50)
 
-        da_mi_mdl = mdl.get_mutual_information()
+        event_nickname1 = 'v_choice'
+        event_nickname2 = 'j_choice'
 
-        print(da_mi_mdl)
-        mdl.plot_mutual_information(da_mi_mdl, ax=ax[0][0])
-        plt.show()
+
+        da_P_x_y = mdl.get_P_joint([event_nickname1, event_nickname2])
+        da_P_x = mdl.Pmarginal[event_nickname1]
+        da_P_y = mdl.Pmarginal[event_nickname2]
+
+        da_P_x_times_P_y = (da_P_x * da_P_y)
+        da_P_x_times_P_y
+
+        da_log_P_ratio = xr.zeros_like(da_P_x_y)
+
+        da_log_P_ratio.values = np.nan_to_num(
+            np.log2(da_P_x_y / da_P_x_times_P_y), nan=0.0, neginf=0.0
+        )
+
+        # da_log_Value.values = np_log_Value
+        xr.dot(da_P_x_y, da_log_P_ratio)
+
+        # entropy = mdl.get_entropy_event('v_choice')
+        # print("entropy: ", entropy)
+
 
 
         # fln_scenarios = "delete_me/ttmmpp_output/best_scenarios_counts.csv"

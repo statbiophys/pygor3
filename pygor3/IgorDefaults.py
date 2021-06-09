@@ -215,4 +215,5 @@ Igor_to_AIRR_dict={
 
 
 Igor_dict_id_2_nt = {-1: '-', 0: 'A', 1: 'C', 2: 'G', 3: 'T'}
+Igor_dict_nt_2_id = {v: k for k, v in Igor_dict_id_2_nt.items()}
 Igor_nt_colors_list = ['white', '#fcff92', '#70f970', '#ff99b1', '#4eade1']
