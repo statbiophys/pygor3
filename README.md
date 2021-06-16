@@ -30,11 +30,13 @@ Pygor will use default IGoR's path to execute it's commands.
     ```
 ### Github installation
 For the most version of pygor (from Github)
+
     ```console
     (statbiophys) $ git clone https://github.com/statbiophys/pygor3.git
     (statbiophys) $ cd pygor3
     (statbiophys) $ pip install -e .
     ```
+
 ## Command Line Usage
 
 ### Quickstart
