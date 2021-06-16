@@ -1,5 +1,5 @@
 .. pygor3 documentation master file, created by
-   sphinx-quickstart on Fri Dec  4 12:57:48 2020.
+   sphinx-quickstart on Wed Jun 16 11:46:21 2021.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
@@ -7,18 +7,42 @@ Welcome to pygor3's documentation!
 ==================================
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :caption: Table of Contents
+   :maxdepth: 3
    
    readme
-   changelog
-   modules
+   Tutorial
+
+..
+   Pygor3 Tutorial
+   ================
+   .. toctre::
+      :maxdepth: 2
+   
+      Tutorial
+   
 
 
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+..
+   Reference Guide
+   ==============
+   .. toctree::
+   
+      .. automodule:: pygor3.IgorIO
+         :members:
+      
+      .. automodule:: pygor3.IgorSqliteDB
+         :members:
+      
+      .. automodule:: pygor3.imgt
+         :members:
+   
+   
+   
+   
+   Indices and tables
+   ==================
+   
+   * :ref:`genindex`
+   * :ref:`modindex`
+   * :ref:`search`

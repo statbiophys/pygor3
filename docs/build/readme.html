@@ -1,0 +1,652 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Readme &mdash; pygor3  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Notebook Tutorial" href="pygor3_tutorial.html" />
+    <link rel="prev" title="Welcome to pygor3’s documentation!" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> pygor3
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Readme</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pygor3_tutorial.html">Notebook Tutorial</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">pygor3</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Readme</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/readme.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="readme">
+<h1>Readme<a class="headerlink" href="#readme" title="Permalink to this headline">¶</a></h1>
+<p># Pygor3</p>
+<p>Pygor3 is a python3 framework to analyze, vizualize, generate
+and infer V(D)J recombination models using the [IGoR](<a class="reference external" href="https://github.com/statbiophys/IGoR">https://github.com/statbiophys/IGoR</a>) software.
+Pygor3 provides a python interface to execute and encapsulate
+IGoR’s input/outputs by using a sqlite3 database that
+contains input sequences, alignments, model parameters,
+conditional probabilities of the model Bayes network,
+best scenarios and generation probabilities in a single db file.
+Pygor3 also has command line utilities to import/export
+IGoR generated files to [AIRR standard format](<a class="reference external" href="https://docs.airr-community.org/en/latest/index.html">https://docs.airr-community.org/en/latest/index.html</a>).</p>
+<p>## Installation
+1. First install IGoR in your sytem [IGoR](<a class="reference external" href="https://github.com/statbiophys/IGoR">https://github.com/statbiophys/IGoR</a>) if you don’t have it already.
+Pygor will use default IGoR’s path to execute it’s commands.</p>
+<p>2. (Optional) Install [conda](<a class="reference external" href="https://docs.conda.io/en/latest/">https://docs.conda.io/en/latest/</a>) or
+[anaconda](<a class="reference external" href="https://www.anaconda.com/">https://www.anaconda.com/</a>) and create (or use ) a virtual environment.</p>
+<blockquote>
+<div><dl class="simple">
+<dt><a href="#id1"><span class="problematic" id="id2">``</span></a><a href="#id3"><span class="problematic" id="id4">`</span></a>console</dt><dd><p>$ conda create –name statbiophys python=3.7
+$ conda activate statbiophys</p>
+</dd>
+</dl>
+<p><a href="#id5"><span class="problematic" id="id6">``</span></a><a href="#id7"><span class="problematic" id="id8">`</span></a></p>
+</div></blockquote>
+<ol class="arabic" start="3">
+<li><p>Use the package manager [pip](<a class="reference external" href="https://pip.pypa.io/en/stable/">https://pip.pypa.io/en/stable/</a>)</p>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">`console</span>
+<span class="pre">(statbiophys)</span> <span class="pre">$</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">pygor3</span>
+<span class="pre">`</span></code></p>
+</div></blockquote>
+</li>
+</ol>
+<p>### Github installation
+For the most version of pygor (from Github)</p>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">`console</span>
+<span class="pre">(statbiophys)</span> <span class="pre">$</span> <span class="pre">git</span> <span class="pre">clone</span> <span class="pre">https://github.com/statbiophys/pygor3.git</span>
+<span class="pre">(statbiophys)</span> <span class="pre">$</span> <span class="pre">cd</span> <span class="pre">pygor3</span>
+<span class="pre">(statbiophys)</span> <span class="pre">$</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-e</span> <span class="pre">.</span>
+<span class="pre">`</span></code></p>
+</div></blockquote>
+<p>## Command Line Usage</p>
+<p>### Quickstart</p>
+<p>#### Get demo sample data
+Download a copy of demo sequences in current directory</p>
+<p><code class="docutils literal notranslate"><span class="pre">`console</span>
+<span class="pre">$</span> <span class="pre">pygor</span> <span class="pre">demo-get-data</span>
+<span class="pre">--------------------------------</span>
+<span class="pre">Copy</span> <span class="pre">data</span> <span class="pre">from</span> <span class="pre">:</span>&#160; <span class="pre">/home/olivares/GitHub/statbiophys/pygor3/pygor3/demo</span>
+<span class="pre">to:</span>&#160; <span class="pre">/home/olivares/testing_pygor/demo</span>
+<span class="pre">`</span></code>
+This command creates a directory demo with the following structure, with sequences to infer and evaluate
+a new model.</p>
+<p><a href="#id9"><span class="problematic" id="id10">``</span></a><a href="#id11"><span class="problematic" id="id12">`</span></a>console
+demo/
+└── data</p>
+<blockquote>
+<div><dl class="simple">
+<dt>└── IgL</dt><dd><p>├── IgL_seqs_memory_Functional.txt
+├── IgL_seqs_memory_Nofunctional.txt
+├── IgL_seqs_naive_Functional.txt
+└── IgL_seqs_naive_Nofunctional.txt</p>
+</dd>
+</dl>
+</div></blockquote>
+<p><a href="#id13"><span class="problematic" id="id14">``</span></a><a href="#id15"><span class="problematic" id="id16">`</span></a></p>
+<p>#### New Model
+Now to create a model from scratch, donwload gene templates and anchors from IMGT website [IMGT](<a class="reference external" href="http://www.imgt.org/">http://www.imgt.org/</a>)
+A list of available species to download from IMGT can be queried with imgt-get-genomes command and option –info.</p>
+<blockquote>
+<div><p><a href="#id17"><span class="problematic" id="id18">``</span></a><a href="#id19"><span class="problematic" id="id20">`</span></a>console
+$ pygor imgt-get-genomes –info
+——————————–
+<a class="reference external" href="http://www.imgt.org">http://www.imgt.org</a>
+Downloading data from …
+List of IMGT available species:</p>
+<p>Gallus+gallus
+Cercocebus+atys
+Mustela+putorius+furo
+Macaca+nemestrina
+Vicugna+pacos
+Mus+cookii
+Bos+taurus
+Canis+lupus+familiaris
+Ornithorhynchus+anatinus
+Macaca+mulatta
+Rattus+rattus
+Mus+minutoides
+Danio+rerio
+Oncorhynchus+mykiss
+Tursiops+truncatus
+Felis+catus
+Homo+sapiens
+Salmo+salar
+Macaca+fascicularis
+Mus+musculus
+Mus+saxicola
+Capra+hircus
+Sus+scrofa
+Mus+pahari
+Ovis+aries
+Equus+caballus
+Camelus+dromedarius
+Oryctolagus+cuniculus
+Papio+anubis+anubis
+Mus+spretus
+Rattus+norvegicus
+For more details access:
+<a class="reference external" href="http://www.imgt.org/download/GENE-DB/IMGTGENEDB-GeneList">http://www.imgt.org/download/GENE-DB/IMGTGENEDB-GeneList</a>
+<a href="#id21"><span class="problematic" id="id22">``</span></a><a href="#id23"><span class="problematic" id="id24">`</span></a></p>
+</div></blockquote>
+<ol class="arabic" start="2">
+<li><p>Download genomic templates using VJ or VDJ corresponding to the type of chain.</p>
+<blockquote>
+<div><p><a href="#id25"><span class="problematic" id="id26">``</span></a><a href="#id27"><span class="problematic" id="id28">`</span></a>console
+$ pygor imgt-get-genomes –imgt-species Homo+sapiens –imgt-chain IGL -t VJ
+——————————–
+<a class="reference external" href="http://www.imgt.org">http://www.imgt.org</a>
+get_ref_genome
+Homo+sapiens IGLV <a class="reference external" href="http://www.imgt.org/genedb/GENElect?query=7.2+IGLV&amp;species=Homo+sapiens">http://www.imgt.org/genedb/GENElect?query=7.2+IGLV&amp;species=Homo+sapiens</a>
+<a class="reference external" href="http://www.imgt.org/genedb/GENElect?query=7.2+IGLV&amp;species=Homo+sapiens">http://www.imgt.org/genedb/GENElect?query=7.2+IGLV&amp;species=Homo+sapiens</a>
+Homo+sapiens IGLJ <a class="reference external" href="http://www.imgt.org/genedb/GENElect?query=7.2+IGLJ&amp;species=Homo+sapiens">http://www.imgt.org/genedb/GENElect?query=7.2+IGLJ&amp;species=Homo+sapiens</a>
+<a class="reference external" href="http://www.imgt.org/genedb/GENElect?query=7.2+IGLJ&amp;species=Homo+sapiens">http://www.imgt.org/genedb/GENElect?query=7.2+IGLJ&amp;species=Homo+sapiens</a>
+<a class="reference external" href="http://www.imgt.org/genedb/GENElect?query=8.1+IGLV&amp;species=Homo+sapiens&amp;IMGTlabel=2nd-CYS">http://www.imgt.org/genedb/GENElect?query=8.1+IGLV&amp;species=Homo+sapiens&amp;IMGTlabel=2nd-CYS</a>
+No anchor is found for : AC279423|IGLV(I)-11-1*01|Homo sapiens|P|V-REGION|22452..22620|169 nt|1| | | | <a href="#id89"><span class="problematic" id="id90">|169+0=169|partial in 5'|</span></a> |
+No anchor is found for : D87007|IGLV(I)-20*01|Homo sapiens|P|V-REGION|15573..15858|286 nt|1| | | | <a href="#id91"><span class="problematic" id="id92">|286+0=286|</span></a> | |
+No anchor is found for : AC279208|IGLV(I)-20*02|Homo sapiens|P|V-REGION|19943..20228|286 nt|1| | | | <a href="#id93"><span class="problematic" id="id94">|286+0=286|</span></a> | |</p>
+<p>…</p>
+<p>Number of features: 0
+Seq(‘TGCTGTGTTCGGAGGAGGCACCCAGCTGACCGTCCTCG’)
+ID: D87017|IGLJ7*02|Homo
+Name: D87017|IGLJ7*02|Homo
+Description: D87017|IGLJ7*02|Homo sapiens|F|J-REGION|18513..18550|38 nt|2| | | | <a href="#id95"><span class="problematic" id="id96">|38+0=38|</span></a> | |
+Number of features: 0
+Seq(‘TGCTGTGTTCGGAGGAGGCACCCAGCTGACCGCCCTCG’)
+———————-
+Genomic VJ templates in files:
+models/Homo+sapiens/IGL/ref_genome/genomicVs__imgt.fasta models/Homo+sapiens/IGL/ref_genome/genomicJs__imgt.fasta</p>
+<p><a href="#id29"><span class="problematic" id="id30">``</span></a><a href="#id31"><span class="problematic" id="id32">`</span></a></p>
+<p>This command creates a directory <strong>models</strong> with the following structure</p>
+<p><a href="#id33"><span class="problematic" id="id34">``</span></a>`
+models/
+└── Homo+sapiens</p>
+<blockquote>
+<div><dl>
+<dt>└── TRB</dt><dd><p>├── models
+└── ref_genome</p>
+<blockquote>
+<div><p>├── genomicDs.fasta
+├── genomicDs__imgt.fasta
+├── genomicDs__imgt.fasta_short
+├── genomicJs.fasta
+├── genomicJs__imgt.fasta
+├── genomicJs__imgt.fasta_short
+├── genomicJs__imgt.fasta_trim
+├── genomicVs.fasta
+├── genomicVs__imgt.fasta
+├── genomicVs__imgt.fasta_short
+├── genomicVs__imgt.fasta_trim
+├── J_gene_CDR3_anchors.csv
+├── J_gene_CDR3_anchors__imgt.csv
+├── J_gene_CDR3_anchors__imgt.csv_short
+├── V_gene_CDR3_anchors.csv
+├── V_gene_CDR3_anchors__imgt.csv
+└── V_gene_CDR3_anchors__imgt.csv_short</p>
+</div></blockquote>
+</dd>
+</dl>
+</div></blockquote>
+<p><a href="#id35"><span class="problematic" id="id36">``</span></a><a href="#id37"><span class="problematic" id="id38">`</span></a></p>
+<p>—
+<strong>Important Note</strong>
+It is important to review carefully your downloaded genes templates. Pygor automatically rename from long
+IMGT descriptions to a short ones. For instance</p>
+<p>D86996|IGLV(I)-56*01|Homo sapiens|P|V-REGION|12276..12571|296 nt|1| | | | <a href="#id97"><span class="problematic" id="id98">|296+0=296|</span></a> | |</p>
+<p>D86996|IGLV(I)-56*01|Homo sapiens|P|V-REGION|12576..12876|301 nt|1| | | | <a href="#id99"><span class="problematic" id="id100">|301+0=301|</span></a> | |</p>
+<p>Are renamed as :</p>
+<p>IGLV(I)-56*01</p>
+<p>IGLV(I)-56*01</p>
+<p>For these cases, is important to rename it or remove it manually, before  create a new model.
+For simplicity in this demo we remove the second IGLV(I)-56*01</p>
+<p>—</p>
+</div></blockquote>
+</li>
+</ol>
+<p>3. Create a new initial default model, with uniform distribution for the conditional probabilities
+of Bayes network (“model_marginals.txt” file). Notice that in IGoR this file is called marginals,
+but it is not the marginal probability of a recombination event.</p>
+<blockquote>
+<div><blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">`console</span>
+<span class="pre">$</span> <span class="pre">pygor</span> <span class="pre">model-create</span> <span class="pre">-M</span> <span class="pre">models/Homo+sapiens/IGL/</span> <span class="pre">-t</span> <span class="pre">VJ</span>
+<span class="pre">--------------------------------</span>
+<span class="pre">No</span> <span class="pre">D</span> <span class="pre">genes</span> <span class="pre">were</span> <span class="pre">found.</span>
+<span class="pre">[Errno</span> <span class="pre">2]</span> <span class="pre">No</span> <span class="pre">such</span> <span class="pre">file</span> <span class="pre">or</span> <span class="pre">directory:</span> <span class="pre">'models/Homo+sapiens/IGL//ref_genome//genomicDs.fasta'</span>
+<span class="pre">No</span> <span class="pre">D</span> <span class="pre">genes</span> <span class="pre">were</span> <span class="pre">found.</span>
+<span class="pre">[Errno</span> <span class="pre">2]</span> <span class="pre">No</span> <span class="pre">such</span> <span class="pre">file</span> <span class="pre">or</span> <span class="pre">directory:</span> <span class="pre">'models/Homo+sapiens/IGL//ref_genome//genomicDs.fasta'</span>
+<span class="pre">igortask.igor_model_dir_path:</span>&#160; <span class="pre">models/Homo+sapiens/IGL/</span>
+<span class="pre">Writing</span> <span class="pre">model</span> <span class="pre">parms</span> <span class="pre">in</span> <span class="pre">file</span>&#160; <span class="pre">models/Homo+sapiens/IGL//models/model_parms.txt</span>
+<span class="pre">Writing</span> <span class="pre">model</span> <span class="pre">marginals</span> <span class="pre">in</span> <span class="pre">file</span>&#160; <span class="pre">models/Homo+sapiens/IGL//models/model_marginals.txt</span>
+<span class="pre">`</span></code></p>
+</div></blockquote>
+<dl>
+<dt>Initial models with uniform parameters model files will be created in files <strong>model_parms.txt</strong> and <strong>model_marginals.txt</strong> at directory path</dt><dd><p><a href="#id39"><span class="problematic" id="id40">``</span></a><a href="#id41"><span class="problematic" id="id42">`</span></a>console
+models/
+└── Homo+sapiens</p>
+<blockquote>
+<div><dl>
+<dt>└── IGL</dt><dd><p>├── models
+│   ├── model_marginals.txt
+│   └── model_parms.txt
+└── ref_genome</p>
+<blockquote>
+<div><p>├── genomicJs.fasta
+├── genomicJs__imgt.fasta
+├── genomicJs__imgt.fasta_short
+├── genomicJs__imgt.fasta_trim
+├── genomicVs.fasta
+├── genomicVs__imgt.fasta
+├── genomicVs__imgt.fasta_short
+├── genomicVs__imgt.fasta_trim
+├── J_gene_CDR3_anchors.csv
+├── J_gene_CDR3_anchors__imgt.csv
+├── J_gene_CDR3_anchors__imgt.csv_short
+├── V_gene_CDR3_anchors.csv
+├── V_gene_CDR3_anchors__imgt.csv
+└── V_gene_CDR3_anchors__imgt.csv_short</p>
+</div></blockquote>
+</dd>
+</dl>
+</div></blockquote>
+<p><a href="#id43"><span class="problematic" id="id44">``</span></a><a href="#id45"><span class="problematic" id="id46">`</span></a></p>
+</dd>
+</dl>
+<p>At this point you can use a set of non-productive sequence to infer a model within IGoR directly
+or by using pygor command (the simpler option).</p>
+<blockquote>
+<div><p><a href="#id47"><span class="problematic" id="id48">``</span></a><a href="#id49"><span class="problematic" id="id50">`</span></a>console
+$ pygor igor-infer -M models/Homo+sapiens/IGL/ -i data/IgL/IgL_seqs_naive_Nofunctional.txt -o new_IgL_naive
+——————————–
+===== Running inference =====
+…
+WARNING: write_model_parms path  [Errno 2] No such file or directory: ‘’
+Writing model parms in file  new_IgL_naive_parms.txt
+WARNING: IgorModel_Marginals.write_model_marginals path  [Errno 2] No such file or directory: ‘’
+Writing model marginals in file  new_IgL_naive_marginals.txt
+Database file :  new_IgL_naive</p>
+<p><a href="#id51"><span class="problematic" id="id52">``</span></a><a href="#id53"><span class="problematic" id="id54">`</span></a></p>
+</div></blockquote>
+<p>This will output the following files</p>
+<p><code class="docutils literal notranslate"><span class="pre">`console</span>
+<span class="pre">new_IgL_naive.db</span>
+<span class="pre">new_IgL_naive_BN.pdf</span>
+<span class="pre">new_IgL_naive_PM.pdf</span>
+<span class="pre">new_IgL_naive_marginals.txt</span>
+<span class="pre">new_IgL_naive_parms.txt</span>
+<span class="pre">`</span></code></p>
+<p>where new_hs_trb.db is a database with the encapsulated information about the new model and
+the date used by IGoR to infer it, new_IgL_naive_BN.pdf is a plot of the Bayesian network(BN) of inferred
+model, new_IgL_naive_PM.pdf are plots of the real marginals of events in BN, and finally the
+new_IgL_naive_parms.txt and new_IgL_naive_marginals.txt the inferred model in IGoR’s format.</p>
+</div></blockquote>
+<p>#### Model Plots
+A model can be plotted from a database file, model directory or by passing the model_parms.txt and
+model_marginals.txt</p>
+<p><a href="#id55"><span class="problematic" id="id56">``</span></a><a href="#id57"><span class="problematic" id="id58">`</span></a></p>
+<p>$ pygor model-plot -M models/Homo+sapiens/IGL/ -o IgL_plot</p>
+<p>or</p>
+<p>$ pygor model-plot -D new_IgL_naive.db -o IgL_plot
+<a href="#id59"><span class="problematic" id="id60">``</span></a>`
+This will output two pdf files with the Marginal Probabilities and Conditional probabilities of events</p>
+<p>![](BayesNetwork.png)
+![](GeneChoice_MP.png)
+![](GeneChoice_CP.png)</p>
+<p>#### Database files
+The .db files can contain all the information in IGoR’s standard files in a single sqlite database file,
+and can be examinated with any sqlite client, like sqlite3 or sqlitebrowser</p>
+<p><a href="#id61"><span class="problematic" id="id62">``</span></a><a href="#id63"><span class="problematic" id="id64">`</span></a>console
+$ sqlite3 new_IgL_naive.db
+SQLite version 3.33.0 2020-08-14 13:23:32
+Enter “.help” for usage hints.
+sqlite&gt; .tables
+IgorDAlignments       IgorIndexedSeq        IgorMM_vj_ins
+IgorDGeneTemplate     IgorJAlignments       IgorMP_Edges
+IgorER_j_5_del        IgorJGeneCDR3Anchors  IgorMP_ErrorRate
+IgorER_j_choice       IgorJGeneTemplate     IgorMP_Event_list
+IgorER_v_3_del        IgorMM_j_5_del        IgorVAlignments
+IgorER_v_choice       IgorMM_j_choice       IgorVGeneCDR3Anchors
+IgorER_vj_dinucl      IgorMM_v_3_del        IgorVGeneTemplate
+IgorER_vj_ins         IgorMM_v_choice
+IgorIndexedCDR3       IgorMM_vj_dinucl</p>
+<p><a href="#id65"><span class="problematic" id="id66">``</span></a><a href="#id67"><span class="problematic" id="id68">`</span></a></p>
+<p>Pygor has its own methods to maniputate data a database file.
+For instance, db-ls list the contents of the database and the number of records</p>
+<p><a href="#id69"><span class="problematic" id="id70">``</span></a><a href="#id71"><span class="problematic" id="id72">`</span></a>console
+$ pygor db-ls -D new_IgL_naive.db
+——————————–
+=== Sequences tables igor-reads:
+IgorIndexedSeq  :  24985
+=== Genomes References tables igor-genomes:
+IgorVGeneTemplate  :  151
+IgorJGeneTemplate  :  10
+IgorDGeneTemplate  :  0
+IgorVGeneCDR3Anchors  :  111
+IgorJGeneCDR3Anchors  :  10
+=== Alignments tables igor-alignments:
+IgorIndexedCDR3  :  24985
+IgorVAlignments  :  846743
+IgorJAlignments  :  257400
+IgorDAlignments  :  0
+=== Model tables igor-model:
+IgorMP_Event_list  :  6
+IgorMP_Edges  :  3
+IgorMP_ErrorRate  :  1
+IgorER_v_choice  :  151
+IgorER_j_choice  :  10
+IgorER_v_3_del  :  21
+IgorER_j_5_del  :  21
+IgorER_vj_ins  :  41
+IgorER_vj_dinucl  :  4
+IgorMM_v_choice  :  151
+IgorMM_j_choice  :  1510
+IgorMM_v_3_del  :  3171
+IgorMM_j_5_del  :  210
+IgorMM_vj_ins  :  41
+IgorMM_vj_dinucl  :  16
+=== Output tables igor-pgen and igor-scenarios:</p>
+<p><a href="#id73"><span class="problematic" id="id74">``</span></a><a href="#id75"><span class="problematic" id="id76">`</span></a></p>
+<p>In a similar way the commands db-rm, db-cp, db-import and db-export can be used to manipulate
+database files.</p>
+<p><a href="#id77"><span class="problematic" id="id78">``</span></a><a href="#id79"><span class="problematic" id="id80">`</span></a>console
+$ pygor db-cp -D new_IgL_naive.db -o new_IgL_naive_mdl.db –igor-genomes –igor-model
+——————————–
+<a href="#id81"><span class="problematic" id="id82">**</span></a>** Tables in source database :  new_IgL_naive.db
+=== Sequences tables igor-reads:
+IgorIndexedSeq  :  24985
+=== Genomes References tables igor-genomes:
+IgorVGeneTemplate  :  151
+IgorJGeneTemplate  :  10
+IgorDGeneTemplate  :  0
+IgorVGeneCDR3Anchors  :  111
+IgorJGeneCDR3Anchors  :  10
+=== Alignments tables igor-alignments:
+IgorIndexedCDR3  :  24985
+IgorVAlignments  :  846743
+IgorJAlignments  :  257400
+IgorDAlignments  :  0
+=== Model tables igor-model:
+IgorMP_Event_list  :  6
+IgorMP_Edges  :  3
+IgorMP_ErrorRate  :  1
+IgorER_v_choice  :  151
+IgorER_j_choice  :  10
+IgorER_v_3_del  :  21
+IgorER_j_5_del  :  21
+IgorER_vj_ins  :  41
+IgorER_vj_dinucl  :  4
+IgorMM_v_choice  :  151
+IgorMM_j_choice  :  1510
+IgorMM_v_3_del  :  3171
+IgorMM_j_5_del  :  210
+IgorMM_vj_ins  :  41
+IgorMM_vj_dinucl  :  16
+=== Output tables igor-pgen and igor-scenarios:
+<a href="#id83"><span class="problematic" id="id84">**</span></a>** Tables in destiny database:  new_IgL_naive_mdl.db
+=== Sequences tables igor-reads:
+=== Genomes References tables igor-genomes:
+IgorVGeneTemplate  :  151
+IgorJGeneTemplate  :  10
+IgorDGeneTemplate  :  0
+IgorVGeneCDR3Anchors  :  111
+IgorJGeneCDR3Anchors  :  10
+=== Alignments tables igor-alignments:
+=== Model tables igor-model:
+IgorMP_Event_list  :  6
+IgorMP_Edges  :  3
+IgorMP_ErrorRate  :  1
+IgorER_v_choice  :  151
+IgorER_j_choice  :  10
+IgorER_v_3_del  :  21
+IgorER_j_5_del  :  21
+IgorER_vj_ins  :  41
+IgorER_vj_dinucl  :  4
+IgorMM_v_choice  :  151
+IgorMM_j_choice  :  1510
+IgorMM_v_3_del  :  3171
+IgorMM_j_5_del  :  210
+IgorMM_vj_ins  :  41
+IgorMM_vj_dinucl  :  16
+=== Output tables igor-pgen and igor-scenarios:</p>
+<p><a href="#id85"><span class="problematic" id="id86">``</span></a><a href="#id87"><span class="problematic" id="id88">`</span></a></p>
+<p>#### Model evaluation
+Once we have an inferred model we can evaluate the probability of a particular sequence to be
+generated (pgen) and get the most probable scenarios for the recombination of input sequences
+or generate synthetic sequences. We can evaluate sequences using the following files: model_parms.txt, model_marginals.txt, genomicXs.fasta, and X_gene_CDR3_anchors.csv or we can just use a database file with all this information like above. For instance the “new_IgL_naive_mdl.db” file, in the example above, contains
+only the model and genomes information, which is necessary for the alignment and evaluation for IGoR.</p>
+<p><code class="docutils literal notranslate"><span class="pre">`console</span>
+<span class="pre">$</span> <span class="pre">pygor</span> <span class="pre">igor-evaluate</span> <span class="pre">-D</span> <span class="pre">new_IgL_naive_mdl.db</span> <span class="pre">-i</span> <span class="pre">data/IgL/IgL_seqs_naive_Functional_small.txt</span>&#160; <span class="pre">-o</span> <span class="pre">IgL_naive_evaluated</span>
+<span class="pre">`</span></code></p>
+<p>An tsv airr standard format is created with the rearragement.</p>
+<p><code class="docutils literal notranslate"><span class="pre">`</span>
+<span class="pre">sequence_id</span>&#160;&#160;&#160;&#160; <span class="pre">sequence</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">rev_comp</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">productive</span>&#160;&#160;&#160;&#160;&#160; <span class="pre">v_call</span>&#160; <span class="pre">d_call</span>&#160; <span class="pre">j_call</span>&#160; <span class="pre">sequence_alignment</span>&#160;&#160;&#160;&#160;&#160; <span class="pre">germline_alignment</span>&#160;&#160;&#160;&#160;&#160; <span class="pre">junction</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">junction_aa</span>&#160;&#160;&#160;&#160; <span class="pre">v_cigar</span> <span class="pre">d_cigar</span> <span class="pre">j_cigar</span> <span class="pre">v_score</span> <span class="pre">v_identity</span>&#160;&#160;&#160;&#160;&#160; <span class="pre">v_support</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">v_sequence_start</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">v_sequence_end</span>&#160; <span class="pre">v_germline_start</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">v_germline_end</span>&#160; <span class="pre">v_alignment_start</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">v_alignment_end</span> <span class="pre">d_score</span> <span class="pre">d_identity</span>&#160;&#160;&#160;&#160;&#160; <span class="pre">d_support</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">d_sequence_start</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">d_sequence_end</span>&#160; <span class="pre">d_germline_start</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">d_germline_end</span>&#160; <span class="pre">d_alignment_start</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">d_alignment_end</span> <span class="pre">j_score</span> <span class="pre">j_identity</span>&#160;&#160;&#160;&#160;&#160; <span class="pre">j_support</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">j_sequence_start</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">j_sequence_end</span>&#160; <span class="pre">j_germline_start</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">j_germline_end</span>&#160; <span class="pre">j_alignment_start</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">j_alignment_end</span> <span class="pre">sequence_aa</span>&#160;&#160;&#160;&#160; <span class="pre">vj_in_frame</span>&#160;&#160;&#160;&#160; <span class="pre">stop_codon</span>&#160;&#160;&#160;&#160;&#160; <span class="pre">complete_vdj</span>&#160;&#160;&#160; <span class="pre">locus</span>&#160;&#160; <span class="pre">sequence_alignment_aa</span>&#160;&#160; <span class="pre">n1_length</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">np1</span>&#160;&#160;&#160;&#160; <span class="pre">np1_aa</span>&#160; <span class="pre">np1_length</span>&#160;&#160;&#160;&#160;&#160; <span class="pre">n2_length</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">np2</span>&#160;&#160;&#160;&#160; <span class="pre">np2_aa</span>&#160; <span class="pre">np2_length</span>&#160;&#160;&#160;&#160;&#160; <span class="pre">p3v_length</span>&#160;&#160;&#160;&#160;&#160; <span class="pre">p5d_length</span>&#160;&#160;&#160;&#160;&#160; <span class="pre">p3d_length</span>&#160;&#160;&#160;&#160;&#160; <span class="pre">p5j_length</span>&#160;&#160;&#160;&#160;&#160; <span class="pre">scenario_rank</span>&#160;&#160; <span class="pre">scenario_proba_cond_seq</span> <span class="pre">pgen</span>&#160;&#160;&#160; <span class="pre">quality</span> <span class="pre">quality_alignment</span>
+<span class="pre">0</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">CAGTCTCCCAGGTACAAAGTCACAAAGAGGGGACAGGATGTAACTCTCAGGTGTGATCCAATTTCGAGTCATGCAACCCTTTATTGGTATCAACAGGCCCTGGGGCAGGGCCCAGAGTTTCTGACTTACTTCAATTATGAAGCTCAACCAGACAAATCAGGGCTGCCCAGTGATCGGTTCTCTGCAGAGAGGCCTGAGGGATCCATCTCCACTCTGACGATTCAGCGCACAGAGCAGCGGGACTCAGCCATGTATCGCTGTGCTAGCAGCATTCCTCGGGCTGTCAGATACGCAGTATTTTGGCCCAGGCACCCGGCTGACAGTGCTCG</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">F</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">TRBV7-7*01</span>&#160;&#160;&#160;&#160;&#160; <span class="pre">TRBD2*02</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">TRBJ2-3*01</span>&#160;&#160;&#160;&#160;&#160; <span class="pre">GGTGCTGGAGTCTCCCAGTCTCCCAGGTACAAAGTCACAAAGAGGGGACAGGATGTAACTCTCAGGTGTGATCCAATTTCGAGTCATGCAACCCTTTATTGGTATCAACAGGCCCTGGGGCAGGGCCCAGAGTTTCTGACTTACTTCAATTATGAAGCTCAACCAGACAAATCAGGGCTGCCCAGTGATCGGTTCTCTGCAGAGAGGCCTGAGGGATCCATCTCCACTCTGACGATTCAGCGCACAGAGCAGCGGGACTCAGCCATGTATCGCTGTGCCAGCAGCATTCCTCGGGCTGTCAGATACGCAGTATTTTGGCCCAGGCACCCGGCTGACAGTGCTCG</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">TGTGCTAGCAGCATTCCTCGGGCTGTCAGATACGCAGTATTTT</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">285M</span>&#160;&#160;&#160; <span class="pre">4M</span>&#160;&#160;&#160;&#160;&#160; <span class="pre">45M</span>&#160;&#160;&#160;&#160; <span class="pre">1425</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">2</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">285</span>&#160;&#160;&#160;&#160; <span class="pre">16</span>&#160;&#160;&#160;&#160;&#160; <span class="pre">283</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">20</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">290</span>&#160;&#160;&#160;&#160; <span class="pre">292</span>&#160;&#160;&#160;&#160; <span class="pre">10</span>&#160;&#160;&#160;&#160;&#160; <span class="pre">13</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">225</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">7</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">50</span>&#160;&#160;&#160;&#160;&#160; <span class="pre">6</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">50</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">6ATTCCT</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">6</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">4</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">CTGT</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">4</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">0</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">0</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">0</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">0</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">1</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">0.02729091.34834e-19</span>
+<span class="pre">0</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">CAGTCTCCCAGGTACAAAGTCACAAAGAGGGGACAGGATGTAACTCTCAGGTGTGATCCAATTTCGAGTCATGCAACCCTTTATTGGTATCAACAGGCCCTGGGGCAGGGCCCAGAGTTTCTGACTTACTTCAATTATGAAGCTCAACCAGACAAATCAGGGCTGCCCAGTGATCGGTTCTCTGCAGAGAGGCCTGAGGGATCCATCTCCACTCTGACGATTCAGCGCACAGAGCAGCGGGACTCAGCCATGTATCGCTGTGCTAGCAGCATTCCTCGGGCTGTCAGATACGCAGTATTTTGGCCCAGGCACCCGGCTGACAGTGCTCG</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">F</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">TRBV7-7*01</span>&#160;&#160;&#160;&#160;&#160; <span class="pre">TRBD2*01</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">TRBJ2-3*01</span>&#160;&#160;&#160;&#160;&#160; <span class="pre">GGTGCTGGAGTCTCCCAGTCTCCCAGGTACAAAGTCACAAAGAGGGGACAGGATGTAACTCTCAGGTGTGATCCAATTTCGAGTCATGCAACCCTTTATTGGTATCAACAGGCCCTGGGGCAGGGCCCAGAGTTTCTGACTTACTTCAATTATGAAGCTCAACCAGACAAATCAGGGCTGCCCAGTGATCGGTTCTCTGCAGAGAGGCCTGAGGGATCCATCTCCACTCTGACGATTCAGCGCACAGAGCAGCGGGACTCAGCCATGTATCGCTGTGCCAGCAGCATTCCTCGGGCTGTCAGATACGCAGTATTTTGGCCCAGGCACCCGGCTGACAGTGCTCG</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">TGTGCTAGCAGCATTCCTCGGGCTGTCAGATACGCAGTATTTT</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">285M</span>&#160;&#160;&#160; <span class="pre">4M</span>&#160;&#160;&#160;&#160;&#160; <span class="pre">45M</span>&#160;&#160;&#160;&#160; <span class="pre">1425</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">2</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">285</span>&#160;&#160;&#160;&#160; <span class="pre">16</span>&#160;&#160;&#160;&#160;&#160; <span class="pre">283</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">20</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">290</span>&#160;&#160;&#160;&#160; <span class="pre">292</span>&#160;&#160;&#160;&#160; <span class="pre">10</span>&#160;&#160;&#160;&#160;&#160; <span class="pre">13</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">225</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">7</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">50</span>&#160;&#160;&#160;&#160;&#160; <span class="pre">6</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">50</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">6ATTCCT</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">6</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">4</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">CTGT</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">4</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">0</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">0</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">0</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">0</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">2</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">0.02729091.34834e-19</span>
+<span class="pre">...</span>
+<span class="pre">`</span></code></p>
+<p>## Documentation</p>
+<p>All the command line interface commands can be used in a python environment, like jupyter notebook, by
+exporting the pygor3 package</p>
+<p><code class="docutils literal notranslate"><span class="pre">`python</span>
+<span class="pre">import</span> <span class="pre">pygor3</span> <span class="pre">as</span> <span class="pre">p3</span>
+<span class="pre">mdl</span> <span class="pre">=</span> <span class="pre">p3.IgorModel(model_parms_file=&quot;model_parms.txt&quot;,</span> <span class="pre">model_marginals_file=&quot;model_marginals.txt&quot;)</span>
+<span class="pre">`</span></code></p>
+<p>For further details checkout the [documentation]() and notebooks directory.</p>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="pygor3_tutorial.html" class="btn btn-neutral float-right" title="Notebook Tutorial" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to pygor3’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2021, Carlos Olivares.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

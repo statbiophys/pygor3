@@ -3,9 +3,9 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>Welcome to pygor3’s documentation! &mdash; pygor3  documentation</title>
   
@@ -13,10 +13,15 @@
   
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
 
   
   
+
   
+  
+
   
 
   
@@ -26,17 +31,18 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
-        <script src="_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     
     <script type="text/javascript" src="_static/js/theme.js"></script>
 
     
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="pygor3" href="modules.html" /> 
+    <link rel="next" title="Readme" href="readme.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -50,7 +56,7 @@
           
 
           
-            <a href="#" class="icon icon-home" alt="Documentation Home"> pygor3
+            <a href="#" class="icon icon-home"> pygor3
           
 
           
@@ -81,9 +87,13 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption"><span class="caption-text">Table of Contents</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="modules.html">pygor3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="readme.html">Readme</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Tutorial.html">Pygor Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Tutorial.html#IgorModel">IgorModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Tutorial.html#Evaluate-VDJ-model">Evaluate VDJ model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Tutorial.html#Observables-from-scenarios">Observables from scenarios</a></li>
 </ul>
 
             
@@ -124,6 +134,8 @@
 
 
 
+
+
 <div role="navigation" aria-label="breadcrumbs navigation">
 
   <ul class="wy-breadcrumbs">
@@ -135,7 +147,7 @@
     
       <li class="wy-breadcrumbs-aside">
         
-            
+          
             <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
           
         
@@ -149,41 +161,66 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="welcome-to-pygor3-s-documentation">
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="welcome-to-pygor3-s-documentation">
 <h1>Welcome to pygor3’s documentation!<a class="headerlink" href="#welcome-to-pygor3-s-documentation" title="Permalink to this headline">¶</a></h1>
 <div class="toctree-wrapper compound">
-<p class="caption"><span class="caption-text">Contents:</span></p>
+<p class="caption"><span class="caption-text">Table of Contents</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="modules.html">pygor3</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="pygor3.html">pygor3 package</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="pygor3.html#submodules">Submodules</a></li>
-<li class="toctree-l3"><a class="reference internal" href="pygor3.html#pygor3-airr-module">pygor3.AIRR module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="pygor3.html#pygor3-igorbestscenarios-module">pygor3.IgorBestScenarios module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="pygor3.html#pygor3-igordefaults-module">pygor3.IgorDefaults module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="pygor3.html#pygor3-igordictionaries-module">pygor3.IgorDictionaries module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="pygor3.html#pygor3-igorio-module">pygor3.IgorIO module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="pygor3.html#pygor3-igorindexedsequence-module">pygor3.IgorIndexedSequence module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="pygor3.html#pygor3-igorindexedsequencesdb-module">pygor3.IgorIndexedSequencesDB module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="pygor3.html#pygor3-igorsql-module">pygor3.IgorSQL module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="pygor3.html#pygor3-igorsqlitedb-module">pygor3.IgorSqliteDB module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="pygor3.html#pygor3-igorsqlitedbbestscenarios-module">pygor3.IgorSqliteDBBestScenarios module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="pygor3.html#pygor3-imgt-module">pygor3.imgt module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="pygor3.html#pygor3-utils-module">pygor3.utils module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="pygor3.html#module-contents">Module contents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="readme.html">Readme</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Tutorial.html">Pygor Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Tutorial.html#IgorModel">IgorModel</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Tutorial.html#Conditional-probabilities">Conditional probabilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Tutorial.html#Marginal-Probabilities">Marginal Probabilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Tutorial.html#Joint-Probabilities">Joint Probabilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Tutorial.html#Entropy">Entropy</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="Tutorial.html#Mutual-Information">Mutual Information</a></li>
+<li class="toctree-l3"><a class="reference internal" href="Tutorial.html#Select-events-by-probability">Select events by probability</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="Tutorial.html#Use-a-default-IGoR’s-model-to-generate-sequences">Use a default IGoR’s model to generate sequences</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Tutorial.html#Generate-synthetic-sequences">Generate synthetic sequences</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Tutorial.html#One-sequence-evaluation">One sequence evaluation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Tutorial.html#Evaluate-VDJ-model">Evaluate VDJ model</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Tutorial.html#Visualize-scenarios">Visualize scenarios</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Tutorial.html#Observables-from-scenarios">Observables from scenarios</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Tutorial.html#Predefine-Functions-for-Scenarios">Predefine Functions for Scenarios</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="Tutorial.html#Pairwise-Probabilities">Pairwise Probabilities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="Tutorial.html#Mutual-Information-from-scenarios">Mutual Information from scenarios</a></li>
+<li class="toctree-l3"><a class="reference internal" href="Tutorial.html#Mean-and-Variance-of-values-in-scenarios-dataframe">Mean and Variance of values in scenarios dataframe</a></li>
 </ul>
 </li>
 </ul>
 </li>
 </ul>
 </div>
-</div>
-<div class="section" id="indices-and-tables">
-<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
-<ul class="simple">
-<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
-<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
-<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
-</ul>
 </div>
 
 
@@ -191,35 +228,28 @@
            
           </div>
           <footer>
-  
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="modules.html" class="btn btn-neutral float-right" title="pygor3" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
+        <a href="readme.html" class="btn btn-neutral float-right" title="Readme" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
-  
 
   <hr/>
 
   <div role="contentinfo">
     <p>
-        
-        &copy; Copyright 2020, Carlos Olivares
+        &#169; Copyright 2021, Carlos Olivares.
 
     </p>
   </div>
     
     
     
-    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     
-    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
     
     provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
-
         </div>
       </div>
 
