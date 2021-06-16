@@ -815,11 +815,14 @@ def run_generate(N,
     if Q_species_chain:
         igortask.igor_species = igor_species
         igortask.igor_chain = igor_chain
+        igortask.load_IgorModel()
     elif Q_model_files:
         igortask.igor_model_parms_file = igor_model_parms
         igortask.igor_model_marginals_file = igor_model_marginals
+        igortask.load_IgorModel()
     elif igor_fln_db is not None:
         igortask.create_db(igor_fln_db)
+        igortask.load_mdl_from_db()
     else:
         print("WARNING: No model provided!")
 

@@ -5707,9 +5707,9 @@ class IgorTask:
             else:
                 try:
                     # self.mdl = IgorModel.load_default(self.igor_species, igor_option_path_dict[self.igor_chain])
-                    self.mdl = IgorModel.load_default(self.igor_species, self.igor_chain)
-                except KeyError as ke:
                     self.mdl = IgorModel.load_default(self.igor_species, igor_option_path_dict[self.igor_chain])
+                except KeyError as ke:
+                    self.mdl = IgorModel.load_default(self.igor_species, self.igor_chain)
                 except Exception as e:
                     raise e
 
@@ -5835,7 +5835,7 @@ class IgorTask:
                 self.igor_model_marginals_file = self.igor_model_dir_path + "/models/model_marginals.txt"
                 self.igor_path_ref_genome = self.igor_model_dir_path + "/ref_genome/"
         except Exception as e:
-            e_message = "WARNING: IgorTask.update_model_filenames" + str(self.igor_model_dir_path)
+            e_message = "WARNING: IgorTask.update_model_filenames: " + str(self.igor_model_dir_path)
             import sys
             raise type(e)(str(e) + e_message).with_traceback(sys.exc_info()[2])
 
@@ -6546,10 +6546,23 @@ class IgorTask:
                       igor_model_parms_file=None, igor_model_marginals_file=None,
                       fln_V_gene_CDR3_anchors=None, fln_J_gene_CDR3_anchors=None,
                       igor_db=None, igor_fln_db=None,
-                      igor_species=None, igor_chain=None, return_df=False,
-                      clean_batch=True):
+                      igor_species=None, igor_chain=None, #return_df=False,
+                      fln_output_prefix:Union[None, str]=None):
         """
         Run IGoR generate command line.
+        :param N_seqs: Integer number of sequences to generate (default 1)
+        :param mdl: IgorModel object to generate sequences if None is provide it uses the self.mdl (default None)
+        :param seed: Seed to generate random sequences (default None). If None then IGoR's chooses a random seed.
+        :param igor_wd: Working directory to execuate IGoR, if None it uses self.igor_wd which default value is the current diretory(default None).
+        :param igor_batchname: IGoR batch option to identify the IGoR's execution(default None).
+        :param igor_model_parms_file: If no model is specified in self.mdl or mdl option, with this option a model_parms path can be used (default None).
+        :param igor_model_marginals_file: Same as igor_model_parms_file (default None).
+        :param fln_V_gene_CDR3_anchors: CDR3 IGoR's anchors V path to file (default None).
+        :param fln_J_gene_CDR3_anchors: CDR3 IGoR's anchors J path to file (default None).
+        :param igor_db: A database within a IGoR model can be used to get the model (default None).
+        :param igor_fln_db: A database file can be used to generate sequences (default None).
+        :param igor_species: IGoR's name of species (default None).
+        :param igor_chain: IGoR's name of chain (default None).
         """
 
         try:
@@ -6636,6 +6649,25 @@ class IgorTask:
 
             # FIXME: LOAD TO DATABASE CREATE PROPER TABLES FOR THIS
             # import pandas as pd
+            if fln_output_prefix is not None:
+                import os
+                self.igor_fln_generated_seqs_werr = self.igor_wd + "/" + self.igor_batchname + "_generated/generated_seqs_werr.csv"
+                self.igor_fln_generated_realizations_werr = self.igor_wd + "/" + self.igor_batchname + "_generated/generated_realizations_werr.csv"
+                self.igor_fln_generation_info = self.igor_wd + "/" + self.igor_batchname + "_generated/generation_info.out"
+                output_generated_sequences = fln_output_prefix + "_sequences.csv"
+                output_generated_realizations = fln_output_prefix + "_realizations.csv"
+                output_generated_info = fln_output_prefix + "_info.out"
+                # output_generated_sequences_airr = fln_output_prefix + "_sequences.tsv"
+
+                os.rename(self.igor_fln_generated_seqs_werr, output_generated_sequences)
+                os.rename(self.igor_fln_generated_realizations_werr, output_generated_realizations)
+                os.rename(self.igor_fln_generation_info, output_generated_info)
+                # TODO: IF DIRECTORY EMPTY DELETE IT.
+
+                self.igor_fln_generated_seqs_werr = output_generated_sequences
+                self.igor_fln_generated_realizations_werr = output_generated_realizations
+                self.igor_fln_generation_info = output_generated_info
+
 
         except Exception as e:
             raise e
@@ -8021,7 +8053,8 @@ def generate(Nseqs, mdl:IgorModel, igor_wd=None, igor_batchname=None,
     else:
         return pd_sequences
     finally:
-        tmp_generate_dir.cleanup()
+        if clean_batch:
+            tmp_generate_dir.cleanup()
 
     # try:
     #     # TODO:

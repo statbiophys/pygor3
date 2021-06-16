@@ -106,6 +106,86 @@ class MyTestCase(unittest.TestCase):
             write_sequences_to_file(df, archivo_temporal)
         subprocess.run("rm " + fln_tmp_input_sequence, shell=True)
 
+
+    def test_cli_run_generate(self):
+        N = 10
+        igor_species = "human" #None
+        igor_chain = "beta" #None
+        igor_model = [None, None]
+        igor_model_path = None
+        igor_path_ref_genome = None
+        igor_wd = None
+        igor_batch = None
+        igor_fln_db = None
+        fln_genomicVs = None
+        fln_genomicDs = None
+        fln_genomicJs = None
+        fln_V_gene_CDR3_anchors = None
+        fln_J_gene_CDR3_anchors = None
+        fln_output_prefix = None
+
+        from pygor3 import IgorTask
+        igortask = IgorTask()
+        igortask.igor_path_ref_genome = igor_path_ref_genome
+        igortask.fln_genomicVs = fln_genomicVs
+        igortask.fln_genomicDs = fln_genomicDs
+        igortask.fln_genomicJs = fln_genomicJs
+        igortask.fln_V_gene_CDR3_anchors = fln_V_gene_CDR3_anchors
+        igortask.fln_J_gene_CDR3_anchors = fln_J_gene_CDR3_anchors
+
+        igortask.igor_species = igor_species
+        igortask.igor_chain = igor_chain
+        igor_model_parms = igor_model[0]
+        igor_model_marginals = igor_model[1]
+        igortask.igor_model_parms_file = igor_model[0]
+        igortask.igor_model_marginals_file = igor_model[1]
+        igortask.igor_model_dir_path = igor_model_path
+        igortask.igor_wd = igor_wd
+        igortask.igor_batchname = igor_batch
+        igortask.igor_fln_db = igor_fln_db
+
+        Q_species_chain = (not (igor_species is None) and not (igor_chain is None))
+        Q_model_files = (not (igor_model_parms is None) and not (igor_model_marginals is None))
+        if Q_species_chain:
+            igortask.igor_species = igor_species
+            igortask.igor_chain = igor_chain
+            igortask.load_IgorModel()
+        elif Q_model_files:
+            igortask.igor_model_parms_file = igor_model_parms
+            igortask.igor_model_marginals_file = igor_model_marginals
+            igortask.load_IgorModel()
+        elif igor_fln_db is not None:
+            igortask.create_db(igor_fln_db)
+            igortask.load_mdl_from_db()
+        else:
+            print("WARNING: No model provided!")
+
+        ########################
+        igortask.update_batch_filenames()
+        igortask.update_model_filenames()
+
+
+        igortask._run_generate(N_seqs=N)
+        import os
+        if fln_output_prefix is None:
+
+            igortask.igor_fln_generated_realizations_werr = None
+            igortask.igor_fln_generated_seqs_werr = None
+        else:
+            igortask.igor_fln_generated_realizations_werr = None
+            igortask.igor_fln_generated_seqs_werr = igortask.igor_wd + "/" + igortask.igor_batchname + "_generated/generated_seqs_werr.csv"
+            igortask.igor_fln_generated_realizations_werr = igortask.igor_wd + "/" + igortask.igor_batchname + "_generated/generated_realizations_werr.csv"
+            output_generated_sequences = fln_output_prefix + "_sequences.csv"
+            output_generated_realizations = fln_output_prefix + "_realizations.csv"
+            # output_generated_sequences_airr = fln_output_prefix + "_sequences.tsv"
+            # TODO: EXPORT IN AIRR REARRANGEMENT
+            os.rename(igortask.igor_fln_generated_seqs_werr, output_generated_sequences)
+            os.rename(igortask.igor_fln_generated_realizations_werr, output_generated_realizations)
+            # igortask.run_clean_batch()
+            igortask._run_clean_batch_generate()
+            igortask._run_clean_batch_mdldata()
+        self.assertIsInstance(igortask.mdl, IgorModel)
+
     # def test__run_align(self):
     #     self.null_task.run_align()
     #     self.null_task._run_generate()
