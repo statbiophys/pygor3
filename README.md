@@ -443,7 +443,7 @@ import pygor3 as p3
 mdl = p3.IgorModel(model_parms_file="model_parms.txt", model_marginals_file="model_marginals.txt")
 ```
 
-For further details checkout the [documentation]() and notebooks directory.
+For further details checkout the [documentation](https://pygor3.readthedocs.io/en/latest/) and notebooks directory.
 
 
 
