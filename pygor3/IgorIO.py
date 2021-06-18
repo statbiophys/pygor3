@@ -1945,40 +1945,40 @@ class IgorModel_Parms:
         self.Event_list = new_Event_list
         self.gen_EventDict_DataFrame()
 
-    def attach_anchors_from_files(self, fln_V_gene_CDR3_anchors=None, fln_J_gene_CDR3_anchors=None):
+    def attach_anchors_from_files(self, fln_V_gene_CDR3_anchors=None, fln_J_gene_CDR3_anchors=None, sep=';'):
         """
         Add anchors to IgorModel_Parms from file, pandas dataframe or dictionary
         1. Get a dataframe from parms.Event_dict
         """
 
         try:
-            self.attach_V_anchors_from_file(fln_V_gene_CDR3_anchors)
+            self.attach_V_anchors_from_file(fln_V_gene_CDR3_anchors, sep=sep)
         except Exception as e:
             raise e
 
         try:
-            self.attach_J_anchors_from_file(fln_J_gene_CDR3_anchors)
+            self.attach_J_anchors_from_file(fln_J_gene_CDR3_anchors, sep=sep)
         except Exception as e:
             raise e
 
 
-    def attach_V_anchors_from_file(self, fln_V_gene_CDR3_anchors):
+    def attach_V_anchors_from_file(self, fln_V_gene_CDR3_anchors, sep=';'):
         """
         Attach V anchors from file
         :param fln_V_gene_CDR3_anchors: IGoR's V anchors file
         """
         try:
-            self.df_V_anchors = pd.read_csv(fln_V_gene_CDR3_anchors, sep=';').set_index('gene')
+            self.df_V_anchors = pd.read_csv(fln_V_gene_CDR3_anchors, sep=sep).set_index('gene')
         except Exception as e:
             raise e
 
-    def attach_J_anchors_from_file(self, fln_J_gene_CDR3_anchors):
+    def attach_J_anchors_from_file(self, fln_J_gene_CDR3_anchors, sep=';'):
         """
         Attach J anchors from file
         :param fln_J_gene_CDR3_anchors: IGoR's J anchors file
         """
         try:
-            self.df_J_anchors = pd.read_csv(fln_J_gene_CDR3_anchors, sep=';').set_index('gene')
+            self.df_J_anchors = pd.read_csv(fln_J_gene_CDR3_anchors, sep=sep).set_index('gene')
         except Exception as e:
             raise e
 
@@ -2748,8 +2748,16 @@ class IgorModel:
         self.sequence_construction_event_list = list()
 
         if (not (fln_V_gene_CDR3_anchors is None)) and (not (fln_J_gene_CDR3_anchors is None)):
-            self.parms.attach_anchors_from_files(fln_V_gene_CDR3_anchors=fln_V_gene_CDR3_anchors,
-                                                 fln_J_gene_CDR3_anchors=fln_J_gene_CDR3_anchors)
+            try:
+                self.parms.attach_anchors_from_files(fln_V_gene_CDR3_anchors=fln_V_gene_CDR3_anchors,
+                                                 fln_J_gene_CDR3_anchors=fln_J_gene_CDR3_anchors, sep=';')
+            except KeyError as e:
+                # OLGA
+                self.parms.attach_anchors_from_files(fln_V_gene_CDR3_anchors=fln_V_gene_CDR3_anchors,
+                                                     fln_J_gene_CDR3_anchors=fln_J_gene_CDR3_anchors, sep=',')
+                pass
+            except Exception as e:
+                raise e
             if self.parms.event_GeneChoice_V is not None:
                 self.genomic_dataframe_dict['V'] = self.parms.df_V_ref_genome
 
@@ -4265,10 +4273,29 @@ class IgorModel:
         self.marginals.initialize_uniform_from_model_parms(self.parms)
         self.generate_xdata()
 
-    def write_model(self, fln_model_parms, fln_model_marginals):
+    def write_model(self, fln_model_parms, fln_model_marginals, fln_V_gene_CDR3_anchors=None, fln_J_gene_CDR3_anchors=None):
+        """
+        Write model parms and marginals(conditional probabilities) in IGoR txt format files.
+        :param fln_model_parms: Filename for model parameters.
+        :param fln_model_marginals: Filename for model marginals (conditional probabilities).
+        :param fln_V_gene_CDR3_anchors: Filename of CDR3 anchors for V gene(optional).
+        :param fln_J_gene_CDR3_anchors: Filename of CDR3 anchors for J gene(optional).
+        """
         self.parms.Event_list = self.parms.get_Event_list_sorted()
         self.parms.write_model_parms(filename=fln_model_parms)
         self.marginals.write_model_marginals(filename=fln_model_marginals, model_parms=self.parms)
+        if fln_V_gene_CDR3_anchors is not None:
+            try:
+                write_geneanchors_dataframe_to_csv(fln_V_gene_CDR3_anchors, self.genomic_dataframe_dict['V'])
+            except Exception as e:
+                raise e
+
+        if fln_J_gene_CDR3_anchors is not None:
+            try:
+                write_geneanchors_dataframe_to_csv(fln_J_gene_CDR3_anchors, self.genomic_dataframe_dict['J'])
+            except Exception as e:
+                raise e
+
 
     def write_ref_genome(self, fln_genomicVs=None, fln_genomicDs=None, fln_genomicJs=None,
                          fln_V_gene_CDR3_anchors=None, fln_J_gene_CDR3_anchors=None):

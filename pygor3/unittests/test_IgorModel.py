@@ -410,6 +410,13 @@ class MyTestCase(unittest.TestCase):
         None
         """
 
+    def test_IgorModel_write_model(self):
+        mdl_hb = IgorModel.load_default("human", "tcr_beta")
+        fln_model_parms = 'model_parms.txt'
+        fln_model_marginals = 'model_marginals.txt'
+        ## TODO: ADD anchors
+        mdl_hb.write_model(fln_model_parms, fln_model_marginals)
+
     """
     def test_IgorModel_default_from_system(self):
         species = "human"
