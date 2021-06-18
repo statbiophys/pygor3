@@ -6298,7 +6298,7 @@ class IgorTask:
             self.update_model_filenames(self.igor_mdldata_dir)
             self.update_ref_genome(self.igor_mdldata_dir)
 
-            pd_sequences = self._run_generate(N_seqs, return_df=return_df, clean_batch=clean_batch)
+            self._run_generate(N_seqs)
             # TODO: ADD COLUMNS OF EVENTS
             pd_sequences = get_dataframe_from_fln_generated_seqs_werr(self.igor_fln_generated_seqs_werr)
 
@@ -6547,7 +6547,7 @@ class IgorTask:
                       fln_V_gene_CDR3_anchors=None, fln_J_gene_CDR3_anchors=None,
                       igor_db=None, igor_fln_db=None,
                       igor_species=None, igor_chain=None, #return_df=False,
-                      fln_output_prefix:Union[None, str]=None):
+                      fln_output_prefix:Union[None, str]=None, clean_batch=False):
         """
         Run IGoR generate command line.
         :param N_seqs: Integer number of sequences to generate (default 1)
@@ -6673,9 +6673,10 @@ class IgorTask:
             raise e
         else:
             return self.igor_fln_generated_seqs_werr, self.igor_fln_generated_realizations_werr, self.igor_fln_generation_info
-        # finally:
-        #     if clean_batch:
-        #         self.run_clean_batch()
+        finally:
+            if clean_batch:
+                self._run_clean_batch_generate()
+                self._run_clean_batch_mdldata()
 
     def run_generate_to_dataframe(self, N):
         self._run_generate(self, N)
@@ -8046,7 +8047,7 @@ def generate(Nseqs, mdl:IgorModel, igor_wd=None, igor_batchname=None,
             task.igor_generate_dict_options['--seed']['active'] = True
             task.igor_generate_dict_options['--seed']['value'] = str(seed)
 
-        pd_sequences = task.generate(N_seqs=Nseqs, clean_batch=clean_batch)
+        pd_sequences = task.generate(N_seqs=Nseqs)
 
     except Exception as e:
         raise e

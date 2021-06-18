@@ -3,6 +3,7 @@ import pandas as pd
 from pygor3 import IgorModel
 from pygor3 import IgorTask
 from pygor3 import generate
+from pygor3 import get_default_IgorModel
 from pygor3.utils import get_dataframe_from_fln_generated_seqs_werr
 from pygor3 import IgorRec_Event
 from pygor3 import IgorEvent_realization
@@ -12,7 +13,7 @@ import subprocess
 
 class MyTestCase(unittest.TestCase):
     def setUp(self) -> None:
-        N_seqs = 10
+        self.N_seqs = 10
         self.task = IgorTask.default_model("human", "beta")
 
     def test__something(self):
@@ -107,6 +108,12 @@ class MyTestCase(unittest.TestCase):
         # self.assertIsInstance(pd_sequences, pd.DataFrame)
         # self.assertTrue(len(pd_sequences) == self.N_seqs)
 
+    def test_pygor_generate(self):
+        mdl = get_default_IgorModel("human", "tcr_beta")
+        df_seqs = generate(10, mdl)
+        print(df_seqs)
+
+
     def test_something_human_alpha(self):
         task = IgorTask.default_model("human", "alpha")
         self.assertIsInstance(task, IgorTask)
@@ -133,10 +140,6 @@ class MyTestCase(unittest.TestCase):
             self.assertTrue(os.path.isfile(fln))
 
         subprocess.call("rm -r here", shell=True)
-
-    def test_function_generate(self):
-        # tmp_generate_dir = tempfile.TemporaryDirectory(prefix='igor_generating_', dir='.')
-        generate()
 
 
 if __name__ == '__main__':
