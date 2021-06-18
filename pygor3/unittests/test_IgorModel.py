@@ -3,6 +3,7 @@ import tempfile
 from pygor3 import IgorTask, IgorModel, IgorModel_Parms, IgorEvent_realization, IgorRefGenome
 from pygor3 import *
 import time
+import subprocess
 
 str_mock_VDJ_fln_genomicVs = \
 """>TRBV1*01
@@ -414,8 +415,43 @@ class MyTestCase(unittest.TestCase):
         mdl_hb = IgorModel.load_default("human", "tcr_beta")
         fln_model_parms = 'model_parms.txt'
         fln_model_marginals = 'model_marginals.txt'
+        fln_V_gene_CDR3_anchors = 'V_gene_CDR3_anchors.csv'
+        fln_J_gene_CDR3_anchors = 'J_gene_CDR3_anchors.csv'
+
         ## TODO: ADD anchors
-        mdl_hb.write_model(fln_model_parms, fln_model_marginals)
+        mdl_hb.write_model(fln_model_parms, fln_model_marginals, fln_V_gene_CDR3_anchors, fln_J_gene_CDR3_anchors)
+        mdl_hb_2 = IgorModel(fln_model_parms, fln_model_marginals,
+                             fln_V_gene_CDR3_anchors=fln_V_gene_CDR3_anchors, fln_J_gene_CDR3_anchors=fln_J_gene_CDR3_anchors)
+
+        # FIXME: SOLVE THE REFERENCES TO ANCHORS AND SEQUENCES NAMES PROBLEM
+        mdl_hb.parms.df_V_ref_genome
+        print("mdl_hb_2.parms.dictNameNickname: ", mdl_hb_2.parms.dictNameNickname)
+        df = mdl_hb_2.get_event_realizations_DataFrame('j_choice')
+        new_df = df[:4]
+        mdl_hb_2.parms.gen_NameNickname_dict()
+
+        mdl_hb_2.set_realization_event_from_DataFrame('j_choice', new_df)
+        print("mdl_hb_2.parms.dictNameNickname: ", mdl_hb_2.parms.dictNameNickname)
+
+        # mdl_hb.parms.df_V_ref_genome
+        # v_genLabel(mdl_hb.parms.df_V_ref_genome['name'])
+
+        # print(mdl_hb_2.parms.df_V_ref_genome)
+        # mdl_hb_2.genomic_dataframe_dict
+
+
+        self.assertIsInstance(mdl_hb_2, IgorModel)
+        self.assertTrue(os.path.isfile(fln_model_parms))
+        self.assertTrue(os.path.isfile(fln_model_marginals))
+        self.assertTrue(os.path.isfile(fln_V_gene_CDR3_anchors))
+        self.assertTrue(os.path.isfile(fln_J_gene_CDR3_anchors))
+        cmd = "rm {} {} {} {}".format(fln_model_parms, fln_model_marginals, fln_V_gene_CDR3_anchors, fln_J_gene_CDR3_anchors)
+        p = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+
+
+
+    def test_IgorModel_name_change(self):
+        pass
 
     """
     def test_IgorModel_default_from_system(self):

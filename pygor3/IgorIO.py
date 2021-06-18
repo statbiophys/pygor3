@@ -1937,13 +1937,25 @@ class IgorModel_Parms:
 
     def set_event_realizations_from_DataFrame(self, event_nickname, df):
         # FIXME: unnecesary copy find a better way.
+
+        original_event_name = self.dictNicknameName[event_nickname]
         new_Event_list = list()
         for event in self.Event_list:
             if event.nickname == event_nickname:
                 event.update_realizations_from_dataframe(df)
             new_Event_list.append(event)
         self.Event_list = new_Event_list
+        # FIXME: UPDATE EDGES NAMES
+        self.gen_NameNickname_dict()
+        new_event_name = self.dictNicknameName[event_nickname]
+        for edge in self.Edges:
+            if edge[0] == original_event_name:
+                edge[0] = new_event_name
+            if edge[1] == original_event_name:
+                edge[1] = new_event_name
+
         self.gen_EventDict_DataFrame()
+
 
     def attach_anchors_from_files(self, fln_V_gene_CDR3_anchors=None, fln_J_gene_CDR3_anchors=None, sep=';'):
         """
@@ -2101,7 +2113,7 @@ class IgorModel_Parms:
             raise e
 
     # FIXME: FINISH THIS METHOD
-    def write_model_parms(self, filename=None):
+    def write_model_parms(self, filename=None, sep=';'):
         """Writes a model graph structure from a model params object.
         Note that for now this method does not read the error rate information.
         """
@@ -2112,13 +2124,14 @@ class IgorModel_Parms:
         # igor_nickname_list = ["v_choice", "j_choice", "d_gene", "v_3_del"]
         # self.get_Event(nicknameList)
         # self.Event_list
-        strSepChar = ";"
+        strSepChar = sep
         try:
             import os
             # print("AAAAAAAAAAAAAAA:", os.path.dirname(filename), filename)
             os.makedirs(os.path.dirname(filename), exist_ok=True)
         except Exception as e:
-            print("WARNING: write_model_parms path ", e)
+            pass
+            # print("WARNING: write_model_parms path ", e)
 
         print("Writing model parms in file ", filename)
         with open(filename, "w") as ofile:
@@ -2640,7 +2653,8 @@ class IgorModel_Marginals:
             import os
             os.makedirs(os.path.dirname(filename), exist_ok=True)
         except Exception as e:
-            print("WARNING: IgorModel_Marginals.write_model_marginals path ", e)
+            pass
+            # print("WARNING: IgorModel_Marginals.write_model_marginals path ", e)
 
         print("Writing model marginals in file ", filename)
         with open(filename, "w") as fw:
@@ -2776,6 +2790,11 @@ class IgorModel:
 
     def get_Event_value(self, event_nickname, index):
         return self.parms[event_nickname].value.loc[index]
+
+    @property
+    def Pconditional(self):
+        return self.xdata
+
 
     @property
     def V_anchors(self):
