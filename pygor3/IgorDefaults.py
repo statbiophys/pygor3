@@ -15,6 +15,8 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import collections
+
 
 Igor_event_type_list = ['GeneChoice', 'Deletion', 'Insertion', 'DinucMarkov']
 
@@ -36,7 +38,7 @@ Igor_nickname_list = ["v_choice", "j_choice", "d_gene", "v_3_del",
                      "vd_ins", "vd_dinucl", "dj_ins", "dj_dinucl",
                      "vj_ins", "vj_dinucl"]
 
-
+# collections.OrderedDict()
 IgorRec_Event_default_dict = {
     # GeneChoice;V_gene;Undefined_side;7;v_choice
     'v_choice': {
@@ -181,34 +183,51 @@ Igor_VJ_default_nickname_list = ["v_choice", "j_choice",
                                  "vj_ins", "vj_dinucl"]
 
 Igor_VDJ_default_parents_dict = {
-    'v_choice' : [],
-    'j_choice' : ['v_choice'],
-    'd_gene' : ['v_choice', 'j_choice'],
-    'v_3_del' : ['v_choice'],
-    'd_5_del' : ['d_gene'],
-    'd_3_del' : ['d_gene', 'd_5_del'],
-    'j_5_del' : ['j_choice'],
-    'vd_ins' : [],
-    'vd_dinucl' : [],
-    'dj_ins' : [],
-    'dj_dinucl' : []
+    'v_choice': [],
+    'j_choice': ['v_choice'],
+    'd_gene': ['v_choice', 'j_choice'],
+    'v_3_del': ['v_choice'],
+    'd_5_del': ['d_gene'],
+    'd_3_del': ['d_gene', 'd_5_del'],
+    'j_5_del': ['j_choice'],
+    'vd_ins': [],
+    'vd_dinucl': [],
+    'dj_ins': [],
+    'dj_dinucl': []
 }
+
+Igor_VDJ_default_Edges_parent_child_tuples = [
+    ('v_choice', 'j_choice'),
+    ('v_choice', 'd_gene'),
+    ('j_choice', 'd_gene'),
+    ('v_choice', 'v_3_del'),
+    ('d_gene', 'd_3_del'),
+    ('d_gene', 'd_5_del'),
+    ('d_5_del', 'd_3_del'),
+    ('j_choice', 'j_5_del')
+]
 
 Igor_VJ_default_parents_dict = {
-    'v_choice' : [],
-    'j_choice' : ['v_choice'],
-    'v_3_del' : ['v_choice'],
-    'j_5_del' : ['j_choice'],
-    'vj_ins' : [],
-    'vj_dinucl' : []
+    'v_choice': [],
+    'j_choice': ['v_choice'],
+    'v_3_del': ['v_choice'],
+    'j_5_del': ['j_choice'],
+    'vj_ins': [],
+    'vj_dinucl': []
 }
 
+Igor_VJ_default_Edges_parent_child_tuples = [
+    ('v_choice', 'j_choice'),
+    ('v_choice', 'v_3_del'),
+    ('j_choice', 'j_5_del')
+]
+
 Igor_to_AIRR_dict={
-    "seq_index" : "sequence_id",
-    "sequence" : "sequence",
-    "v_choice" : "v_call",
-    "d_gene" : "d_call",
-    "j_choice" : "j_call" #,
+    "seq_index": "sequence_id",
+    "sequence": "sequence",
+    "v_choice": "v_call",
+    "d_gene": "d_call",
+    "j_choice": "j_call" #,
     # "np1",
     # "np2"
 }

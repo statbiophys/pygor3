@@ -4,6 +4,7 @@ from pygor3 import IgorTask, IgorModel, IgorModel_Parms, IgorEvent_realization, 
 from pygor3 import *
 import time
 import subprocess
+import copy
 
 str_mock_VDJ_fln_genomicVs = \
 """>TRBV1*01
@@ -348,6 +349,85 @@ class MyTestCase(unittest.TestCase):
         print("-" * 40)
         print("mdl.V_anchors: ", mdl.V_anchors)
 
+    def test_IgorModel_anchors_from_genomic_dict(self):
+        species = "human"
+        chain = "tcr_beta"
+        mdl = IgorModel.load_default(species, chain)
+        mdl.parms.ErrorRate_dict
+        # modify genomic_dataframe_dict
+        print(mdl.genomic_dataframe_dict['V'])
+        dictio = copy.deepcopy(mdl.genomic_dataframe_dict)
+        mdl.set_genomic_dataframe_dict(dictio)
+        mdl.generate_xdata()
+        print("9"*10)
+        print(mdl.genomic_dataframe_dict['V'])
+
+    def test_IgorModel_make_default_VDJ(self):
+        pass
+
+    def test_IgorModel_edit_model_parms(self):
+
+        mdl_hb = get_default_IgorModel("human", "tcr_beta")
+        import copy
+        genomic_dict = copy.deepcopy(mdl_hb.genomic_dataframe_dict)
+
+        genomic_dict['V']['name'] = v_genLabel(genomic_dict['V']['name'])
+        genomic_dict['J']['name'] = v_genLabel(genomic_dict['J']['name'])
+
+        new_V_gene_dict = {
+            'name': 'my_pseudo_TRBV',
+            'value': 'AAACCCTTTGGGACCCAGAGCCCAAGACACAAGATCACAGAGACAGGAAGGCAGGTGACCTTGGCGTGTCACCAGACTTGGAACCACAACAATATGTTCTGGTATCGACAAGACCTGGGACATGGGCTGAGGCTGATCCATTACTCATATGGTGTTCACGACACTAACAAAGGAGAAGTCTCAGATGGCTACAGTGTCTCTAGATCAAACACAGAGGACCTCCCCCTCACTCTGTAGTCTGCTGCCTCCTCCCAGACATCTGTATATTTCTGCGCCAGCAGTGAGTC',
+            'anchor_index': 270
+        }
+        df_V = genomic_dict['V'].loc[10:15]
+        df_V = df_V.append(new_V_gene_dict, ignore_index=True)
+        df_V.index.name = 'id'
+        df_V
+
+        mdl_hb.generate_xdata()
+        mdl_hb.generate_Pmarginals()
+
+
+        mdl_0 = IgorModel.make_default_VDJ(df_V, genomic_dict['D'], genomic_dict['J'])
+        mdl_0.export_csv()
+        mdl_hb.export_plot_events(fln_output_prefix + "_CP")
+
+        self.assertIsInstance(mdl_0, IgorModel)
+
+    def test_abalabdada(self):
+        pass
+        IgorModel.make_default_VDJ
+        import copy
+        mdl_copy = copy.deepcopy(mdl_hb)
+        mdl_copy.genomic_dataframe_dict['V']['name'] = p3.v_genLabel(mdl_copy.genomic_dataframe_dict['V']['name'])
+        mdl_copy.genomic_dataframe_dict['J']['name'] = p3.v_genLabel(mdl_copy.genomic_dataframe_dict['J']['name'])
+        mdl_copy.genomic_dataframe_dict
+        mdl_hb.write_model('model_parms.txt', 'model_marginals.txt',
+                           fln_V_gene_CDR3_anchors="V_gene_CDR3_anchors.csv",
+                           fln_J_gene_CDR3_anchors="J_gene_CDR3_anchors.csv")
+        dictio = mdl_hb.genomic_dataframe_dict
+        p3.v_genLabel(mdl_copy.parms['v_choice']['name'])
+        mdl_copy.generate_xdata()
+        mdl_copy['d_gene']
+        mdl_copy.parms['j_choice']['name'] = p3.v_genLabel(mdl_copy.parms['j_choice']['name'])
+        mdl_copy.parms['v_choice'], mdl_copy.parms['j_choice']
+        mdl_copy.parms.df_V_anchors
+        mdl_copy.genomic_dataframe_dict['V'][['name', 'anchor_index']].rename(columns={'name': 'gene'}).set_index(
+            'gene').dropna()
+        mdl_copy.genomic_dataframe_dict['V']
+        mdl_copy.parms['v_choice']['name'] = p3.v_genLabel(mdl_copy.parms['v_choice']['name'])
+        mdl_copy.parms['j_choice']['name'] = p3.v_genLabel(mdl_copy.parms['j_choice']['name'])
+        help(mdl_copy.parms.set_event_realizations_from_DataFrame)
+        # mdl_copy.marginals.marginals_dict['v_choice']
+        mdl_copy.parms.set_event_realizations_from_DataFrame('v_choice', mdl_copy.parms['v_choice'])
+        mdl_copy.parms.set_event_realizations_from_DataFrame('j_choice', mdl_copy.parms['j_choice'])
+
+        help(mdl_copy.get_df_realizations)
+
+
+
+
+
 
         # mdl.parms.get_IgorRefGenome()
         # mdl.generate_xdata()
@@ -423,15 +503,29 @@ class MyTestCase(unittest.TestCase):
         mdl_hb_2 = IgorModel(fln_model_parms, fln_model_marginals,
                              fln_V_gene_CDR3_anchors=fln_V_gene_CDR3_anchors, fln_J_gene_CDR3_anchors=fln_J_gene_CDR3_anchors)
 
+        # TODO: CHANGE ANCHORS WITH DATAFRAME.
+        mdl_hb_2
+
         # FIXME: SOLVE THE REFERENCES TO ANCHORS AND SEQUENCES NAMES PROBLEM
-        mdl_hb.parms.df_V_ref_genome
+        # mdl_hb.parms.df_V_ref_genome
         print("mdl_hb_2.parms.dictNameNickname: ", mdl_hb_2.parms.dictNameNickname)
         df = mdl_hb_2.get_event_realizations_DataFrame('j_choice')
+
+        print("mdl_hb_2.genomic_dataframe_dict: ", mdl_hb_2.genomic_dataframe_dict)
         new_df = df[:4]
         mdl_hb_2.parms.gen_NameNickname_dict()
 
         mdl_hb_2.set_realization_event_from_DataFrame('j_choice', new_df)
+        mdl_hb_2.set_event_realizations_from_DataFrame('j_choice', new_df)
         print("mdl_hb_2.parms.dictNameNickname: ", mdl_hb_2.parms.dictNameNickname)
+        mdl_copy.set_genomic_dataframe_dict()
+
+        mdl_parms = IgorModel_Parms()
+        mdl_parms.Event_list  # add_event() #add_Event()
+
+        # import copy
+        # mdl_copy = copy.deepcopy(mdl_hb)
+        # mdl_copy
 
         # mdl_hb.parms.df_V_ref_genome
         # v_genLabel(mdl_hb.parms.df_V_ref_genome['name'])

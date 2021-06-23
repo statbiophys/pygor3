@@ -292,6 +292,7 @@ def write_geneanchors_dataframe_to_csv(fln_anchor:Union[str, Path, TextIO], df_r
                 df_anchors.to_csv(fln_anchor, sep=sep, index=False, columns=anchors_cols + ['gfunction'])
             else:
                 df_anchors.to_csv(fln_anchor, sep=sep, index=False, columns=anchors_cols)
+                print("Writing gene anchor's in file ", fln_anchor)
         except Exception as e:
             print("Not function in anchors file!")
             raise e

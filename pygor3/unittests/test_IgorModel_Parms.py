@@ -1,18 +1,193 @@
 import unittest
 import tempfile
+import matplotlib.pyplot as plt
 from pygor3.utils import *
 from pygor3 import IgorModel_Parms
 from pygor3 import IgorRec_Event
 from pygor3 import IgorRefGenome
+from pygor3 import *
 import os
+import io
 
 import time
 
+
+str_mock_VDJ_fln_genomicVs = \
+""">TRBV1*01
+GATACTGGAATTACCCAGACACCAAAATACCTGGTCACAGCAATGGGGAGTAAAAGGACA
+ATGAAACGTGAGCATCTGGGACATGATTCTATGTATTGGTACAGACAGAAAGCTAAGAAA
+TCCCTGGAGTTCATGTTTTACTACAACTGTAAGGAATTCATTGAAAACAAGACTGTGCCA
+AATCACTTCACACCTGAATGCCCTGACAGCTCTCGCTTATACCTTCATGTGGTCGCACTG
+CAGCAAGAAGACTCAGCTGCGTATCTCTGCACCAGCAGCCAAGA
+>TRBV2*01
+GAACCTGAAGTCACCCAGACTCCCAGCCATCAGGTCACACAGATGGGACAGGAAGTGATC
+TTGCGCTGTGTCCCCATCTCTAATCACTTATACTTCTATTGGTACAGACAAATCTTGGGG
+CAGAAAGTCGAGTTTCTGGTTTCCTTTTATAATAATGAAATCTCAGAGAAGTCTGAAATA
+TTCGATGATCAATTCTCAGTTGAAAGGCCTGATGGATCAAATTTCACTCTGAAGATCCGG
+TCCACAAAGCTGGAGGACTCAGCCATGTACTTCTGTGCCAGCAGTGAAGC
+>TRBV2*02
+GAACCTGAAGTCACCCAGACTCCCAGCCATCAGGTCACACAGATGGGACAGGAAGTGATC
+TTGCACTGTGTCCCCATCTCTAATCACTTATACTTCTATTGGTACAGACAAATCTTGGGG
+CAGAAAGTCGAGTTTCTGGTTTCCTTTTATAATAATGAAATCTCAGAGAAGTCTGAAATA
+TTCGATGATCAATTCTCAGTTGAAAGGCCTGATGGATCAAATTTCACTCTGAAGATCCGG
+TCCACAAAGCTGGAGGACTCAGCCATGTACTTCTGTGCCAGCAGT
+"""
+str_mock_VDJ_fln_genomicDs = \
+""">TRBD1*01
+GGGACAGGGGGC
+>TRBD2*01
+GGGACTAGCGGGGGGG
+>TRBD2*02
+GGGACTAGCGGGAGGG
+"""
+str_mock_VDJ_fln_genomicJs = \
+""">TRBJ1-1*01
+TGAACACTGAAGCTTTCTTTGGACAAGGCACCAGACTCACAGTTGTAG
+>TRBJ1-2*01
+CTAACTATGGCTACACCTTCGGTTCGGGGACCAGGTTAACCGTTGTAG
+>TRBJ1-3*01
+CTCTGGAAACACCATATATTTTGGAGAGGGAAGTTGGCTCACTGTTGTAG
+>TRBJ1-4*01
+CAACTAATGAAAAACTGTTTTTTGGCAGTGGAACCCAGCTCTCTGTCTTGG
+>TRBJ1-5*01
+TAGCAATCAGCCCCAGCATTTTGGTGATGGGACTCGACTCTCCATCCTAG
+"""
+
+str_mock_VDJ_fln_V_gene_CDR3_anchors = \
+"""gene;anchor_index;gfunction
+TRBV1*01;267;P
+TRBV2*01;273;F
+TRBV2*02;273;(F)
+TRBV2*03;273;(F)
+TRBV3-1*01;270;F
+"""
+
+str_mock_VDJ_fln_J_gene_CDR3_anchors = \
+"""gene;anchor_index;function
+TRBJ1-1*01;17;F
+TRBJ1-2*01;17;F
+TRBJ1-3*01;19;F
+TRBJ1-4*01;20;F
+"""
 
 class MyTestCase(unittest.TestCase):
     def setUp(self) -> None:
         self.tmp_dir = tempfile.TemporaryDirectory(dir=".", prefix="models")
         self.fln_dict = get_default_fln_names_for_model_dir(self.tmp_dir.name)
+
+    def test_IgorModel_Parms_from_dataframe(self):
+        mdl_hb = get_default_IgorModel("human", "tcr_beta")
+        import copy
+        genomic_dict = copy.deepcopy(mdl_hb.genomic_dataframe_dict)
+
+        genomic_dict['V']['name'] = v_genLabel(genomic_dict['V']['name'])
+        genomic_dict['J']['name'] = v_genLabel(genomic_dict['J']['name'])
+
+        new_V_gene_dict = {
+            'name': 'my_pseudo_TRBV',
+            'value': 'AAACCCTTTGGGACCCAGAGCCCAAGACACAAGATCACAGAGACAGGAAGGCAGGTGACCTTGGCGTGTCACCAGACTTGGAACCACAACAATATGTTCTGGTATCGACAAGACCTGGGACATGGGCTGAGGCTGATCCATTACTCATATGGTGTTCACGACACTAACAAAGGAGAAGTCTCAGATGGCTACAGTGTCTCTAGATCAAACACAGAGGACCTCCCCCTCACTCTGTAGTCTGCTGCCTCCTCCCAGACATCTGTATATTTCTGCGCCAGCAGTGAGTC',
+            'anchor_index': 270
+        }
+        df_V = genomic_dict['V'].loc[10:15]
+        df_V = df_V.append(new_V_gene_dict, ignore_index=True)
+        df_V.index.name = 'id'
+        df_V
+
+
+        mdl_parms_0 = IgorModel_Parms.make_default_VDJ(df_V, genomic_dict['D'], genomic_dict['J'])
+        mdl_marginals_0 = IgorModel_Marginals.make_uniform_from_parms(mdl_parms_0)
+        print("parms.Edges: ")
+        print(mdl_hb.parms.Edges)
+        print(mdl_parms_0.Edges)
+
+        print("parms.Edges_dict:")
+        print(mdl_hb.parms.Edges_dict)
+        print(mdl_parms_0.Edges_dict)
+        print("marginals.network_dict")
+        print(mdl_hb.marginals.network_dict)
+        print(mdl_marginals_0.network_dict)
+
+        self.assertIsInstance(mdl_parms_0, IgorModel_Parms)
+
+    def test_get_df_ref_genome_from_files(self):
+        ofile_mock_VDJ_fln_genomicVs = io.StringIO(str_mock_VDJ_fln_genomicVs)
+        ofile_mock_VDJ_fln_V_gene_CDR3_anchors = io.StringIO(str_mock_VDJ_fln_V_gene_CDR3_anchors)
+
+        ofile_mock_VDJ_fln_genomicDs = io.StringIO(str_mock_VDJ_fln_genomicDs)
+
+        ofile_mock_VDJ_fln_genomicJs = io.StringIO(str_mock_VDJ_fln_genomicJs)
+        ofile_mock_VDJ_fln_J_gene_CDR3_anchors = io.StringIO(str_mock_VDJ_fln_J_gene_CDR3_anchors)
+
+        df_V_ref_genome = get_dataframe_from_fasta_and_csv_anchors(ofile_mock_VDJ_fln_genomicVs,
+                                                                   ofile_mock_VDJ_fln_V_gene_CDR3_anchors)
+        df_D_ref_genome = get_dataframe_from_fasta_and_csv_anchors(ofile_mock_VDJ_fln_genomicDs)
+
+        df_J_ref_genome = get_dataframe_from_fasta_and_csv_anchors(ofile_mock_VDJ_fln_genomicJs,
+                                                                   ofile_mock_VDJ_fln_J_gene_CDR3_anchors)
+        self.assertIsInstance(df_V_ref_genome, pd.DataFrame)
+        self.assertIsInstance(df_D_ref_genome, pd.DataFrame)
+        self.assertIsInstance(df_J_ref_genome, pd.DataFrame)
+
+        mdl_parms = IgorModel_Parms.make_default_VDJ(df_V_ref_genome, df_D_ref_genome, df_J_ref_genome)
+        self.assertIsInstance(mdl_parms, IgorModel_Parms)
+
+    def test_get_df_ref_genome_from_files_VJ(self):
+        ofile_mock_VJ_fln_genomicVs = io.StringIO(str_mock_VDJ_fln_genomicVs)
+        ofile_mock_VJ_fln_V_gene_CDR3_anchors = io.StringIO(str_mock_VDJ_fln_V_gene_CDR3_anchors)
+
+        ofile_mock_VJ_fln_genomicDs = io.StringIO(str_mock_VDJ_fln_genomicDs)
+
+        ofile_mock_VJ_fln_genomicJs = io.StringIO(str_mock_VDJ_fln_genomicJs)
+        ofile_mock_VJ_fln_J_gene_CDR3_anchors = io.StringIO(str_mock_VDJ_fln_J_gene_CDR3_anchors)
+
+        df_V_ref_genome = get_dataframe_from_fasta_and_csv_anchors(ofile_mock_VJ_fln_genomicVs,
+                                                                   ofile_mock_VJ_fln_V_gene_CDR3_anchors)
+
+        df_J_ref_genome = get_dataframe_from_fasta_and_csv_anchors(ofile_mock_VJ_fln_genomicJs,
+                                                                   ofile_mock_VJ_fln_J_gene_CDR3_anchors)
+        self.assertIsInstance(df_V_ref_genome, pd.DataFrame)
+        self.assertIsInstance(df_J_ref_genome, pd.DataFrame)
+
+        mdl_parms = IgorModel_Parms.make_default_VJ(df_V_ref_genome, df_J_ref_genome)
+        self.assertIsInstance(mdl_parms, IgorModel_Parms)
+
+        # mdl_parms.plot_Graph() # DON'T KNOW WHY the plot is a mess.
+        # plt.show()
+
+        # get_dataframe_from_fasta_and_csv_anchors()
+        # mdl_parms.make_default_VDJ()
+        # print(Igor_VDJ_default_nickname_list)
+        # print(IgorRec_Event_default_dict)
+        # GeneChoice;V_gene;Undefined_side;7;v_choice
+
+        # event_type ='GeneChoice'
+        # seq_type = '' seq_side, priority,
+        # nickname
+        # event = IgorRec_Event(event_type, seq_type, seq_side, priority,
+        #          nickname)
+        # mdl_parms.add_Event()
+
+    def test_set_event_from_dataframe(self):
+        mdl_copy = IgorModel.load_default("human", "tcr_beta")
+        mdl_copy.genomic_dataframe_dict['V']
+        mdl_copy.parms['v_choice']['name'] = v_genLabel(mdl_copy.parms['v_choice']['name'])
+        mdl_copy.parms['j_choice']['name'] = v_genLabel(mdl_copy.parms['j_choice']['name'])
+        mdl_copy.parms.Event_dict['v_choice']
+        help(mdl_copy.parms.set_event_realizations_from_DataFrame)
+        mdl_copy.parms.set_event_realizations_from_DataFrame('v_choice', mdl_copy.parms['v_choice'])
+        mdl_copy.parms.set_event_realizations_from_DataFrame('j_choice', mdl_copy.parms['j_choice'])
+        mdl_copy.generate_xdata()
+
+        # TODO: HOW TO EDIT MODEL MARGINALS.
+        mdl_hb.genomic_dataframe_dict['V'].loc[0].value
+        mdl_hb.genomic_dataframe_dict['V'].loc[0].anchor_index
+        mdl_hb.set_genomic_dataframe_dict(dictio)
+        mdl_hb.generate_xdata()
+
+
+
+
+        # mdl_copy.marginals.marginals_dict['v_choice']
 
     def test_IgorModel_Parms(self):
         species = "human"

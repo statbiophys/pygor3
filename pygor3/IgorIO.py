@@ -1064,7 +1064,7 @@ class IgorEvent_realization:
             # return self.name+";"+str(self.value)+";"+str(self.id)
 
     def __repr__(self):
-        return self.to_dict()
+        return str( self.to_dict() )
         # return "Event_realization(" + str(self.id) + ")"
 
     def to_dict(self):
@@ -1354,13 +1354,24 @@ class IgorRec_Event:
         - nickname
         """
         try:
-            df_event = pd.DataFrame.from_records([realiz.to_dict() for realiz in self.realizations], index='id').sort_index()
+            if len(self.realizations) == 0:
+                df_event = pd.DataFrame(columns=['id', 'value', 'name']).set_index('id')
+            else:
+                df_event = pd.DataFrame.from_records([realiz.to_dict() for realiz in self.realizations], index='id').sort_index()
             df_event.event_type = self.event_type
             df_event.seq_type = self.seq_type
             df_event.seq_side = self.seq_side
             df_event.priority = self.priority
             df_event.nickname = self.nickname
             return df_event
+        # except KeyError:
+        #
+        #     df_event.event_type = self.event_type
+        #     df_event.seq_type = self.seq_type
+        #     df_event.seq_side = self.seq_side
+        #     df_event.priority = self.priority
+        #     df_event.nickname = self.nickname
+        #     return df_event
         except Exception as e:
             raise e
 
@@ -1559,8 +1570,10 @@ class IgorModel_Parms:
     @classmethod
     def make_default_VJ(cls, df_V_ref_genome, df_J_ref_genome, lims_deletions=None, lims_insertions=None):
         """Create a default VJ model from V and J genes dataframes
-            lims_deletions tuple with min and maximum value for deletions, e.g. (-4,20)
-            lims_insertions tuple with min and maximum value for deletions, e.g. (0,30)
+        :param df_V_ref_genome: Pandas Dataframe of Genome reference for V gene with CDR3 anchors
+        :param df_J_ref_genome: Pandas Dataframe of Genome reference for J gene with CDR3 anchors
+        :param lims_deletions: Tuple with min and maximum value for deletions, e.g. (-4,20). Negative numbers are palidromic insertions
+        :param lims_insertions: Tuple with min and maximum value for deletions, e.g. (0,30)
         """
         cls = IgorModel_Parms()
         # df_genomicVs, df_genomicJs
@@ -1582,12 +1595,20 @@ class IgorModel_Parms:
 
         # Add events to Event_list
         for event_nickname in Igor_VJ_default_nickname_list:
-            event_dict = IgorRec_Event_default_dict[event_nickname]
+            event_dict = IgorRec_Event_default_dict[event_nickname].copy()
             if event_nickname == 'j_choice':
                 event_dict["priority"] = 6
 
             event = IgorRec_Event.from_dict(event_dict)
             cls.Event_list.append(event)
+
+
+        cls.gen_NameNickname_dict()
+        for edge_parent_child in Igor_VJ_default_Edges_parent_child_tuples:
+            cls.add_Egde(*edge_parent_child)
+
+        for event_nickname in [evento.nickname for evento in cls.Event_list]:
+
             if event.event_type == 'DinucMarkov':
                 value_list = ['A', 'C', 'G', 'T']
                 name_list = ['' for val in value_list]
@@ -1646,11 +1667,16 @@ class IgorModel_Parms:
     @classmethod
     def make_default_VDJ(cls, df_V_ref_genome, df_D_ref_genome, df_J_ref_genome, lims_deletions=None, lims_insertions=None):
         """Create a default VJ model from V and J genes dataframes
-            lims_deletions tuple with min and maximum value for deletions, e.g. (-4,20)
-            lims_insertions tuple with min and maximum value for deletions, e.g. (0,30)
+        :param df_V_ref_genome: Pandas Dataframe of Genome reference for V gene with CDR3 anchors
+        :param df_D_ref_genome: Pandas Dataframe of Genome reference for D gene
+        :param df_J_ref_genome: Pandas Dataframe of Genome reference for J gene with CDR3 anchors
+        :param lims_deletions: Tuple with min and maximum value for deletions, e.g. (-4,20). Negative numbers are palidromic insertions
+        :param lims_insertions: Tuple with min and maximum value for deletions, e.g. (0,30)
         """
         cls = IgorModel_Parms()
         # df_genomicVs, df_genomicDs, df_genomicJs
+        # FIXME: CREATE EVENTS AND EDGES
+
         try:
             genomic_cols = ['name', 'value']
             df_genomicVs = df_V_ref_genome[genomic_cols].copy()
@@ -1670,9 +1696,17 @@ class IgorModel_Parms:
             lims_insertions = (0, 41)
 
         for event_nickname in Igor_VDJ_default_nickname_list:
-            event_dict = IgorRec_Event_default_dict[event_nickname]
+            event_dict = IgorRec_Event_default_dict[event_nickname].copy()
             event = IgorRec_Event.from_dict(event_dict)
             cls.Event_list.append(event)
+
+        cls.gen_NameNickname_dict()
+        # TODO: ADD EDGES # parent, child
+        for edge_parent_child in Igor_VDJ_default_Edges_parent_child_tuples:
+            cls.add_Egde(*edge_parent_child)
+
+        for event in cls.Event_list:
+            event_nickname = event.nickname
 
             if event.event_type == 'DinucMarkov':
                 value_list = ['A', 'C', 'G', 'T']
@@ -1807,7 +1841,7 @@ class IgorModel_Parms:
         Note that for now this method does not read the error rate information.
         """
         try:
-            print("Parms filename: ", filename)
+            print("Reading Parms filename from: ", filename)
             with open(filename, "r") as ofile:
                 # dictionary containing recarrays?
                 line = ofile.readline()
@@ -1900,7 +1934,8 @@ class IgorModel_Parms:
             parent_name = self.dictNicknameName[parent_nickname]
             child_name = self.dictNicknameName[child_nickname]
             # TODO: CHECK IF EDGE exist!
-            self.Edges.append([parent_name, child_name])
+            if not ([parent_name, child_name] in self.Edges):
+                self.Edges.append([parent_name, child_name])
             self.getBayesGraph()
             # self.Edges_dict[child_nickname].append(parent_nickname)
         except Exception as e:
@@ -1914,7 +1949,8 @@ class IgorModel_Parms:
                 for parent_nickname in parents:
                     parent_name = self.dictNicknameName[parent_nickname]
                     child_name = self.dictNicknameName[child_nickname]
-                    self.Edges.append([parent_name, child_name])
+                    if not ([parent_name, child_name] in self.Edges):
+                        self.Edges.append([parent_name, child_name])
             self.getBayesGraph()
         except Exception as e:
             print("set_Edges_from_dict : ", parent_nickname, child_nickname, " couldn't be added.")
@@ -1936,7 +1972,15 @@ class IgorModel_Parms:
             pass
 
     def set_event_realizations_from_DataFrame(self, event_nickname, df):
+        """
+        Set realizations of a defined event from a pandas dataframe.
+        :param event_nickname: Event nickname to set the realizations
+        :param df: Pandas dataframe with 'id', 'value', 'name' columns (id as index)
+        """
         # FIXME: unnecesary copy find a better way.
+        #  if GeneChoice if anchors present attach it to
+        #  self.df_V_anchors or
+        #  self.df_J_anchors
 
         original_event_name = self.dictNicknameName[event_nickname]
         new_Event_list = list()
@@ -1954,7 +1998,28 @@ class IgorModel_Parms:
             if edge[1] == original_event_name:
                 edge[1] = new_event_name
 
-        self.gen_EventDict_DataFrame()
+        event = self.get_Event(event_nickname)
+        self.Event_dict[event_nickname] = event.get_realization_DataFrame()
+        self.gen_NameNickname_dict()
+        self.getBayesGraph()
+        # self.gen_EventDict_DataFrame()
+
+        # IF Anchors in dataframe attach it.
+        if event.nickname == self.event_GeneChoice_V:
+            try:
+                # Attach anchors
+                self.df_V_anchors = get_df_anchors_from_df_ref_genome(df)
+            except Exception as e:
+                print(e)
+                pass
+        elif event.nickname == self.event_GeneChoice_J:
+            try:
+                # Attach anchors
+                self.df_V_anchors = get_df_anchors_from_df_ref_genome(df)
+            except Exception as e:
+                print(e)
+                pass
+
 
 
     def attach_anchors_from_files(self, fln_V_gene_CDR3_anchors=None, fln_J_gene_CDR3_anchors=None, sep=';'):
@@ -1996,6 +2061,7 @@ class IgorModel_Parms:
 
     def attach_V_anchors_from_Dataframe(self, df_V_anchors):
         # TODO: IN DEV
+        #  if .set_index('gene')
         self.df_V_anchors = df_V_anchors
 
     def get_IgorRefGenome(self)->IgorRefGenome:
@@ -2479,6 +2545,8 @@ class IgorModel_Marginals:
         if model_marginals_file is not None:
             self.read_model_marginals(model_marginals_file)
 
+    def __getitem__(self, item):
+        return self.marginals_dict[item]
     #  @d_3_del
     #  $Dim[3,21,21]
     #  #[d_gene,0],[d_5_del,0]
@@ -2502,7 +2570,7 @@ class IgorModel_Marginals:
             # Model parameters are stored inside a dictionnary of ndarrays
             #            marginals_dict = {}
             #            network_dict = {}
-            print("Marginals filename: ", filename)
+            print("Reading Marginals filename from: ", filename)
             element_name = ""
             first = True
             first_dim_line = False
@@ -2792,7 +2860,16 @@ class IgorModel:
         return self.parms[event_nickname].value.loc[index]
 
     @property
-    def Pconditional(self):
+    def ErrorRate_dict(self):
+        try:
+            return self.parms.ErrorRate_dict
+        except AttributeError:
+            return None
+        except Exception as e:
+            raise e
+
+    @property
+    def Pconditionals(self):
         return self.xdata
 
 
@@ -3262,21 +3339,24 @@ class IgorModel:
         :parm strEvent: event nickname
         """
         # FIXME: use xdata instead of self.parms
-        sorted_events = self.parms.get_Event_list_sorted()
-        sorted_events_to_marginalize = [event for event in sorted_events if not event.event_type == "DinucMarkov"]
-        sorted_events_to_marginalize_without_VE = [event for event in sorted_events_to_marginalize if
-                                                   not event.nickname == strEvent]
+        try:
+            sorted_events = self.parms.get_Event_list_sorted()
+            sorted_events_to_marginalize = [event for event in sorted_events if not event.event_type == "DinucMarkov"]
+            sorted_events_to_marginalize_without_VE = [event for event in sorted_events_to_marginalize if
+                                                       not event.nickname == strEvent]
 
-        # Start eliminating events
-        factors = self.VE_get_Pmarginals_initial_factors()
-        for event_to_eliminate_VE in sorted_events_to_marginalize_without_VE:
-            factors = self.VE_get_factors_by_sum_out_variable(event_to_eliminate_VE.nickname, factors)
+            # Start eliminating events
+            factors = self.VE_get_Pmarginals_initial_factors()
+            for event_to_eliminate_VE in sorted_events_to_marginalize_without_VE:
+                factors = self.VE_get_factors_by_sum_out_variable(event_to_eliminate_VE.nickname, factors)
 
-        # Now multiply the remaining factors to get the marginal.
-        Pmarginal = 1
-        for factor in factors:
-            Pmarginal = Pmarginal * factor
-        return Pmarginal
+            # Now multiply the remaining factors to get the marginal.
+            Pmarginal = 1
+            for factor in factors:
+                Pmarginal = Pmarginal * factor
+            return Pmarginal
+        except Exception as e:
+            raise e
 
     def generate_Pmarginals(self):
         # Apply Variable elimination method for this
@@ -3453,6 +3533,11 @@ class IgorModel:
     #         self.Pmarginal[strEvent] = self.xdata[strEvent]
 
     def export_csv(self, fln_prefix, sep=';'):
+        """
+        Export model events in different csv files for event.
+        :param fln_prefix: filename prefix to save events files
+        :param sep: csv field separator
+        """
         # FIXME: TEMPORARY SOLUTION FOR VERY PARTICULAR CASES.
         #################################################################################
         strEvent = 'v_choice'
@@ -3531,12 +3616,12 @@ class IgorModel:
             strEvent = 'd_gene'
             da = self.xdata[strEvent]
             parents = list(self.parms.G.predecessors(strEvent))
-            print(parents)
+            # print(parents)
             evento = self.parms.get_Event(strEvent)
-            print(evento.event_type)
-            print(evento.seq_type)
+            # print(evento.event_type)
+            # print(evento.seq_type)
             dependencias = list(self.xdata[strEvent].dims)
-            print("********", dependencias, strEvent)
+            # print("********", dependencias, strEvent)
             dependencias.remove(strEvent)
             dependencias_dim = [self.xdata[strEvent][dep].shape[0] for dep in dependencias]
 
@@ -3608,7 +3693,7 @@ class IgorModel:
             strEvent = 'd_gene'
             da = self.xdata[strEvent]
             dependencias = list(da.dims)
-            print("********", dependencias, strEvent)
+            # print("********", dependencias, strEvent)
             dependencias.remove(strEvent)
             dependencias_dim = [da[dep].shape[0] for dep in dependencias]
 
@@ -3645,7 +3730,7 @@ class IgorModel:
             ### DINUCL
             strEvent = 'vd_dinucl'
             da = self.xdata[strEvent]
-            print(da)
+            # print(da)
             df = pd.DataFrame(data=da.values, index=da['lbl__x'].values,
                               columns=da['lbl__y'].values)
             lbl_file = fln_prefix + "P__" + strEvent + ".csv"
@@ -3653,7 +3738,7 @@ class IgorModel:
 
             strEvent = 'dj_dinucl'
             da = self.xdata[strEvent]
-            print(da)
+            # print(da)
             df = pd.DataFrame(data=da.values, index=da['lbl__x'].values,
                               columns=da['lbl__y'].values)
             lbl_file = fln_prefix + "P__" + strEvent + ".csv"
@@ -3980,6 +4065,13 @@ class IgorModel:
         fig.tight_layout()
         return fig, ax
 
+    def export_plot_Pconditionals(self, outfilename_prefix):
+        """
+        Create a pdf file with preliminary plots of conditional probabilities
+        :param outfilename_prefix: Prefix for pdf file
+        """
+        self.export_plot_events(outfilename_prefix)
+
     def export_plot_events(self, outfilename_prefix):
         import matplotlib.pyplot as plt
         from matplotlib.backends.backend_pdf import PdfPages
@@ -4251,7 +4343,36 @@ class IgorModel:
     #     return fig
 
     def set_genomic_dataframe_dict(self, dataframe_dict):
-        self.genomic_dataframe_dict = dataframe_dict
+        # TODO: UPDATE THE df_V_ref_genome in parms and generate_xdata()
+        try:
+            self.genomic_dataframe_dict = dataframe_dict
+            self.parms.set_event_realizations_from_DataFrame(self.parms.event_GeneChoice_V.nickname,
+                                                             dataframe_dict['V'])
+            if self.parms.event_GeneChoice_D is not None:
+                self.parms.set_event_realizations_from_DataFrame(self.parms.event_GeneChoice_D.nickname,
+                                                                 dataframe_dict['D'])
+            self.parms.set_event_realizations_from_DataFrame(self.parms.event_GeneChoice_J.nickname,
+                                                             dataframe_dict['J'])
+
+            try:
+                if 'anchor_index' in dataframe_dict['V'].columns:
+                    self.parms.df_V_anchors = get_df_anchors_from_df_ref_genome(dataframe_dict['V'])
+            except Exception as e:
+                print(e)
+                pass
+
+            try:
+                if 'anchor_index' in dataframe_dict['J'].columns:
+                    self.parms.df_J_anchors = get_df_anchors_from_df_ref_genome(dataframe_dict['J'])
+            except Exception as e:
+                print(e)
+                pass
+
+            self.generate_xdata()
+
+        except Exception as e:
+            raise e
+
 
     def scenario_from_database(self, scenarios_list):
         scen = scenarios_list[0]
@@ -4714,8 +4835,11 @@ class IgorModel:
     @classmethod
     def make_default_VDJ(cls, df_V_ref_genome, df_D_ref_genome, df_J_ref_genome, lims_deletions=None, lims_insertions=None):
         """Create a default VJ model from V and J genes dataframes
-        lims_deletions tuple with min and maximum value for deletions, e.g. (-4,20)
-        lims_insertions tuple with min and maximum value for deletions, e.g. (0,30)
+        :param df_V_ref_genome: Pandas Dataframe of Genome reference for V gene with CDR3 anchors
+        :param df_D_ref_genome: Pandas Dataframe of Genome reference for D gene
+        :param df_J_ref_genome: Pandas Dataframe of Genome reference for J gene with CDR3 anchors
+        :param lims_deletions: Tuple with min and maximum value for deletions, e.g. (-4,20). Negative numbers are palidromic insertions
+        :param lims_insertions: Tuple with min and maximum value for deletions, e.g. (0,30)
         """
         cls = IgorModel()
         cls.genomic_dataframe_dict = dict()
