@@ -3937,22 +3937,14 @@ Attributes:
 <p>By default the new model will initiate with a uniform probability, that can be used to infer a new model from data</p>
 <div class="section" id="Exporting-a-Model">
 <h3>Exporting a Model<a class="headerlink" href="#Exporting-a-Model" title="Permalink to this headline">¶</a></h3>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span>
-</pre></div>
-</div>
-</div>
+<p>Conditional and marginal probabilities can be exported as pdf files with plots</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[34]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
 <span></span><span class="n">fln_output_prefix</span> <span class="o">=</span> <span class="s2">&quot;mdl_hb&quot;</span>
-<span class="c1"># mdl_hb.export_plot_Pconditionals(fln_output_prefix+&quot;_CP&quot;)</span>
+<span class="n">mdl_hb</span><span class="o">.</span><span class="n">export_plot_Pconditionals</span><span class="p">(</span><span class="n">fln_output_prefix</span><span class="o">+</span><span class="s2">&quot;_CP&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -3961,10 +3953,11 @@ Attributes:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="c1"># mdl_hb.export_plot_Pmarginals(fln_output_prefix+&quot;_MP&quot;)</span>
+<span></span><span class="n">mdl_hb</span><span class="o">.</span><span class="n">export_plot_Pmarginals</span><span class="p">(</span><span class="n">fln_output_prefix</span><span class="o">+</span><span class="s2">&quot;_MP&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
+<p>A model can be exported in IGoR’s format with write_model method</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[36]:
 </pre></div>
@@ -4439,6 +4432,7 @@ Attributes:
        &#x27;AAACCCTTTGGGACCCAGAGCCCAAGACACAAGATCACAGAGACAGGAAGGCAGGTGACCTTGGCGTGTCACCAGACTTGGAACCACAACAATATGTTCTGGTATCGACAAGACCTGGGACATGGGCTGAGGCTGATCCATTACTCATATGGTGTTCACGACACTAACAAAGGAGAAGTCTCAGATGGCTACAGTGTCTCTAGATCAAACACAGAGGACCTCCCCCTCACTCTGTAGTCTGCTGCCTCCTCCCAGACATCTGTATATTTCTGCGCCAGCAGTGAGTC&#x27;],
       dtype=object)</pre></div></li></ul></div></li><li class='xr-section-item'><input id='section-6fc4da7d-82b2-4735-a527-27652ca1a7d4' class='xr-section-summary-in' type='checkbox'  checked><label for='section-6fc4da7d-82b2-4735-a527-27652ca1a7d4' class='xr-section-summary' >Attributes: <span>(7)</span></label><div class='xr-section-inline-details'></div><div class='xr-section-details'><dl class='xr-attrs'><dt><span>nickname :</span></dt><dd>v_choice</dd><dt><span>event_type :</span></dt><dd>GeneChoice</dd><dt><span>seq_type :</span></dt><dd>V_gene</dd><dt><span>seq_side :</span></dt><dd>Undefined_side</dd><dt><span>priority :</span></dt><dd>7</dd><dt><span>parents :</span></dt><dd>[]</dd><dt><span>childs :</span></dt><dd>[&#x27;j_choice&#x27;, &#x27;d_gene&#x27;, &#x27;v_3_del&#x27;]</dd></dl></div></li></ul></div></div></div>
 </div>
+<p>IgorModel can also be exported in separated csv files</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[40]:
 </pre></div>
@@ -5750,7 +5744,7 @@ Coordinates:
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/Tutorial_87_1.png" src="_images/Tutorial_87_1.png" />
+<img alt="_images/Tutorial_89_1.png" src="_images/Tutorial_89_1.png" />
 </div>
 </div>
 <div class="nbinput docutils container">
@@ -6212,7 +6206,7 @@ array(0.0779008)</pre><div class='xr-wrap' hidden><div class='xr-header'><div cl
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/Tutorial_90_1.png" src="_images/Tutorial_90_1.png" />
+<img alt="_images/Tutorial_92_1.png" src="_images/Tutorial_92_1.png" />
 </div>
 </div>
 <div class="nbinput docutils container">
@@ -6269,7 +6263,7 @@ array(0.0779008)</pre><div class='xr-wrap' hidden><div class='xr-header'><div cl
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/Tutorial_92_1.png" src="_images/Tutorial_92_1.png" />
+<img alt="_images/Tutorial_94_1.png" src="_images/Tutorial_94_1.png" />
 </div>
 </div>
 <p>As can be seen in the Bayesian network, the number of deletions in V depends on choosen V</p>
@@ -8233,70 +8227,70 @@ igor_fln_generated_realizations_werr:  ./igor_evaluating_mdsvldqo/dataIGoRQVzl4X
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/Tutorial_119_0.png" src="_images/Tutorial_119_0.png" />
+<img alt="_images/Tutorial_121_0.png" src="_images/Tutorial_121_0.png" />
 </div>
 </div>
 <div class="nboutput docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/Tutorial_119_1.png" src="_images/Tutorial_119_1.png" />
+<img alt="_images/Tutorial_121_1.png" src="_images/Tutorial_121_1.png" />
 </div>
 </div>
 <div class="nboutput docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/Tutorial_119_2.png" src="_images/Tutorial_119_2.png" />
+<img alt="_images/Tutorial_121_2.png" src="_images/Tutorial_121_2.png" />
 </div>
 </div>
 <div class="nboutput docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/Tutorial_119_3.png" src="_images/Tutorial_119_3.png" />
+<img alt="_images/Tutorial_121_3.png" src="_images/Tutorial_121_3.png" />
 </div>
 </div>
 <div class="nboutput docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/Tutorial_119_4.png" src="_images/Tutorial_119_4.png" />
+<img alt="_images/Tutorial_121_4.png" src="_images/Tutorial_121_4.png" />
 </div>
 </div>
 <div class="nboutput docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/Tutorial_119_5.png" src="_images/Tutorial_119_5.png" />
+<img alt="_images/Tutorial_121_5.png" src="_images/Tutorial_121_5.png" />
 </div>
 </div>
 <div class="nboutput docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/Tutorial_119_6.png" src="_images/Tutorial_119_6.png" />
+<img alt="_images/Tutorial_121_6.png" src="_images/Tutorial_121_6.png" />
 </div>
 </div>
 <div class="nboutput docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/Tutorial_119_7.png" src="_images/Tutorial_119_7.png" />
+<img alt="_images/Tutorial_121_7.png" src="_images/Tutorial_121_7.png" />
 </div>
 </div>
 <div class="nboutput docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/Tutorial_119_8.png" src="_images/Tutorial_119_8.png" />
+<img alt="_images/Tutorial_121_8.png" src="_images/Tutorial_121_8.png" />
 </div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/Tutorial_119_9.png" src="_images/Tutorial_119_9.png" />
+<img alt="_images/Tutorial_121_9.png" src="_images/Tutorial_121_9.png" />
 </div>
 </div>
 <div class="nbinput docutils container">
@@ -8340,7 +8334,7 @@ igor_fln_generated_realizations_werr:  ./igor_evaluating_mdsvldqo/dataIGoRQVzl4X
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/Tutorial_120_1.png" src="_images/Tutorial_120_1.png" />
+<img alt="_images/Tutorial_122_1.png" src="_images/Tutorial_122_1.png" />
 </div>
 </div>
 <div class="nbinput docutils container">
@@ -8543,7 +8537,7 @@ get_P_from_scenarios_cols(df_scenarios, colname_list) method of pygor3.IgorIO.Ig
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/Tutorial_130_1.png" src="_images/Tutorial_130_1.png" />
+<img alt="_images/Tutorial_132_1.png" src="_images/Tutorial_132_1.png" />
 </div>
 </div>
 <div class="nbinput docutils container">
@@ -8568,7 +8562,7 @@ get_P_from_scenarios_cols(df_scenarios, colname_list) method of pygor3.IgorIO.Ig
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/Tutorial_131_1.png" src="_images/Tutorial_131_1.png" />
+<img alt="_images/Tutorial_133_1.png" src="_images/Tutorial_133_1.png" />
 </div>
 </div>
 </div>
@@ -8972,7 +8966,7 @@ dl.xr-attrs {
 array(0.63926236)</pre><div class='xr-wrap' hidden><div class='xr-header'><div class='xr-obj-type'>xarray.DataArray</div><div class='xr-array-name'>'norm_scenario_proba_cond_seq'</div></div><ul class='xr-sections'><li class='xr-section-item'><div class='xr-array-wrap'><input id='section-5bc9f9ca-76be-4d5e-a7e6-3113ab67a0a2' class='xr-array-in' type='checkbox' checked><label for='section-5bc9f9ca-76be-4d5e-a7e6-3113ab67a0a2' title='Show/hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-array-preview xr-preview'><span>0.6393</span></div><div class='xr-array-data'><pre>array(0.63926236)</pre></div></div></li><li class='xr-section-item'><input id='section-58b16542-941d-4c08-a9b3-191d7676c84a' class='xr-section-summary-in' type='checkbox' disabled ><label for='section-58b16542-941d-4c08-a9b3-191d7676c84a' class='xr-section-summary'  title='Expand/collapse section'>Coordinates: <span>(0)</span></label><div class='xr-section-inline-details'></div><div class='xr-section-details'><ul class='xr-var-list'></ul></div></li><li class='xr-section-item'><input id='section-4c357fd9-23ed-4db7-8a38-ca4faf6ae021' class='xr-section-summary-in' type='checkbox' disabled ><label for='section-4c357fd9-23ed-4db7-8a38-ca4faf6ae021' class='xr-section-summary'  title='Expand/collapse section'>Attributes: <span>(0)</span></label><div class='xr-section-inline-details'></div><div class='xr-section-details'><dl class='xr-attrs'></dl></div></li></ul></div></div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[75]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
@@ -8992,10 +8986,39 @@ mutual_information ( v_choice ,  d_5_del ):  0.35886454309758736
 mutual_information ( v_choice ,  j_5_del ):  0.4667910640736827
 mutual_information ( v_choice ,  d_3_del ):  0.3381390129055559
 mutual_information ( v_choice ,  vd_ins ):  0.36950632876861056
+mutual_information ( v_choice ,  dj_ins ):  0.34050716113668833
+mutual_information ( j_choice ,  d_gene ):  0.16839619808892387
+mutual_information ( j_choice ,  v_3_del ):  0.1373839342864651
+mutual_information ( j_choice ,  d_5_del ):  0.11353204598699257
+mutual_information ( j_choice ,  j_5_del ):  0.44550937210770414
+mutual_information ( j_choice ,  d_3_del ):  0.11443530326748617
+mutual_information ( j_choice ,  vd_ins ):  0.11203857283894578
+mutual_information ( j_choice ,  dj_ins ):  0.09776360260846355
+mutual_information ( d_gene ,  v_3_del ):  0.017241089783731553
+mutual_information ( d_gene ,  d_5_del ):  0.36172414085319887
+mutual_information ( d_gene ,  j_5_del ):  0.021864784540005937
+mutual_information ( d_gene ,  d_3_del ):  0.22353112818847967
+mutual_information ( d_gene ,  vd_ins ):  0.013194437391113211
+mutual_information ( d_gene ,  dj_ins ):  0.01294449164566809
+mutual_information ( v_3_del ,  d_5_del ):  0.06598437525781697
+mutual_information ( v_3_del ,  j_5_del ):  0.09843108497391649
+mutual_information ( v_3_del ,  d_3_del ):  0.06941838791192181
+mutual_information ( v_3_del ,  vd_ins ):  0.10582382685367009
+mutual_information ( v_3_del ,  dj_ins ):  0.07374102134403618
+mutual_information ( d_5_del ,  j_5_del ):  0.08378406617127063
+mutual_information ( d_5_del ,  d_3_del ):  0.4950198124493378
+mutual_information ( d_5_del ,  vd_ins ):  0.10780812230061945
+mutual_information ( d_5_del ,  dj_ins ):  0.07617536406698441
+mutual_information ( j_5_del ,  d_3_del ):  0.08559953020573469
+mutual_information ( j_5_del ,  vd_ins ):  0.07299823195715721
+mutual_information ( j_5_del ,  dj_ins ):  0.10957597446165623
+mutual_information ( d_3_del ,  vd_ins ):  0.06822031197593291
+mutual_information ( d_3_del ,  dj_ins ):  0.08640307827393552
+mutual_information ( vd_ins ,  dj_ins ):  0.06747319489954777
 </pre></div></div>
 </div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[76]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
@@ -9003,8 +9026,406 @@ mutual_information ( v_choice ,  vd_ins ):  0.36950632876861056
 </pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[76]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div><svg style="position: absolute; width: 0; height: 0; overflow: hidden">
+<defs>
+<symbol id="icon-database" viewBox="0 0 32 32">
+<path d="M16 0c-8.837 0-16 2.239-16 5v4c0 2.761 7.163 5 16 5s16-2.239 16-5v-4c0-2.761-7.163-5-16-5z"></path>
+<path d="M16 17c-8.837 0-16-2.239-16-5v6c0 2.761 7.163 5 16 5s16-2.239 16-5v-6c0 2.761-7.163 5-16 5z"></path>
+<path d="M16 26c-8.837 0-16-2.239-16-5v6c0 2.761 7.163 5 16 5s16-2.239 16-5v-6c0 2.761-7.163 5-16 5z"></path>
+</symbol>
+<symbol id="icon-file-text2" viewBox="0 0 32 32">
+<path d="M28.681 7.159c-0.694-0.947-1.662-2.053-2.724-3.116s-2.169-2.030-3.116-2.724c-1.612-1.182-2.393-1.319-2.841-1.319h-15.5c-1.378 0-2.5 1.121-2.5 2.5v27c0 1.378 1.122 2.5 2.5 2.5h23c1.378 0 2.5-1.122 2.5-2.5v-19.5c0-0.448-0.137-1.23-1.319-2.841zM24.543 5.457c0.959 0.959 1.712 1.825 2.268 2.543h-4.811v-4.811c0.718 0.556 1.584 1.309 2.543 2.268zM28 29.5c0 0.271-0.229 0.5-0.5 0.5h-23c-0.271 0-0.5-0.229-0.5-0.5v-27c0-0.271 0.229-0.5 0.5-0.5 0 0 15.499-0 15.5 0v7c0 0.552 0.448 1 1 1h7v19.5z"></path>
+<path d="M23 26h-14c-0.552 0-1-0.448-1-1s0.448-1 1-1h14c0.552 0 1 0.448 1 1s-0.448 1-1 1z"></path>
+<path d="M23 22h-14c-0.552 0-1-0.448-1-1s0.448-1 1-1h14c0.552 0 1 0.448 1 1s-0.448 1-1 1z"></path>
+<path d="M23 18h-14c-0.552 0-1-0.448-1-1s0.448-1 1-1h14c0.552 0 1 0.448 1 1s-0.448 1-1 1z"></path>
+</symbol>
+</defs>
+</svg>
+<style>/* CSS stylesheet for displaying xarray objects in jupyterlab.
+ *
+ */
+
+:root {
+  --xr-font-color0: var(--jp-content-font-color0, rgba(0, 0, 0, 1));
+  --xr-font-color2: var(--jp-content-font-color2, rgba(0, 0, 0, 0.54));
+  --xr-font-color3: var(--jp-content-font-color3, rgba(0, 0, 0, 0.38));
+  --xr-border-color: var(--jp-border-color2, #e0e0e0);
+  --xr-disabled-color: var(--jp-layout-color3, #bdbdbd);
+  --xr-background-color: var(--jp-layout-color0, white);
+  --xr-background-color-row-even: var(--jp-layout-color1, white);
+  --xr-background-color-row-odd: var(--jp-layout-color2, #eeeeee);
+}
+
+html[theme=dark],
+body.vscode-dark {
+  --xr-font-color0: rgba(255, 255, 255, 1);
+  --xr-font-color2: rgba(255, 255, 255, 0.54);
+  --xr-font-color3: rgba(255, 255, 255, 0.38);
+  --xr-border-color: #1F1F1F;
+  --xr-disabled-color: #515151;
+  --xr-background-color: #111111;
+  --xr-background-color-row-even: #111111;
+  --xr-background-color-row-odd: #313131;
+}
+
+.xr-wrap {
+  display: block;
+  min-width: 300px;
+  max-width: 700px;
+}
+
+.xr-text-repr-fallback {
+  /* fallback to plain text repr when CSS is not injected (untrusted notebook) */
+  display: none;
+}
+
+.xr-header {
+  padding-top: 6px;
+  padding-bottom: 6px;
+  margin-bottom: 4px;
+  border-bottom: solid 1px var(--xr-border-color);
+}
+
+.xr-header > div,
+.xr-header > ul {
+  display: inline;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.xr-obj-type,
+.xr-array-name {
+  margin-left: 2px;
+  margin-right: 10px;
+}
+
+.xr-obj-type {
+  color: var(--xr-font-color2);
+}
+
+.xr-sections {
+  padding-left: 0 !important;
+  display: grid;
+  grid-template-columns: 150px auto auto 1fr 20px 20px;
+}
+
+.xr-section-item {
+  display: contents;
+}
+
+.xr-section-item input {
+  display: none;
+}
+
+.xr-section-item input + label {
+  color: var(--xr-disabled-color);
+}
+
+.xr-section-item input:enabled + label {
+  cursor: pointer;
+  color: var(--xr-font-color2);
+}
+
+.xr-section-item input:enabled + label:hover {
+  color: var(--xr-font-color0);
+}
+
+.xr-section-summary {
+  grid-column: 1;
+  color: var(--xr-font-color2);
+  font-weight: 500;
+}
+
+.xr-section-summary > span {
+  display: inline-block;
+  padding-left: 0.5em;
+}
+
+.xr-section-summary-in:disabled + label {
+  color: var(--xr-font-color2);
+}
+
+.xr-section-summary-in + label:before {
+  display: inline-block;
+  content: '►';
+  font-size: 11px;
+  width: 15px;
+  text-align: center;
+}
+
+.xr-section-summary-in:disabled + label:before {
+  color: var(--xr-disabled-color);
+}
+
+.xr-section-summary-in:checked + label:before {
+  content: '▼';
+}
+
+.xr-section-summary-in:checked + label > span {
+  display: none;
+}
+
+.xr-section-summary,
+.xr-section-inline-details {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+.xr-section-inline-details {
+  grid-column: 2 / -1;
+}
+
+.xr-section-details {
+  display: none;
+  grid-column: 1 / -1;
+  margin-bottom: 5px;
+}
+
+.xr-section-summary-in:checked ~ .xr-section-details {
+  display: contents;
+}
+
+.xr-array-wrap {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 20px auto;
+}
+
+.xr-array-wrap > label {
+  grid-column: 1;
+  vertical-align: top;
+}
+
+.xr-preview {
+  color: var(--xr-font-color3);
+}
+
+.xr-array-preview,
+.xr-array-data {
+  padding: 0 5px !important;
+  grid-column: 2;
+}
+
+.xr-array-data,
+.xr-array-in:checked ~ .xr-array-preview {
+  display: none;
+}
+
+.xr-array-in:checked ~ .xr-array-data,
+.xr-array-preview {
+  display: inline-block;
+}
+
+.xr-dim-list {
+  display: inline-block !important;
+  list-style: none;
+  padding: 0 !important;
+  margin: 0;
+}
+
+.xr-dim-list li {
+  display: inline-block;
+  padding: 0;
+  margin: 0;
+}
+
+.xr-dim-list:before {
+  content: '(';
+}
+
+.xr-dim-list:after {
+  content: ')';
+}
+
+.xr-dim-list li:not(:last-child):after {
+  content: ',';
+  padding-right: 5px;
+}
+
+.xr-has-index {
+  font-weight: bold;
+}
+
+.xr-var-list,
+.xr-var-item {
+  display: contents;
+}
+
+.xr-var-item > div,
+.xr-var-item label,
+.xr-var-item > .xr-var-name span {
+  background-color: var(--xr-background-color-row-even);
+  margin-bottom: 0;
+}
+
+.xr-var-item > .xr-var-name:hover span {
+  padding-right: 5px;
+}
+
+.xr-var-list > li:nth-child(odd) > div,
+.xr-var-list > li:nth-child(odd) > label,
+.xr-var-list > li:nth-child(odd) > .xr-var-name span {
+  background-color: var(--xr-background-color-row-odd);
+}
+
+.xr-var-name {
+  grid-column: 1;
+}
+
+.xr-var-dims {
+  grid-column: 2;
+}
+
+.xr-var-dtype {
+  grid-column: 3;
+  text-align: right;
+  color: var(--xr-font-color2);
+}
+
+.xr-var-preview {
+  grid-column: 4;
+}
+
+.xr-var-name,
+.xr-var-dims,
+.xr-var-dtype,
+.xr-preview,
+.xr-attrs dt {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 10px;
+}
+
+.xr-var-name:hover,
+.xr-var-dims:hover,
+.xr-var-dtype:hover,
+.xr-attrs dt:hover {
+  overflow: visible;
+  width: auto;
+  z-index: 1;
+}
+
+.xr-var-attrs,
+.xr-var-data {
+  display: none;
+  background-color: var(--xr-background-color) !important;
+  padding-bottom: 5px !important;
+}
+
+.xr-var-attrs-in:checked ~ .xr-var-attrs,
+.xr-var-data-in:checked ~ .xr-var-data {
+  display: block;
+}
+
+.xr-var-data > table {
+  float: right;
+}
+
+.xr-var-name span,
+.xr-var-data,
+.xr-attrs {
+  padding-left: 25px !important;
+}
+
+.xr-attrs,
+.xr-var-attrs,
+.xr-var-data {
+  grid-column: 1 / -1;
+}
+
+dl.xr-attrs {
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: 125px auto;
+}
+
+.xr-attrs dt,
+.xr-attrs dd {
+  padding: 0;
+  margin: 0;
+  float: left;
+  padding-right: 10px;
+  width: auto;
+}
+
+.xr-attrs dt {
+  font-weight: normal;
+  grid-column: 1;
+}
+
+.xr-attrs dt:hover span {
+  display: inline-block;
+  background: var(--xr-background-color);
+  padding-right: 10px;
+}
+
+.xr-attrs dd {
+  grid-column: 2;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.xr-icon-database,
+.xr-icon-file-text2 {
+  display: inline-block;
+  vertical-align: middle;
+  width: 1em;
+  height: 1.5em !important;
+  stroke-width: 0;
+  stroke: currentColor;
+  fill: currentColor;
+}
+</style><pre class='xr-text-repr-fallback'>&lt;xarray.DataArray &#x27;mutual_information&#x27; (x: 9, y: 9)&gt;
+array([[0.        , 0.63926236, 0.08894391, 0.70218011, 0.35886454,
+        0.46679106, 0.33813901, 0.36950633, 0.34050716],
+       [0.63926236, 0.        , 0.1683962 , 0.13738393, 0.11353205,
+        0.44550937, 0.1144353 , 0.11203857, 0.0977636 ],
+       [0.08894391, 0.1683962 , 0.        , 0.01724109, 0.36172414,
+        0.02186478, 0.22353113, 0.01319444, 0.01294449],
+       [0.70218011, 0.13738393, 0.01724109, 0.        , 0.06598438,
+        0.09843108, 0.06941839, 0.10582383, 0.07374102],
+       [0.35886454, 0.11353205, 0.36172414, 0.06598438, 0.        ,
+        0.08378407, 0.49501981, 0.10780812, 0.07617536],
+       [0.46679106, 0.44550937, 0.02186478, 0.09843108, 0.08378407,
+        0.        , 0.08559953, 0.07299823, 0.10957597],
+       [0.33813901, 0.1144353 , 0.22353113, 0.06941839, 0.49501981,
+        0.08559953, 0.        , 0.06822031, 0.08640308],
+       [0.36950633, 0.11203857, 0.01319444, 0.10582383, 0.10780812,
+        0.07299823, 0.06822031, 0.        , 0.06747319],
+       [0.34050716, 0.0977636 , 0.01294449, 0.07374102, 0.07617536,
+        0.10957597, 0.08640308, 0.06747319, 0.        ]])
+Coordinates:
+  * x        (x) &lt;U8 &#x27;v_choice&#x27; &#x27;j_choice&#x27; &#x27;d_gene&#x27; ... &#x27;vd_ins&#x27; &#x27;dj_ins&#x27;
+  * y        (y) &lt;U8 &#x27;v_choice&#x27; &#x27;j_choice&#x27; &#x27;d_gene&#x27; ... &#x27;vd_ins&#x27; &#x27;dj_ins&#x27;</pre><div class='xr-wrap' hidden><div class='xr-header'><div class='xr-obj-type'>xarray.DataArray</div><div class='xr-array-name'>'mutual_information'</div><ul class='xr-dim-list'><li><span class='xr-has-index'>x</span>: 9</li><li><span class='xr-has-index'>y</span>: 9</li></ul></div><ul class='xr-sections'><li class='xr-section-item'><div class='xr-array-wrap'><input id='section-08b41876-bef7-4ea7-b125-79bba5b22af6' class='xr-array-in' type='checkbox' checked><label for='section-08b41876-bef7-4ea7-b125-79bba5b22af6' title='Show/hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-array-preview xr-preview'><span>0.0 0.6393 0.08894 0.7022 0.3589 ... 0.07618 0.1096 0.0864 0.06747 0.0</span></div><div class='xr-array-data'><pre>array([[0.        , 0.63926236, 0.08894391, 0.70218011, 0.35886454,
+        0.46679106, 0.33813901, 0.36950633, 0.34050716],
+       [0.63926236, 0.        , 0.1683962 , 0.13738393, 0.11353205,
+        0.44550937, 0.1144353 , 0.11203857, 0.0977636 ],
+       [0.08894391, 0.1683962 , 0.        , 0.01724109, 0.36172414,
+        0.02186478, 0.22353113, 0.01319444, 0.01294449],
+       [0.70218011, 0.13738393, 0.01724109, 0.        , 0.06598438,
+        0.09843108, 0.06941839, 0.10582383, 0.07374102],
+       [0.35886454, 0.11353205, 0.36172414, 0.06598438, 0.        ,
+        0.08378407, 0.49501981, 0.10780812, 0.07617536],
+       [0.46679106, 0.44550937, 0.02186478, 0.09843108, 0.08378407,
+        0.        , 0.08559953, 0.07299823, 0.10957597],
+       [0.33813901, 0.1144353 , 0.22353113, 0.06941839, 0.49501981,
+        0.08559953, 0.        , 0.06822031, 0.08640308],
+       [0.36950633, 0.11203857, 0.01319444, 0.10582383, 0.10780812,
+        0.07299823, 0.06822031, 0.        , 0.06747319],
+       [0.34050716, 0.0977636 , 0.01294449, 0.07374102, 0.07617536,
+        0.10957597, 0.08640308, 0.06747319, 0.        ]])</pre></div></div></li><li class='xr-section-item'><input id='section-d5e471af-de4f-4b0f-b897-34e6e5b6bb54' class='xr-section-summary-in' type='checkbox'  checked><label for='section-d5e471af-de4f-4b0f-b897-34e6e5b6bb54' class='xr-section-summary' >Coordinates: <span>(2)</span></label><div class='xr-section-inline-details'></div><div class='xr-section-details'><ul class='xr-var-list'><li class='xr-var-item'><div class='xr-var-name'><span class='xr-has-index'>x</span></div><div class='xr-var-dims'>(x)</div><div class='xr-var-dtype'>&lt;U8</div><div class='xr-var-preview xr-preview'>&#x27;v_choice&#x27; &#x27;j_choice&#x27; ... &#x27;dj_ins&#x27;</div><input id='attrs-26ecd21c-51ae-41e3-a089-5c061b150057' class='xr-var-attrs-in' type='checkbox' disabled><label for='attrs-26ecd21c-51ae-41e3-a089-5c061b150057' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-04483664-b012-454e-a4f3-8cdbb1e9c94f' class='xr-var-data-in' type='checkbox'><label for='data-04483664-b012-454e-a4f3-8cdbb1e9c94f' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'></dl></div><div class='xr-var-data'><pre>array([&#x27;v_choice&#x27;, &#x27;j_choice&#x27;, &#x27;d_gene&#x27;, &#x27;v_3_del&#x27;, &#x27;d_5_del&#x27;, &#x27;j_5_del&#x27;,
+       &#x27;d_3_del&#x27;, &#x27;vd_ins&#x27;, &#x27;dj_ins&#x27;], dtype=&#x27;&lt;U8&#x27;)</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span class='xr-has-index'>y</span></div><div class='xr-var-dims'>(y)</div><div class='xr-var-dtype'>&lt;U8</div><div class='xr-var-preview xr-preview'>&#x27;v_choice&#x27; &#x27;j_choice&#x27; ... &#x27;dj_ins&#x27;</div><input id='attrs-bb3cbb4d-dc73-4a84-b633-611ce313e169' class='xr-var-attrs-in' type='checkbox' disabled><label for='attrs-bb3cbb4d-dc73-4a84-b633-611ce313e169' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-bbce366e-7790-4574-a2ed-626b150d012c' class='xr-var-data-in' type='checkbox'><label for='data-bbce366e-7790-4574-a2ed-626b150d012c' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'></dl></div><div class='xr-var-data'><pre>array([&#x27;v_choice&#x27;, &#x27;j_choice&#x27;, &#x27;d_gene&#x27;, &#x27;v_3_del&#x27;, &#x27;d_5_del&#x27;, &#x27;j_5_del&#x27;,
+       &#x27;d_3_del&#x27;, &#x27;vd_ins&#x27;, &#x27;dj_ins&#x27;], dtype=&#x27;&lt;U8&#x27;)</pre></div></li></ul></div></li><li class='xr-section-item'><input id='section-c54740a2-55ec-4a5b-8254-f5295cb393fa' class='xr-section-summary-in' type='checkbox' disabled ><label for='section-c54740a2-55ec-4a5b-8254-f5295cb393fa' class='xr-section-summary'  title='Expand/collapse section'>Attributes: <span>(0)</span></label><div class='xr-section-inline-details'></div><div class='xr-section-details'><dl class='xr-attrs'></dl></div></li></ul></div></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[77]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
@@ -9012,8 +9433,24 @@ mutual_information ( v_choice ,  vd_ins ):  0.36950632876861056
 </pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[77]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;AxesSubplot:&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/Tutorial_139_1.png" src="_images/Tutorial_139_1.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[78]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
@@ -9021,12 +9458,28 @@ mutual_information ( v_choice ,  vd_ins ):  0.36950632876861056
 </pre></div>
 </div>
 </div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[78]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;AxesSubplot:&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/Tutorial_140_1.png" src="_images/Tutorial_140_1.png" />
+</div>
+</div>
 </div>
 <div class="section" id="Mean-and-Variance-of-values-in-scenarios-dataframe">
 <h3>Mean and Variance of values in scenarios dataframe<a class="headerlink" href="#Mean-and-Variance-of-values-in-scenarios-dataframe" title="Permalink to this headline">¶</a></h3>
 <p>The simplest way to get the realization values of events in scenario is using the function IgorModel.get_realization_value_from_df_scenarios(df_scenarios, ‘event_nickname’)</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[79]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
@@ -9034,8 +9487,19 @@ mutual_information ( v_choice ,  vd_ins ):  0.36950632876861056
 </pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Help on method get_realization_value_from_df_scenarios in module pygor3.IgorIO:
+
+get_realization_value_from_df_scenarios(df_scenarios, event_nickname) method of pygor3.IgorIO.IgorModel instance
+
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[80]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
@@ -9043,8 +9507,29 @@ mutual_information ( v_choice ,  vd_ins ):  0.36950632876861056
 </pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[80]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+seq_index
+998        GGGACAGGGGGC
+998        GGGACAGGGGGC
+998        GGGACAGGGGGC
+998        GGGACAGGGGGC
+998        GGGACAGGGGGC
+             ...
+703    GGGACTAGCGGGGGGG
+703    GGGACTAGCGGGGGGG
+703    GGGACTAGCGGGGGGG
+703        GGGACAGGGGGC
+703        GGGACAGGGGGC
+Length: 10000, dtype: object
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[81]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
@@ -9052,9 +9537,30 @@ mutual_information ( v_choice ,  vd_ins ):  0.36950632876861056
 </pre></div>
 </div>
 </div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[81]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+seq_index
+998    15
+998    15
+998    15
+998    15
+998    15
+       ..
+703     4
+703     5
+703     4
+703     4
+703     4
+Length: 10000, dtype: int64
+</pre></div></div>
+</div>
 <p>If the values are assigned to a column in scenarios dataframe (df_scenarios_many) the weighted average can be calculated using the IgorModel.w_mean_df_scenarios</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[82]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
@@ -9064,8 +9570,8 @@ mutual_information ( v_choice ,  vd_ins ):  0.36950632876861056
 </pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[83]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
@@ -9074,8 +9580,32 @@ mutual_information ( v_choice ,  vd_ins ):  0.36950632876861056
 </pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Help on method w_mean_df_scenarios in module pygor3.IgorIO:
+
+w_mean_df_scenarios(column_name: str, df_scenarios: pandas.core.frame.DataFrame) method of pygor3.IgorIO.IgorModel instance
+    Return weighted mean with the normalized probabilities for each
+    scenario (norm_scenario_proba_cond_seq)
+    :param column_name: column name of df_scenario to calculate the average
+    :param df_scenarios: Scenarios with normalize probability. Loaded with self.get_dataframe_scenarios()
+
+Help on method w_variance_df_scenarios in module pygor3.IgorIO:
+
+w_variance_df_scenarios(colname_1: str, df_scenarios: pandas.core.frame.DataFrame) method of pygor3.IgorIO.IgorModel instance
+    Return weighted covariance with the normalized probabilities of the column names given for each
+    scenario (norm_scenario_proba_cond_seq)
+    :param colname_1: column name of df_scenario to calculate the weighted covariance
+    :param colname_2: column name of df_scenario to calculate the weighted covariance
+    :param df_scenarios: Scenarios with normalize probability. Loaded with self.get_dataframe_scenarios()
+
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[84]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
@@ -9083,8 +9613,17 @@ mutual_information ( v_choice ,  vd_ins ):  0.36950632876861056
 </pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[84]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+4.157669017539739
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[85]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
@@ -9092,8 +9631,17 @@ mutual_information ( v_choice ,  vd_ins ):  0.36950632876861056
 </pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[85]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+10.537416194979743
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[86]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
@@ -9101,8 +9649,22 @@ mutual_information ( v_choice ,  vd_ins ):  0.36950632876861056
 </pre></div>
 </div>
 </div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Help on method get_observable_from_df_scenarios in module pygor3.IgorIO:
+
+get_observable_from_df_scenarios(observable_function, df_scenarios: pandas.core.frame.DataFrame) method of pygor3.IgorIO.IgorModel instance
+    Return a pandas series with the calculated observable over the df_scenarios dataframe.
+    :param observable_function: This function should use the varibles with self.realization
+    :param df_scenarios: Scenarios dataframe loaded with self.get_dataframe_scenarios.
+
+</pre></div></div>
+</div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[87]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
@@ -9124,7 +9686,7 @@ mutual_information ( v_choice ,  vd_ins ):  0.36950632876861056
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[88]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
@@ -9133,8 +9695,8 @@ mutual_information ( v_choice ,  vd_ins ):  0.36950632876861056
 </pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[89]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
@@ -9142,8 +9704,17 @@ mutual_information ( v_choice ,  vd_ins ):  0.36950632876861056
 </pre></div>
 </div>
 </div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[89]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(10.202437426325016, 15.645906964009958)
+</pre></div></div>
+</div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[90]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
@@ -9153,8 +9724,8 @@ mutual_information ( v_choice ,  vd_ins ):  0.36950632876861056
 </pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[91]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
@@ -9162,8 +9733,29 @@ mutual_information ( v_choice ,  vd_ins ):  0.36950632876861056
 </pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[91]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+seq_index
+998    TRBV7-4*01;GGTGCTGGAGTCTCCCAGTCCCCAAGGTACAAAGT...
+998    TRBV7-4*01;GGTGCTGGAGTCTCCCAGTCCCCAAGGTACAAAGT...
+998    TRBV7-4*01;GGTGCTGGAGTCTCCCAGTCCCCAAGGTACAAAGT...
+998    TRBV7-4*01;GGTGCTGGAGTCTCCCAGTCCCCAAGGTACAAAGT...
+998    TRBV7-4*01;GGTGCTGGAGTCTCCCAGTCCCCAAGGTACAAAGT...
+                             ...
+703    TRBV4-1*01;ACTGAAGTTACCCAGACACCAAAACACCTGGTCAT...
+703    TRBV4-1*01;ACTGAAGTTACCCAGACACCAAAACACCTGGTCAT...
+703    TRBV4-1*01;ACTGAAGTTACCCAGACACCAAAACACCTGGTCAT...
+703    TRBV4-1*01;ACTGAAGTTACCCAGACACCAAAACACCTGGTCAT...
+703    TRBV4-1*01;ACTGAAGTTACCCAGACACCAAAACACCTGGTCAT...
+Length: 10000, dtype: object
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[92]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
@@ -9172,8 +9764,296 @@ mutual_information ( v_choice ,  vd_ins ):  0.36950632876861056
 </pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[92]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>scenario_rank</th>
+      <th>scenario_proba_cond_seq</th>
+      <th>v_choice</th>
+      <th>j_choice</th>
+      <th>d_gene</th>
+      <th>v_3_del</th>
+      <th>d_5_del</th>
+      <th>j_5_del</th>
+      <th>d_3_del</th>
+      <th>vd_ins</th>
+      <th>vd_dinucl</th>
+      <th>dj_ins</th>
+      <th>dj_dinucl</th>
+      <th>Mismatches</th>
+      <th>norm_scenario_proba_cond_seq</th>
+      <th>j_5_del_value</th>
+      <th>v_call</th>
+    </tr>
+    <tr>
+      <th>seq_index</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>998</th>
+      <td>1</td>
+      <td>0.783497</td>
+      <td>77</td>
+      <td>4</td>
+      <td>0</td>
+      <td>9</td>
+      <td>6</td>
+      <td>19</td>
+      <td>9</td>
+      <td>4</td>
+      <td>[1, 1, 2, 3]</td>
+      <td>7</td>
+      <td>[2, 2, 2, 2, 0, 2, 0]</td>
+      <td>[]</td>
+      <td>0.000801</td>
+      <td>15</td>
+      <td>TRBV7-4*01;GGTGCTGGAGTCTCCCAGTCCCCAAGGTACAAAGT...</td>
+    </tr>
+    <tr>
+      <th>998</th>
+      <td>2</td>
+      <td>0.076884</td>
+      <td>77</td>
+      <td>4</td>
+      <td>0</td>
+      <td>9</td>
+      <td>6</td>
+      <td>19</td>
+      <td>10</td>
+      <td>4</td>
+      <td>[1, 1, 2, 3]</td>
+      <td>8</td>
+      <td>[2, 2, 2, 2, 0, 2, 0, 2]</td>
+      <td>[]</td>
+      <td>0.000079</td>
+      <td>15</td>
+      <td>TRBV7-4*01;GGTGCTGGAGTCTCCCAGTCCCCAAGGTACAAAGT...</td>
+    </tr>
+    <tr>
+      <th>998</th>
+      <td>3</td>
+      <td>0.043634</td>
+      <td>77</td>
+      <td>4</td>
+      <td>0</td>
+      <td>9</td>
+      <td>7</td>
+      <td>19</td>
+      <td>9</td>
+      <td>5</td>
+      <td>[1, 1, 2, 3, 2]</td>
+      <td>7</td>
+      <td>[2, 2, 2, 2, 0, 2, 0]</td>
+      <td>[]</td>
+      <td>0.000045</td>
+      <td>15</td>
+      <td>TRBV7-4*01;GGTGCTGGAGTCTCCCAGTCCCCAAGGTACAAAGT...</td>
+    </tr>
+    <tr>
+      <th>998</th>
+      <td>4</td>
+      <td>0.023517</td>
+      <td>77</td>
+      <td>4</td>
+      <td>0</td>
+      <td>10</td>
+      <td>6</td>
+      <td>19</td>
+      <td>9</td>
+      <td>5</td>
+      <td>[1, 1, 1, 2, 3]</td>
+      <td>7</td>
+      <td>[2, 2, 2, 2, 0, 2, 0]</td>
+      <td>[]</td>
+      <td>0.000024</td>
+      <td>15</td>
+      <td>TRBV7-4*01;GGTGCTGGAGTCTCCCAGTCCCCAAGGTACAAAGT...</td>
+    </tr>
+    <tr>
+      <th>998</th>
+      <td>5</td>
+      <td>0.021809</td>
+      <td>77</td>
+      <td>4</td>
+      <td>0</td>
+      <td>9</td>
+      <td>8</td>
+      <td>19</td>
+      <td>9</td>
+      <td>6</td>
+      <td>[1, 1, 2, 3, 2, 0]</td>
+      <td>7</td>
+      <td>[2, 2, 2, 2, 0, 2, 0]</td>
+      <td>[]</td>
+      <td>0.000022</td>
+      <td>15</td>
+      <td>TRBV7-4*01;GGTGCTGGAGTCTCCCAGTCCCCAAGGTACAAAGT...</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>703</th>
+      <td>6</td>
+      <td>0.021822</td>
+      <td>45</td>
+      <td>12</td>
+      <td>1</td>
+      <td>6</td>
+      <td>11</td>
+      <td>8</td>
+      <td>7</td>
+      <td>6</td>
+      <td>[2, 2, 1, 0, 3, 3]</td>
+      <td>5</td>
+      <td>[2, 0, 3, 1, 1]</td>
+      <td>[]</td>
+      <td>0.000030</td>
+      <td>4</td>
+      <td>TRBV4-1*01;ACTGAAGTTACCCAGACACCAAAACACCTGGTCAT...</td>
+    </tr>
+    <tr>
+      <th>703</th>
+      <td>7</td>
+      <td>0.016150</td>
+      <td>45</td>
+      <td>12</td>
+      <td>1</td>
+      <td>5</td>
+      <td>11</td>
+      <td>9</td>
+      <td>7</td>
+      <td>5</td>
+      <td>[2, 1, 0, 3, 3]</td>
+      <td>6</td>
+      <td>[2, 2, 0, 3, 1, 1]</td>
+      <td>[]</td>
+      <td>0.000022</td>
+      <td>5</td>
+      <td>TRBV4-1*01;ACTGAAGTTACCCAGACACCAAAACACCTGGTCAT...</td>
+    </tr>
+    <tr>
+      <th>703</th>
+      <td>8</td>
+      <td>0.013252</td>
+      <td>45</td>
+      <td>12</td>
+      <td>1</td>
+      <td>5</td>
+      <td>11</td>
+      <td>8</td>
+      <td>8</td>
+      <td>5</td>
+      <td>[2, 1, 0, 3, 3]</td>
+      <td>6</td>
+      <td>[2, 0, 3, 1, 1, 2]</td>
+      <td>[]</td>
+      <td>0.000018</td>
+      <td>4</td>
+      <td>TRBV4-1*01;ACTGAAGTTACCCAGACACCAAAACACCTGGTCAT...</td>
+    </tr>
+    <tr>
+      <th>703</th>
+      <td>9</td>
+      <td>0.013172</td>
+      <td>45</td>
+      <td>12</td>
+      <td>0</td>
+      <td>6</td>
+      <td>11</td>
+      <td>8</td>
+      <td>4</td>
+      <td>8</td>
+      <td>[2, 2, 1, 0, 3, 3, 2, 1]</td>
+      <td>4</td>
+      <td>[2, 0, 3, 1]</td>
+      <td>[]</td>
+      <td>0.000018</td>
+      <td>4</td>
+      <td>TRBV4-1*01;ACTGAAGTTACCCAGACACCAAAACACCTGGTCAT...</td>
+    </tr>
+    <tr>
+      <th>703</th>
+      <td>10</td>
+      <td>0.010846</td>
+      <td>45</td>
+      <td>12</td>
+      <td>0</td>
+      <td>5</td>
+      <td>12</td>
+      <td>8</td>
+      <td>4</td>
+      <td>8</td>
+      <td>[2, 1, 0, 3, 3, 2, 1, 2]</td>
+      <td>4</td>
+      <td>[2, 0, 3, 1]</td>
+      <td>[]</td>
+      <td>0.000015</td>
+      <td>4</td>
+      <td>TRBV4-1*01;ACTGAAGTTACCCAGACACCAAAACACCTGGTCAT...</td>
+    </tr>
+  </tbody>
+</table>
+<p>10000 rows × 17 columns</p>
+</div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[93]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
@@ -9182,6 +10062,17 @@ mutual_information ( v_choice ,  vd_ins ):  0.36950632876861056
 <span class="n">realiz</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">realiz</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">realiz</span><span class="o">.</span><span class="n">name</span>
 </pre></div>
 </div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[93]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;GGTGCTGGAGTCTCCCAGTCCCCAAGGTACAAAGTCGCAAAGAGGGGACGGGATGTAGCTCTCAGGTGTGATTCAATTTCGGGTCATGTAACCCTTTATTGGTACCGACAGACCCTGGGGCAGGGCTCAGAGGTTCTGACTTACTCCCAGAGTGATGCTCAACGAGACAAATCAGGGCGGCCCAGTGGTCGGTTCTCTGCAGAGAGGCCTGAGAGATCCGTCTCCACTCTGAAGATCCAGCGCACAGAGCAGGGGGACTCAGCTGTGTATCTCTGTGCCAGCAGCTTAGC&#39;,
+ 77,
+ &#39;TRBV7-4*01&#39;)
+</pre></div></div>
 </div>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:

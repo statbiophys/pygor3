@@ -1607,7 +1607,8 @@ class IgorModel_Parms:
         for edge_parent_child in Igor_VJ_default_Edges_parent_child_tuples:
             cls.add_Egde(*edge_parent_child)
 
-        for event_nickname in [evento.nickname for evento in cls.Event_list]:
+        for event in cls.Event_list:
+            event_nickname = event.nickname
 
             if event.event_type == 'DinucMarkov':
                 value_list = ['A', 'C', 'G', 'T']
