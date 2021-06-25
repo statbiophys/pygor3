@@ -1,10 +1,10 @@
-#      Author: Quentin Marcou & Carlos Olivares
+#      Author: Carlos Olivares & Quentin Marcou
 #
 #  This source code is distributed as part of the IGoR software.
 #  IGoR (Inference and Generation of Repertoires) is a versatile software to
 #  analyze and model immune receptors generation, selection, mutation and all
 #  other processes.
-#   Copyright (C) 2017  Quentin Marcou
+#   Copyright (C) 2021 Carlos Olivares
 #
 #   This program is free software: you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
@@ -45,6 +45,16 @@
 ###   __all__ = ["IgorAlignment_data","IgorBestScenarios","IgorIndexedSequencesDB","IgorModel", "IgorSqliteDBBestScenarios", "IgorSqliteDB"]
 
 # __version__ =
+
+
+from pkg_resources import get_distribution, DistributionNotFound
+
+try:
+    __version__ = get_distribution("pygor3").version
+except DistributionNotFound:
+     # package is not installed
+    pass
+
 
 class RcParams(dict):
     #validate = { key : converter
