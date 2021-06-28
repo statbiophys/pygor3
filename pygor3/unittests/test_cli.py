@@ -2,6 +2,14 @@ import unittest
 from click.testing import CliRunner
 from pygor3.scripts.cli import *
 class MyTestCase(unittest.TestCase):
+
+    def test_model_create(self):
+        runner = CliRunner()
+        result = runner.invoke(model_create, ["-M", "models/Homo+sapiens/IGL/", "-t", "VJ"])
+        print(result.exit_code)
+        print(result.output)
+        print(result.exception)
+
     def test_something(self):
         runner = CliRunner()
         result = runner.invoke(run_generate, ["-w", "human", "-c", "tcr_beta", "-N", "10"])

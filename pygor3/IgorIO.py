@@ -1486,9 +1486,13 @@ class IgorModel_Parms:
             if self.df_V_anchors is None:
                 return self.event_GeneChoice_V.get_realization_DataFrame()
             else:
-                return get_join_genomics_anchors_dataframes(
-                    self.event_GeneChoice_V.get_realization_DataFrame(),
-                    self.df_V_anchors)
+                if isinstance(self.df_V_anchors, pd.DataFrame) :
+                    if self.df_V_anchors.empty:
+                        return self.event_GeneChoice_V.get_realization_DataFrame()
+                    else:
+                        return get_join_genomics_anchors_dataframes(
+                            self.event_GeneChoice_V.get_realization_DataFrame(),
+                            self.df_V_anchors)
         except Exception as e:
             raise e
 
@@ -1524,8 +1528,12 @@ class IgorModel_Parms:
             if self.df_J_anchors is None:
                 return self.event_GeneChoice_J.get_realization_DataFrame()
             else:
-                return get_join_genomics_anchors_dataframes(
-                    self.event_GeneChoice_J.get_realization_DataFrame(), self.df_J_anchors)
+                if isinstance(self.df_J_anchors, pd.DataFrame) :
+                    if self.df_J_anchors.empty:
+                        return self.event_GeneChoice_J.get_realization_DataFrame()
+                    else:
+                        return get_join_genomics_anchors_dataframes(
+                            self.event_GeneChoice_J.get_realization_DataFrame(), self.df_J_anchors)
         except Exception as e:
             raise e
 
