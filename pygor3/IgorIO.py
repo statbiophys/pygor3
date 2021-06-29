@@ -6000,6 +6000,8 @@ class IgorTask:
                         self.run_datadir()
                         self.igor_model_dir_path = self.igor_models_root_path + "/" + self.igor_species + "/" + \
                                                    igor_option_path_dict[self.igor_chain]
+                    else:
+                        self.igor_model_dir_path = igor_model_dir_path
             else:
                 # if a model_path is provided then override it
                 self.igor_model_dir_path = igor_model_dir_path
