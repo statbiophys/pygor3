@@ -30,7 +30,8 @@ setuptools.setup(
         "networkx",
         "requests",
         "matplotlib",
-        "airr"
+        "airr",
+        "appdirs"
     ],
     packages=setuptools.find_packages(),
     package_data = {
