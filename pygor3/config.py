@@ -63,7 +63,6 @@ def create_config_files():
                 p2 = subprocess.run([igor_exec_path, "-getdatadir"], capture_output=True, text=True)
                 json_object['paths.igor_data'] = p2.stdout.replace('\n', '')
 
-                print("json_object: ", json_object)
             except Exception as e:
                 print(e)
                 pass
@@ -78,11 +77,9 @@ def load_config_files():
     try:
         dirs = appdirs.AppDirs('pygor3', 'alfaceor')
         default_config_path = os.path.join(dirs.user_data_dir, 'config.json')
-        print(default_config_path)
         with open(default_config_path, 'r') as f:
             import json
             user_config_Params = json.load(f)
-            print(user_config_Params)
         return RcParams(user_config_Params)
     except Exception as e:
         raise e
