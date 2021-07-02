@@ -56,32 +56,9 @@ except DistributionNotFound:
     pass
 
 
-class RcParams(dict):
-    #validate = { key : converter
-    #            for key, (default, converter) in defaultParams.items()}
-    def __init__(self, *args, **kwargs):
-        self.update(*args, **kwargs)
 
-    def __setitem__(self, key, val):
-        #try:
-        #    cval = self.validate[key](val)
-        #except ValueError as ve:
-        #    raise ValueError(f"Key {key} : {ve}") from None
-        dict.__setitem__(self, key, val)
-    
-    def __getitem__(self, key):
-        return dict.__getitem__(self, key)
+from .utils import rcParams
 
-defaultParams = {
-    # default system paths
-    'paths.igor_prefix' : None, #"/home/alfaceor/.local",
-    'paths.igor_exec' : None, #"/home/alfaceor/.local/bin/igor",
-    'paths.igor_data' : None, #"",
-    'paths.igor_models': None, #"/home/alfaceor/.local/share/igor/models",
-    'paths.igor_src' : None #""
-}
-
-rcParams = RcParams(defaultParams)
 
 import pkg_resources
 
@@ -89,6 +66,8 @@ import pkg_resources
 # - otherwise it would be 'lidtk' in this example as it is the package name
 sql_path = 'IgorDB.sql'  #
 sql_filepath = pkg_resources.resource_filename(__name__, sql_path)
+
+from .config import create_config_files, load_config_files
 
 from .IgorDictionaries import *
 #from .IgorModel import *

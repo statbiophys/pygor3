@@ -1,0 +1,2 @@
+#!/bin/bash
+docker run -it -v "$(pwd)":/igor-data dpygor3:dev

@@ -6,19 +6,38 @@ import pandas as pd
 from typing import TextIO, Generator, Union  # Generator[str]
 from pathlib import Path
 
+from .config import rcParams
+
 # Execute subprocess functions
 def run_get_igor_exec_path():
     """Return IGoR executable path"""
-    import subprocess
-    p1 = subprocess.run(["which", "igor"], capture_output=True, text=True)
-    return p1.stdout.replace('\n', '')
+    try:
+        if rcParams['paths.igor_exec'] is None:
+            import subprocess
+            p1 = subprocess.run(["which", "igor"], capture_output=True, text=True)
+            rcParams['paths.igor_exec'] = p1.stdout.replace('\n', '')
+            return rcParams['paths.igor_exec']
+        else:
+            return rcParams['paths.igor_exec']
+    except Exception as e:
+        print("WARNING: NO IGOR DATA DIR FOUND!", e)
+        pass
+
 
 def run_get_igor_datadir():
     """Return IGoR default data dir (default models and demo data) path"""
-    import subprocess
-    igor_exec_path = run_get_igor_exec_path()
-    p2 = subprocess.run([igor_exec_path, "-getdatadir"], capture_output=True, text=True)
-    return p2.stdout.replace('\n', '')
+    try:
+        if rcParams['paths.igor_data'] is None:
+            import subprocess
+            igor_exec_path = run_get_igor_exec_path()
+            p2 = subprocess.run([igor_exec_path, "-getdatadir"], capture_output=True, text=True)
+            rcParams['paths.igor_data'] = p2.stdout.replace('\n', '')
+            return rcParams['paths.igor_data'] # p2.stdout.replace('\n', '')
+        else:
+            return rcParams['paths.igor_data']
+    except Exception as e:
+        print("WARNING: NO IGOR DATA DIR FOUND!", e)
+        pass
 
     """
     cmd = "which igor"

@@ -34,7 +34,7 @@ setuptools.setup(
     ],
     packages=setuptools.find_packages(),
     package_data = {
-            'pygor3': ['demo/data/IgL/*.txt'],
+            'pygor3': ['demo/data/IgL/*.txt', "config.json"],
             # 'pygor3.demo.data': ['*'],
             # 'pygor3.demo.data.IgL': ['*.txt']
             },
