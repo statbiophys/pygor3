@@ -320,6 +320,7 @@ def run_infer(igor_read_seqs, output_fln_prefix,
     igortask.load_IgorModel()
     print(igortask)
     output = igortask._run_infer(igor_read_seqs=igor_read_seqs)
+    igortask._run_clean_batch_mdldata()
     # print(output)
 
     print("===== Saving files in database : =====")
@@ -833,6 +834,7 @@ def run_generate(N,
 
     print(igortask.to_dict())
     igortask._run_generate(N_seqs=N)
+    igortask._run_clean_batch_mdldata()
     import os
     if fln_output_prefix is None:
         igortask.igor_fln_generated_realizations_werr = None

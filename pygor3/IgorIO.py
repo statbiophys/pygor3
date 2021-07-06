@@ -504,11 +504,14 @@ class IgorRefGenome:
         :param path_ref_genome: Path of directory
         :return : IgorRefGenome
         """
-        cls = IgorRefGenome()
-        cls.path_ref_genome = path_ref_genome
-        cls.update_fln_names(path_ref_genome=cls.path_ref_genome)
-        cls.load_dataframes_from_ref_genome_files()
-        return cls
+        try:
+            cls = IgorRefGenome()
+            cls.path_ref_genome = path_ref_genome
+            cls.update_fln_names(path_ref_genome=cls.path_ref_genome)
+            cls.load_dataframes_from_ref_genome_files()
+            return cls
+        except Exception as e:
+            raise e
 
     @classmethod
     def load_from_dataframe_genomics_dict(cls, df_genomics_dict:dict):
@@ -5729,7 +5732,11 @@ class IgorTask:
             raise e
 
         try:
-            self.update_model_filenames()
+            Q_species_chain = (self.igor_chain is not None) and (self.igor_species is not None)
+            Q_model_parms = (self.igor_model_parms_file is not None)
+            Q_fln_db = (self.igor_fln_db is not None)
+            if True in [Q_species_chain, Q_model_parms, Q_fln_db]:
+                self.update_model_filenames()
         except Exception as e:
             pass
 
