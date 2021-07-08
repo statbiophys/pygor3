@@ -89,9 +89,11 @@ def run_command(cmd):
     #     if line == '' and p.poll() != None:
     #         break
     # return ''.join(stdout)
-
-    p = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-    return p
+    try:
+        p = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        return p
+    except Exception as e:
+        raise e
 
 
 def execute_command_generator(cmd):
@@ -105,12 +107,15 @@ def execute_command_generator(cmd):
 
 
 def run_command_print(cmd):
-    std_output_str = ""
-    for path in execute_command_generator(cmd):
-        print(path, end="")
-        std_output_str = std_output_str + '\n'
+    try:
+        std_output_str = ""
+        for path in execute_command_generator(cmd):
+            print(path, end="")
+            std_output_str = std_output_str + '\n'
 
-    return std_output_str
+        return std_output_str
+    except Exception as e:
+        raise e
 
 
 def run_command_no_output(cmd):
@@ -786,8 +791,10 @@ class IgorRefGenome:
 
         if fln_genomicVs is None:
             fln_genomicVs = self.fln_genomicVs
-        if fln_genomicDs is None:
-            fln_genomicDs = self.fln_genomicDs
+
+        if self.D is not None:
+            if fln_genomicDs is None:
+                fln_genomicDs = self.fln_genomicDs
         if fln_genomicJs is None:
             fln_genomicJs = self.fln_genomicJs
 
@@ -829,6 +836,9 @@ class IgorRefGenome:
         :param sep: default = ';' to save anchors files.
         """
         fln_dict = get_default_ref_genome_fln_paths(ref_genome_path=ref_genome_dir_path)
+        # TODO: CHECK FOR D GENES
+        if (self.D is None) and 'fln_genomicDs' in fln_dict.keys():
+            fln_dict['fln_genomicDs'] = None
         # print(fln_dict)
         self.write_ref_genome(sep=sep, **fln_dict)
 
@@ -5819,24 +5829,27 @@ class IgorTask:
         return dicto
 
     def load_IgorRefGenome(self, igor_path_ref_genome=None):
-        # FIXME: THERE ARE 2 OPTIONS HERE:
-        # 1. From template directory self.igor_path_ref_genome
-        if igor_path_ref_genome is not None:
-            self.igor_path_ref_genome = igor_path_ref_genome
-        self.genomes = IgorRefGenome.load_from_path(self.igor_path_ref_genome)
-        # TODO: FIND A BETTER WAY TO SYNCHRONIZE NAMES (FORWARD AND BACKWARD)
-        self.fln_genomicVs = self.genomes.fln_genomicVs
-        self.fln_genomicDs = self.genomes.fln_genomicDs
-        self.fln_genomicJs = self.genomes.fln_genomicJs
+        try:
+            # FIXME: THERE ARE 2 OPTIONS HERE:
+            # 1. From template directory self.igor_path_ref_genome
+            if igor_path_ref_genome is not None:
+                self.igor_path_ref_genome = igor_path_ref_genome
+            self.genomes = IgorRefGenome.load_from_path(self.igor_path_ref_genome)
+            # TODO: FIND A BETTER WAY TO SYNCHRONIZE NAMES (FORWARD AND BACKWARD)
+            self.fln_genomicVs = self.genomes.fln_genomicVs
+            self.fln_genomicDs = self.genomes.fln_genomicDs
+            self.fln_genomicJs = self.genomes.fln_genomicJs
 
-        self.fln_V_gene_CDR3_anchors = self.genomes.fln_V_gene_CDR3_anchors
-        self.fln_J_gene_CDR3_anchors = self.genomes.fln_J_gene_CDR3_anchors
+            self.fln_V_gene_CDR3_anchors = self.genomes.fln_V_gene_CDR3_anchors
+            self.fln_J_gene_CDR3_anchors = self.genomes.fln_J_gene_CDR3_anchors
 
-        # # 2. Or directly from files.
-        # self.genomes = IgorRefGenome()
-        # self.genomes.fln_genomicVs = self.fln_genomicVs
-        # self.genomes.fln_genomicDs = self.fln_genomicDs
-        # self.genomes.fln_genomicJs = self.fln_genomicJs
+            # # 2. Or directly from files.
+            # self.genomes = IgorRefGenome()
+            # self.genomes.fln_genomicVs = self.fln_genomicVs
+            # self.genomes.fln_genomicDs = self.fln_genomicDs
+            # self.genomes.fln_genomicJs = self.fln_genomicJs
+        except Exception as e:
+            raise e
 
     def make_model_default_VJ_from_genomes_dir(self, igor_path_ref_genome=None):
         try:
@@ -6232,124 +6245,144 @@ class IgorTask:
         """
         Run IGoR's -read_seqs options
         """
-        #TODO: FIXME igor_read_seqs is different that the input sequences
-        if igor_read_seqs is not None:
-            self.igor_read_seqs = igor_read_seqs
+        try:
+            #TODO: FIXME igor_read_seqs is different that the input sequences
+            if igor_read_seqs is not None:
+                self.igor_read_seqs = igor_read_seqs
 
-        import pathlib
-        pathlib.Path(self.igor_wd).mkdir(parents=True, exist_ok=True)
+            import pathlib
+            pathlib.Path(self.igor_wd).mkdir(parents=True, exist_ok=True)
 
-        "igor -set_wd $WDPATH -batch foo -read_seqs ../demo/murugan_naive1_noncoding_demo_seqs.txt"
-        cmd = self.igor_exec_path
-        cmd = cmd + " -set_wd " + self.igor_wd
-        cmd = cmd + " -batch " + self.igor_batchname
-        cmd = cmd + " -read_seqs " + self.igor_read_seqs
-        # TODO: if self.igor_read_seqs extension fastq then convert to csv and copy and create the file in aligns. Overwrite if necesserasy
-        print(cmd)
-        cmd_stdout = run_command(cmd)
-        self.b_read_seqs = True  # FIXME: If run_command success then True
-        return cmd_stdout
+            "igor -set_wd $WDPATH -batch foo -read_seqs ../demo/murugan_naive1_noncoding_demo_seqs.txt"
+            cmd = self.igor_exec_path
+            cmd = cmd + " -set_wd " + self.igor_wd
+            cmd = cmd + " -batch " + self.igor_batchname
+            cmd = cmd + " -read_seqs " + self.igor_read_seqs
+            # TODO: if self.igor_read_seqs extension fastq then convert to csv and copy and create the file in aligns. Overwrite if necesserasy
+            print(cmd)
+            # cmd_stdout = run_command(cmd)
+            subprocess.run(cmd, shell=True, capture_output=True, text=True)
+            # cmd_stdout = run_command_print(cmd)
+            self.igor_fln_indexed_sequences = self.igor_wd + "/aligns/" + self.igor_batchname + "_indexed_sequences.csv"
+            self.b_read_seqs = True  # FIXME: If run_command success then True
+            # return cmd_stdout
+        except Exception as e:
+            raise e
 
     def run_align(self, igor_read_seqs=None):
         # "igor -set_wd ${tmp_dir} -batch ${randomBatch} -species
         # ${species} -chain ${chain} -align --all"
-        import os.path
+        try:
+            import os.path
 
-        if igor_read_seqs is not None:
-            self.igor_read_seqs = igor_read_seqs
+            if igor_read_seqs is not None:
+                self.igor_read_seqs = igor_read_seqs
 
-        if self.b_read_seqs is False:
-            self.run_read_seqs(igor_read_seqs=igor_read_seqs)
+            if self.b_read_seqs is False:
+                self.run_read_seqs(igor_read_seqs=igor_read_seqs)
 
-        import pathlib
-        pathlib.Path(self.igor_wd).mkdir(parents=True, exist_ok=True)
+            import pathlib
+            pathlib.Path(self.igor_wd).mkdir(parents=True, exist_ok=True)
 
-        if self.igor_mdldata_dir is not None:
+            if self.igor_mdldata_dir is not None:
 
-            cmd = self.igor_exec_path
-            cmd = cmd + " -set_wd " + self.igor_wd
-            cmd = cmd + " -batch " + self.igor_batchname
-            # I think that the safests is to use the
-            cmd = cmd + " -set_genomic "
+                cmd = self.igor_exec_path
+                cmd = cmd + " -set_wd " + self.igor_wd
+                cmd = cmd + " -batch " + self.igor_batchname
+                # I think that the safests is to use the
+                cmd = cmd + " -set_genomic "
 
-            if os.path.isfile(self.igor_fln_mdldata_genomicVs):
-                cmd = cmd + " --V " + self.igor_fln_mdldata_genomicVs
-            if os.path.isfile(self.igor_fln_mdldata_genomicDs):
-                cmd = cmd + " --D " + self.igor_fln_mdldata_genomicDs
-            if os.path.isfile(self.igor_fln_mdldata_genomicJs):
-                cmd = cmd + " --J " + self.igor_fln_mdldata_genomicJs
+                if os.path.isfile(self.igor_fln_mdldata_genomicVs):
+                    cmd = cmd + " --V " + self.igor_fln_mdldata_genomicVs
 
-            if os.path.isfile(self.igor_fln_mdldata_V_gene_CDR3_anchors) or \
-                    os.path.isfile(self.igor_fln_mdldata_V_gene_CDR3_anchors):
-                cmd = cmd + " -set_CDR3_anchors "
+                if self.igor_fln_mdldata_genomicDs is not None:
+                    if os.path.isfile(self.igor_fln_mdldata_genomicDs):
+                        cmd = cmd + " --D " + self.igor_fln_mdldata_genomicDs
+                if os.path.isfile(self.igor_fln_mdldata_genomicJs):
+                    cmd = cmd + " --J " + self.igor_fln_mdldata_genomicJs
 
-                if os.path.isfile(self.igor_fln_mdldata_V_gene_CDR3_anchors):
-                    cmd = cmd + " --V " + self.igor_fln_mdldata_V_gene_CDR3_anchors
+                if os.path.isfile(self.igor_fln_mdldata_V_gene_CDR3_anchors) or \
+                        os.path.isfile(self.igor_fln_mdldata_V_gene_CDR3_anchors):
+                    cmd = cmd + " -set_CDR3_anchors "
 
-                if os.path.isfile(self.igor_fln_mdldata_J_gene_CDR3_anchors):
-                    cmd = cmd + " --J " + self.igor_fln_mdldata_J_gene_CDR3_anchors
+                    if os.path.isfile(self.igor_fln_mdldata_V_gene_CDR3_anchors):
+                        cmd = cmd + " --V " + self.igor_fln_mdldata_V_gene_CDR3_anchors
 
-            cmd = cmd + " -align " + command_from_dict_options(self.igor_align_dict_options)
+                    if os.path.isfile(self.igor_fln_mdldata_J_gene_CDR3_anchors):
+                        cmd = cmd + " --J " + self.igor_fln_mdldata_J_gene_CDR3_anchors
 
-        else:
-            cmd = self.igor_exec_path
-            cmd = cmd + " -set_wd " + self.igor_wd
-            cmd = cmd + " -batch " + self.igor_batchname
-            # I think that the safests is to use the
-            cmd = cmd + " -set_genomic "
+                cmd = cmd + " -align " + command_from_dict_options(self.igor_align_dict_options)
 
-            if os.path.isfile(self.genomes.fln_genomicVs):
-                cmd = cmd + " --V " + self.genomes.fln_genomicVs
-            if os.path.isfile(self.genomes.fln_genomicDs):
-                cmd = cmd + " --D " + self.genomes.fln_genomicDs
-            if os.path.isfile(self.genomes.fln_genomicJs):
-                cmd = cmd + " --J " + self.genomes.fln_genomicJs
+            else:
+                cmd = self.igor_exec_path
+                cmd = cmd + " -set_wd " + self.igor_wd
+                cmd = cmd + " -batch " + self.igor_batchname
+                # I think that the safests is to use the
+                cmd = cmd + " -set_genomic "
 
-            if os.path.isfile(self.genomes.fln_V_gene_CDR3_anchors) or \
-                    os.path.isfile(self.genomes.fln_J_gene_CDR3_anchors):
-                cmd = cmd + " -set_CDR3_anchors "
+                if os.path.isfile(self.genomes.fln_genomicVs):
+                    cmd = cmd + " --V " + self.genomes.fln_genomicVs
+                if self.genomes.fln_genomicDs is not None:
+                    if os.path.isfile(self.genomes.fln_genomicDs):
+                        cmd = cmd + " --D " + self.genomes.fln_genomicDs
+                if os.path.isfile(self.genomes.fln_genomicJs):
+                    cmd = cmd + " --J " + self.genomes.fln_genomicJs
 
-                if os.path.isfile(self.genomes.fln_V_gene_CDR3_anchors):
-                    cmd = cmd + " --V " + self.genomes.fln_V_gene_CDR3_anchors
+                if os.path.isfile(self.genomes.fln_V_gene_CDR3_anchors) or \
+                        os.path.isfile(self.genomes.fln_J_gene_CDR3_anchors):
+                    cmd = cmd + " -set_CDR3_anchors "
 
-                if os.path.isfile(self.genomes.fln_J_gene_CDR3_anchors):
-                    cmd = cmd + " --J " + self.genomes.fln_J_gene_CDR3_anchors
+                    if os.path.isfile(self.genomes.fln_V_gene_CDR3_anchors):
+                        cmd = cmd + " --V " + self.genomes.fln_V_gene_CDR3_anchors
 
-            cmd = cmd + " -align " + command_from_dict_options(self.igor_align_dict_options)
+                    if os.path.isfile(self.genomes.fln_J_gene_CDR3_anchors):
+                        cmd = cmd + " --J " + self.genomes.fln_J_gene_CDR3_anchors
+
+                cmd = cmd + " -align " + command_from_dict_options(self.igor_align_dict_options)
 
 
-        # cmd = self.igor_exec_path
-        # cmd = cmd + " -set_wd " + self.igor_wd
-        # cmd = cmd + " -batch " + self.igor_batchname
-        # # TODO: USE COSTUM MODEL OR USE SPECIFIED SPECIES?
-        # # I think that the safests is to use the
-        # # FIXME: CHANGE TO CUSTOM GENOMICS
-        # cmd = cmd + " -set_genomic "
-        #
-        # if os.path.isfile(self.genomes.fln_genomicVs):
-        #     cmd = cmd + " --V " + self.genomes.fln_genomicVs
-        # if os.path.isfile(self.genomes.fln_genomicDs):
-        #     cmd = cmd + " --D " + self.genomes.fln_genomicDs
-        # if os.path.isfile(self.genomes.fln_genomicJs):
-        #     cmd = cmd + " --J " + self.genomes.fln_genomicJs
-        #
-        # cmd = cmd + " -set_CDR3_anchors "
-        #
-        # if os.path.isfile(self.genomes.fln_V_gene_CDR3_anchors):
-        #     cmd = cmd + " --V " + self.genomes.fln_V_gene_CDR3_anchors
-        # if os.path.isfile(self.genomes.fln_J_gene_CDR3_anchors):
-        #     cmd = cmd + " --J " + self.genomes.fln_J_gene_CDR3_anchors
-        #
-        # cmd = cmd + " -align " + command_from_dict_options(self.igor_align_dict_options)
-        # # return cmd
+            # cmd = self.igor_exec_path
+            # cmd = cmd + " -set_wd " + self.igor_wd
+            # cmd = cmd + " -batch " + self.igor_batchname
+            # # TODO: USE COSTUM MODEL OR USE SPECIFIED SPECIES?
+            # # I think that the safests is to use the
+            # # FIXME: CHANGE TO CUSTOM GENOMICS
+            # cmd = cmd + " -set_genomic "
+            #
+            # if os.path.isfile(self.genomes.fln_genomicVs):
+            #     cmd = cmd + " --V " + self.genomes.fln_genomicVs
+            # if os.path.isfile(self.genomes.fln_genomicDs):
+            #     cmd = cmd + " --D " + self.genomes.fln_genomicDs
+            # if os.path.isfile(self.genomes.fln_genomicJs):
+            #     cmd = cmd + " --J " + self.genomes.fln_genomicJs
+            #
+            # cmd = cmd + " -set_CDR3_anchors "
+            #
+            # if os.path.isfile(self.genomes.fln_V_gene_CDR3_anchors):
+            #     cmd = cmd + " --V " + self.genomes.fln_V_gene_CDR3_anchors
+            # if os.path.isfile(self.genomes.fln_J_gene_CDR3_anchors):
+            #     cmd = cmd + " --J " + self.genomes.fln_J_gene_CDR3_anchors
+            #
+            # cmd = cmd + " -align " + command_from_dict_options(self.igor_align_dict_options)
+            # # return cmd
 
-        print(cmd)
-        cmd_stdout = run_command_print(cmd)
-        # run_command_no_output(cmd)
-        self.b_align = True  # FIXME: If run_command success then True
-        return cmd_stdout
+            print(cmd)
+            cmd_stdout = run_command_print(cmd)
+            # run_command_no_output(cmd)
+            self._update_align_batch_filenames()
+            self.b_align = True  # FIXME: If run_command success then True
+            return cmd_stdout
+        except Exception as e:
+            raise e
 
-    def _run_evaluate(self, igor_read_seqs=None, N_scenarios=None, Pgen=True):
+    def _run_evaluate(self, igor_read_seqs=None, N_scenarios=None, Pgen=True,
+                      igor_model_parms_file=None,
+                      igor_model_marginals_file=None,
+                      fln_V_gene_CDR3_anchors=None,
+                      fln_J_gene_CDR3_anchors=None,
+                      igor_fln_db=None,
+                      igor_db=None,
+                      mdl: Union[IgorModel, None] = None):
         # "igor -set_wd $WDPATH -batch foo -species human -chain beta
         # -evaluate -output --scenarios 10"
         try:
@@ -6358,33 +6391,81 @@ class IgorTask:
             if igor_read_seqs is not None:
                 self.igor_read_seqs = igor_read_seqs
 
-            if self.b_align is False:
-                self.run_align(igor_read_seqs=self.igor_read_seqs)
+            if mdl is not None:
+                self.mdl = mdl
+
+            if self.mdl is None:
+                try:
+                    self.load_IgorModel(igor_model_parms_file=igor_model_parms_file,
+                                        igor_model_marginals_file=igor_model_marginals_file,
+                                        fln_V_gene_CDR3_anchors=fln_V_gene_CDR3_anchors,
+                                        fln_J_gene_CDR3_anchors=fln_J_gene_CDR3_anchors)
+                except:
+                    try:
+                        self.load_mdl_from_db(igor_fln_db=igor_fln_db, igor_db=igor_db)
+                    except:
+                        pass
+                    pass
+            else:
+                self._update_mdldata_batch_filenames()
+                if self.mdl.parms.event_GeneChoice_D is None:
+                    self.igor_fln_mdldata_genomicDs = None
+                self.write_mdldata_dir(self.igor_mdldata_dir)
 
             import pathlib
             pathlib.Path(self.igor_wd).mkdir(parents=True, exist_ok=True)
 
-            cmd = self.igor_exec_path
-            cmd = cmd + " -set_wd " + self.igor_wd
-            cmd = cmd + " -batch " + self.igor_batchname
-            # TODO: USE COSTUM MODEL OR USE SPECIFIED SPECIES?
-            # I think that the safests is to use the
-            # cmd = cmd + " -species " + self.igor_species
-            # cmd = cmd + " -chain " + self.igor_chain
-            cmd = cmd + " -set_custom_model " + self.igor_model_parms_file + " " + self.igor_model_marginals_file
+            if self.b_align is False:
+                try:
+                    self.run_align(igor_read_seqs=self.igor_read_seqs)
+                except Exception as e:
+                    raise e
 
-            # here the evaluation
-            self.igor_output_dict_options["--scenarios"]['active'] = True
-            if N_scenarios is not None:
-                self.igor_output_dict_options["--scenarios"]['value'] = str(N_scenarios)
-            self.igor_output_dict_options["--Pgen"]['active'] = Pgen
-            cmd = cmd + " -evaluate " + command_from_dict_options(self.igor_evaluate_dict_options)
-            cmd = cmd + " -output " + command_from_dict_options(self.igor_output_dict_options)
-            # return cmd
+
+            if self.mdl is not None:
+                self._update_mdldata_batch_filenames()
+                self.write_mdldata_dir(self.igor_mdldata_dir)
+
+                cmd = self.igor_exec_path
+                cmd = cmd + " -set_wd " + self.igor_wd
+                cmd = cmd + " -batch " + self.igor_batchname
+                cmd = cmd + " -set_custom_model " + self.igor_fln_mdldata_parms + " " + self.igor_fln_mdldata_marginals
+
+                if os.path.isfile(self.igor_fln_mdldata_V_gene_CDR3_anchors) or \
+                        os.path.isfile(self.igor_fln_mdldata_J_gene_CDR3_anchors):
+                    cmd = cmd + " -set_CDR3_anchors "
+                    if os.path.isfile(self.igor_fln_mdldata_V_gene_CDR3_anchors):
+                        cmd = cmd + " --V " + self.igor_fln_mdldata_V_gene_CDR3_anchors
+                    if os.path.isfile(self.igor_fln_mdldata_J_gene_CDR3_anchors):
+                        cmd = cmd + " --J " + self.igor_fln_mdldata_J_gene_CDR3_anchors
+                # here the evaluation
+                self.igor_output_dict_options["--scenarios"]['active'] = True
+                if N_scenarios is not None:
+                    self.igor_output_dict_options["--scenarios"]['value'] = str(N_scenarios)
+                self.igor_output_dict_options["--Pgen"]['active'] = Pgen
+                cmd = cmd + " -evaluate " + command_from_dict_options(self.igor_evaluate_dict_options)
+                cmd = cmd + " -output " + command_from_dict_options(self.igor_output_dict_options)
+
+            else:
+                cmd = self.igor_exec_path
+                cmd = cmd + " -set_wd " + self.igor_wd
+                cmd = cmd + " -batch " + self.igor_batchname
+                cmd = cmd + " -set_custom_model " + self.igor_model_parms_file + " " + self.igor_model_marginals_file
+
+                # here the evaluation
+                self.igor_output_dict_options["--scenarios"]['active'] = True
+                if N_scenarios is not None:
+                    self.igor_output_dict_options["--scenarios"]['value'] = str(N_scenarios)
+                self.igor_output_dict_options["--Pgen"]['active'] = Pgen
+                cmd = cmd + " -evaluate " + command_from_dict_options(self.igor_evaluate_dict_options)
+                cmd = cmd + " -output " + command_from_dict_options(self.igor_output_dict_options)
+
+
             print(cmd)
             # FIXME: REALLY BIG FLAW USE DICTIONARY FOR THE SPECIE AND CHAIN
             # self.mdl = IgorModel.load_default(self.igor_species, igor_option_path_dict[self.igor_chain], modelpath=self.igor_models_root_path)
             run_command(cmd)
+            self._update_evaluate_batch_filenames()
             # run_command_no_output(cmd)
             # self.b_evaluate = True # FIXME: If run_command success then Truerun_infer
         except Exception as e:
@@ -6963,22 +7044,25 @@ class IgorTask:
     # load genome templates from fasta and csv files.
     def load_db_from_genomes(self):
         print("Loading Gene templates ...")
-        self.igor_db.load_IgorGeneTemplate_FromFASTA("V", self.genomes.fln_genomicVs)
-        self.igor_db.load_IgorGeneTemplate_FromFASTA("J", self.genomes.fln_genomicJs)
         try:
-            self.igor_db.load_IgorGeneTemplate_FromFASTA("D", self.genomes.fln_genomicDs)
+            self.igor_db.load_IgorGeneTemplate_FromFASTA("V", self.genomes.fln_genomicVs)
+            self.igor_db.load_IgorGeneTemplate_FromFASTA("J", self.genomes.fln_genomicJs)
+            try:
+                self.igor_db.load_IgorGeneTemplate_FromFASTA("D", self.genomes.fln_genomicDs)
+            except Exception as e:
+                print(e)
+                print("No D gene template found in batch files structure")
+                pass
+            # load
+            print("loading Anchors data ...")
+            # try:
+            self.load_db_from_anchors()
+            # self.igor_db.load_IgorGeneAnchors_FromCSV("V", self.genomes.fln_V_gene_CDR3_anchors)
+            # self.igor_db.load_IgorGeneAnchors_FromCSV("J", self.genomes.fln_J_gene_CDR3_anchors)
+            # except Exception as e:
+            #     print("ERROR : ", e)
         except Exception as e:
-            print(e)
-            print("No D gene template found in batch files structure")
-            pass
-        # load
-        print("loading Anchors data ...")
-        # try:
-        self.load_db_from_anchors()
-        # self.igor_db.load_IgorGeneAnchors_FromCSV("V", self.genomes.fln_V_gene_CDR3_anchors)
-        # self.igor_db.load_IgorGeneAnchors_FromCSV("J", self.genomes.fln_J_gene_CDR3_anchors)
-        # except Exception as e:
-        #     print("ERROR : ", e)
+            raise e
 
     def load_db_from_anchors(self):
         """Load anchors from database"""
@@ -7452,6 +7536,8 @@ class IgorTask:
         if self.igor_mdldata_dir is None:
             self.igor_mdldata_dir = self.igor_wd + "/" + self.igor_batchname + "_mdldata"
 
+        if self.igor_path_ref_genome is None:
+            self.igor_path_ref_genome = self.igor_mdldata_dir + "/ref_genome/"
         if mdl is not None:
             self.mdl = copy.deepcopy(mdl)
 

@@ -355,9 +355,22 @@ def run_infer(igor_read_seqs, output_fln_prefix,
         # output_fln_db = output_fln_prefix + ".db"
         output_fln_parms = output_fln_prefix + "_parms.txt"
         output_fln_marginals = output_fln_prefix + "_marginals.txt"
+
+        if len(igortask.mdl.V_anchors) > 0:
+            output_fln_V_gene_CDR3_anchors = output_fln_prefix + "_V_gene_CDR3_anchors.csv"
+        else:
+            output_fln_V_gene_CDR3_anchors = None
+
+        if len(igortask.mdl.J_anchors) > 0:
+            output_fln_J_gene_CDR3_anchors = output_fln_prefix + "_J_gene_CDR3_anchors.csv"
+        else:
+            output_fln_J_gene_CDR3_anchors = None
+
         igortask.mdl.plot_Bayes_network(filename=output_fln_prefix+"_BN.pdf")
         igortask.mdl.export_plot_Pmarginals(output_fln_prefix + "_RM")
-        igortask.mdl.write_model(output_fln_parms, output_fln_marginals)
+        igortask.mdl.write_model(output_fln_parms, output_fln_marginals,
+                                 fln_V_gene_CDR3_anchors=output_fln_V_gene_CDR3_anchors,
+                                 fln_J_gene_CDR3_anchors=output_fln_J_gene_CDR3_anchors)
         igortask.run_clean_batch()
         # mv
 
@@ -440,8 +453,10 @@ def run_evaluate(igor_read_seqs, output_fln_prefix,
     igortask.igor_model_parms_file = igor_model[0]
     igortask.igor_model_marginals_file = igor_model[1]
     igortask.igor_model_dir_path = igor_model_path
-    igortask.igor_wd = igor_wd
-    igortask.igor_batchname = igor_batch
+    if igor_wd is not None:
+        igortask.igor_wd = igor_wd
+    if igor_batch is not None:
+        igortask.igor_batchname = igor_batch
     igortask.igor_fln_db = igor_fln_db
 
 
@@ -451,30 +466,42 @@ def run_evaluate(igor_read_seqs, output_fln_prefix,
     if Q_species_chain:
         igortask.igor_species = igor_species
         igortask.igor_chain = igor_chain
+        # load models from default
+        igortask.load_IgorModel()
     elif Q_model_files:
         igortask.igor_model_parms_file = igor_model_parms
         igortask.igor_model_marginals_file = igor_model_marginals
+        igortask.load_IgorModel()
     elif igor_fln_db is not None:
         igortask.create_db(igor_fln_db=igor_fln_db)
+        igortask.load_mdl_from_db()
     else:
         print("ERROR: No model provided!")
         return 0
 
     click.echo("Running IGoR evaluation process...")
-    igortask.update_batch_filenames()
-    igortask.update_model_filenames()
-    igortask.update_ref_genome()
-
+    # TODO:  with the loaded model generate the mdl_datadir
+    igortask.write_mdldata_dir()
     igortask.load_IgorRefGenome()
+
+
+    igortask.update_batch_filenames()
+    # igortask.update_model_filenames()
+    # igortask.update_ref_genome()
+
+    # igortask.load_IgorRefGenome()
 
     import json
     print(json.dumps(igortask.to_dict()))
 
-    igortask.load_IgorModel()
+    # igortask.load_IgorModel()
     # batchname_model/
     # batchname_model/models
     # batchname_model/ref_genome
-    output = igortask._run_evaluate(igor_read_seqs=igor_read_seqs)
+    try:
+        output = igortask._run_evaluate(igor_read_seqs=igor_read_seqs)
+    except Exception as e:
+        raise e
     print(output)
     if b_clean_igortask_input:
         igortask_input.run_clean_batch()
@@ -514,6 +541,7 @@ def run_evaluate(igor_read_seqs, output_fln_prefix,
         print("airr rearrangement : ", output_fln_airr)
         igortask.igor_db.export_IgorBestScenarios_to_AIRR(output_fln_airr)
         igortask.run_clean_batch()
+        igortask._run_clean_batch_mdldata()
     else:
         import os
         # igortask.mdl.write_model(output_fln_parms, output_fln_marginals)
@@ -533,6 +561,8 @@ def run_evaluate(igor_read_seqs, output_fln_prefix,
         print("pgen file: ", output_fln_pgen)
         print("airr rearrangement : ", output_fln_airr)
         igortask.igor_db.export_IgorBestScenarios_to_AIRR(output_fln_airr)
+        igortask.run_clean_batch()
+        igortask._run_clean_batch_mdldata()
         # igortask.mdl.plot_Bayes_network(filename=output_fln_prefix + "_BN.pdf")
         # igortask.mdl.export_plot_Pmarginals(output_fln_prefix + "_RM")
         # igortask.mdl.write_model(output_fln_parms, output_fln_marginals)
