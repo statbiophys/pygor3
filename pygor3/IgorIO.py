@@ -91,13 +91,17 @@ def run_command(cmd):
     # return ''.join(stdout)
     try:
         p = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-        return p
+        return p.stdout
+    except TypeError as e:
+        p = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+        return p.stdout
     except Exception as e:
         raise e
 
 
 def execute_command_generator(cmd):
     popen = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, universal_newlines=True)
+    # popen = subprocess.Popen(cmd.split(" "), stdout=subprocess.PIPE, universal_newlines=True)
     for stdout_line in iter(popen.stdout.readline, ""):
         yield stdout_line
     popen.stdout.close()
@@ -122,8 +126,17 @@ def run_command_no_output(cmd):
     """from http://blog.kagesenshi.org/2008/02/teeing-python-subprocesspopen-output.html
     """
     # p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    p = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-    return p
+    try:
+        from subprocess import PIPE
+        p = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        return p
+    except TypeError as e:
+        p = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+        return p
+    except Exception as e:
+        raise e
+    # p = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    # return p
 
 
 # FIXME: IT IS BETTER TO USE DECORATORS FOR VARIABLES LIKE igor_batchname and update the dependencies on that automatically?
@@ -6260,8 +6273,8 @@ class IgorTask:
             cmd = cmd + " -read_seqs " + self.igor_read_seqs
             # TODO: if self.igor_read_seqs extension fastq then convert to csv and copy and create the file in aligns. Overwrite if necesserasy
             print(cmd)
-            # cmd_stdout = run_command(cmd)
-            subprocess.run(cmd, shell=True, capture_output=True, text=True)
+            cmd_stdout = run_command(cmd)
+            # subprocess.run(cmd, shell=True, capture_output=True, text=True)
             # cmd_stdout = run_command_print(cmd)
             self.igor_fln_indexed_sequences = self.igor_wd + "/aligns/" + self.igor_batchname + "_indexed_sequences.csv"
             self.b_read_seqs = True  # FIXME: If run_command success then True
@@ -6564,6 +6577,8 @@ class IgorTask:
 
             self.igor_mdldata_dir = self.igor_wd + "/" + self.igor_batchname + "_mdldata"
             self.write_mdldata_dir(self.igor_mdldata_dir)
+            # TODO: SHOULD I UPDATE HERE THE VARIABLES igor_fln_mdldata_genomicVs,
+            #  igor_fln_mdldata_V_gene_CDR3_anchors, igor_fln_mdl_parms
             self.update_model_filenames(self.igor_mdldata_dir)
             self.update_ref_genome(self.igor_mdldata_dir)
 
@@ -6906,8 +6921,8 @@ class IgorTask:
             #     cmd = cmd + " -generate "
             print(cmd)
 
-            # run_command(cmd)
-            run_command_print(cmd)
+            run_command(cmd)
+            # run_command_print(cmd)
 
             self._update_generate_batch_filenames()
             # path_generated = self.igor_wd + "/" + self.igor_batchname + "_generated/"

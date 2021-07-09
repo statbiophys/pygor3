@@ -11,6 +11,7 @@ from pygor3 import evaluate_pgen
 from pygor3 import infer
 from pygor3 import get_default_IgorModel
 from pygor3 import get_IgorRefGenome_VDJ_from_IMGT
+from pygor3 import rcParams
 
 
 
@@ -313,6 +314,8 @@ class MyTestCase(unittest.TestCase):
         self.species = "human"
         self.chain = "tcr_beta"
         self.mdl = IgorModel.load_default(self.species, self.chain)
+        rcParams["paths.igor_exec"] = "/home/olivares/GitHub/statbiophys/IGoR/digor"
+        # rcParams["paths.igor_exec"] = None
         # mdl = IgorTask.run_generate(return_df=True)
         self.pd_sequences = generate(10, self.mdl)
 

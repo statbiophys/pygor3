@@ -14,7 +14,15 @@ def run_get_igor_exec_path():
     try:
         if rcParams['paths.igor_exec'] is None:
             import subprocess
-            p1 = subprocess.run(["which", "igor"], capture_output=True, text=True)
+            cmd_list = ["which", "igor"]
+            try:
+                p1 = subprocess.run(cmd_list, shell=True, capture_output=True, text=True)
+            except TypeError as e:
+                p1 = subprocess.run(cmd_list, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                   universal_newlines=True)
+            except Exception as e:
+                raise e
+            # p1 = subprocess.run(["which", "igor"], capture_output=True, text=True)
             rcParams['paths.igor_exec'] = p1.stdout.replace('\n', '')
             return rcParams['paths.igor_exec']
         else:
@@ -30,7 +38,16 @@ def run_get_igor_datadir():
         if rcParams['paths.igor_data'] is None:
             import subprocess
             igor_exec_path = run_get_igor_exec_path()
-            p2 = subprocess.run([igor_exec_path, "-getdatadir"], capture_output=True, text=True)
+            cmd_list = [igor_exec_path, "-getdatadir"]
+            try:
+                p2 = subprocess.run(cmd_list, shell=True, capture_output=True, text=True)
+            except TypeError as e:
+                p2 = subprocess.run(cmd_list, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                    universal_newlines=True)
+            except Exception as e:
+                raise e
+
+            # p2 = subprocess.run([igor_exec_path, "-getdatadir"], capture_output=True, text=True)
             rcParams['paths.igor_data'] = p2.stdout.replace('\n', '')
             return rcParams['paths.igor_data'] # p2.stdout.replace('\n', '')
         else:
@@ -80,14 +97,26 @@ def run_get_random_string():
     Return random string using subprocess
     """
     # FIXME: CHANGE TO ANOTHER WAY WITHOUT USING SYSTEM OR SUBPROCESS.
-    import subprocess
-    p = subprocess.run("head /dev/urandom | tr -dc A-Za-z0-9 | head -c10", shell=True, capture_output=True, text=True)
-    return p.stdout.replace('\n', '')
+    import random
+    import string
+    letters = string.ascii_lowercase + string.ascii_uppercase + string.digits
+    return ''.join(random.choice(letters) for i in range(10) )
+    # import subprocess
+    # p = subprocess.run("head /dev/urandom | tr -dc A-Za-z0-9 | head -c10", shell=True, capture_output=True, text=True)
+    # return p.stdout.replace('\n', '')
 
 def run_get_igor_wd():
     """Return current directory, that can be use as default wd"""
     import subprocess
-    p = subprocess.run("pwd", shell=True, capture_output=True, text=True)
+    cmd = "pwd"
+    try:
+        p = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    except TypeError as e:
+        p = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            universal_newlines=True)
+    except Exception as e:
+        raise e
+    # p = subprocess.run("pwd", shell=True, capture_output=True, text=True)
     return p.stdout.replace('\n', '')
 
 

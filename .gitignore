@@ -58,6 +58,7 @@ config.h
 README.html
 docs/html/
 docs/latex/
+docs/build/
 docs/IGoR_CPP_manual.pdf
 igor.1
 libs/gsl_sub/config.h.in~
