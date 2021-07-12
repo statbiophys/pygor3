@@ -18,7 +18,7 @@ setuptools.setup(
     setup_requires=['setuptools_scm'],
     description='Python package to manipulate and run IGoR data files',
     license="GNU GPLv3",
-    python_requires='>=3.7',
+    python_requires='>=3.5',
     install_requires = [
         "pandas",
         #"holoviz",

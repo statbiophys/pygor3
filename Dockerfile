@@ -17,7 +17,6 @@ WORKDIR /programs
 
 RUN git clone https://github.com/statbiophys/IGoR.git 
 WORKDIR /programs/IGoR 
-
 RUN ./autogen.sh
 RUN ./configure && make && make install
 RUN rm -r /programs/IGoR
@@ -27,7 +26,7 @@ RUN rm -r /programs/IGoR
 # WORKDIR /programs/pygor3
 # RUN apt-get install -y python-pip
 # RUN pip install pygor3
-RUN apt-get install -y python3
+RUN apt-get install -y python3.7
 
 RUN useradd -ms /bin/bash ceor
 RUN mkdir /igor_data
@@ -55,6 +54,27 @@ RUN ./Miniconda3-latest-Linux-x86_64.sh -b -p $HOME/miniconda
 
 WORKDIR /igor_data
 
+ENV LC_ALL=C.UTF-8
+#ENV LANG=C.UTF-8
+
+ENV PATH=$PATH:/home/ceor/.local/bin
+RUN echo $PATH
+RUN pip install -U --pre pygor3
+RUN pip install appdirs
+RUN ls $HOME/.local/bin
+RUN pip show pygor3
+# CMD ["pygor"]
+RUN python3 --version
+ENTRYPOINT ["/home/ceor/.local/bin/pygor"]
+
+#ENTRYPOINT ["/home/ceor/.local/lib/python3.6/site-packages/pygor"]
+
+#ENTRYPOINT ["igor"]
+
+#ENTRYPOINT ["${HOME}/miniconda/bin/conda", "run", "--no-capture-output", "-n", "statbiophys", "pygor"]
+#ENTRYPOINT ["${HOME}/miniconda/envs/statbiophys/bin/pygor"]
+#ENTRYPOINT ["pygor"]
+
 ## #RUN /root/miniconda/bin/conda init
 ## RUN ${HOME}/miniconda/bin/conda create --name statbiophys python=3.7
 ## #RUN /root/miniconda/bin/conda activate statbiophys
@@ -65,19 +85,3 @@ WORKDIR /igor_data
 ## RUN ${HOME}/miniconda/envs/statbiophys/bin/pygor --version
 ## RUN ${HOME}/miniconda/envs/statbiophys/bin/pygor --help
 ## RUN igor -version
-
-
-RUN pip install --pre pygor3
-RUN pip install appdirs
-RUN ls
-RUN pip show pygor3
-RUN python3 --version
-#RUN ls /home/ceor/.local/lib/python3.6/site-packages/
-ENTRYPOINT ["/home/ceor/.local/bin/pygor"]
-#ENTRYPOINT ["/home/ceor/.local/lib/python3.6/site-packages/pygor"]
-
-#ENTRYPOINT ["igor"]
-
-#ENTRYPOINT ["${HOME}/miniconda/bin/conda", "run", "--no-capture-output", "-n", "statbiophys", "pygor"]
-#ENTRYPOINT ["${HOME}/miniconda/envs/statbiophys/bin/pygor"]
-#ENTRYPOINT ["pygor"]
