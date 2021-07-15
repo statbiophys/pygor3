@@ -1,6 +1,9 @@
 import unittest
 from click.testing import CliRunner
 from pygor3.scripts.cli import *
+
+import subprocess
+
 class MyTestCase(unittest.TestCase):
 
     def test_cli_demo_get_data(self):
@@ -55,12 +58,16 @@ class MyTestCase(unittest.TestCase):
 
     def test_cli_run_generate(self):
         "pygor igor-generate -s human -c beta -N 10"
-        opciones = ["-s", "human", "-c", "beta", "-N", "10"]
+        opciones = ["-s", "human", "-c", "beta", "-N", "10", "-o", "temporal"]
         runner = CliRunner()
         result = runner.invoke(run_generate, opciones)
         print(result.exit_code)
         print(result.output)
         print(result.exception)
+        self.assertTrue(os.path.isfile("temporal_sequences.csv"))
+        self.assertEqual(result.exit_code, 0)
+        p = subprocess.run("rm temporal_sequennces.csv", shell=True, capture_output=True, text=True)
+
 
     def test_cli_run_infer(self):
         "pygor igor-infer -M models/Homo+sapiens/IGL/ -i demo/data/IgL/IgL_seqs_naive_Nofunctional.txt -o IgL_new"

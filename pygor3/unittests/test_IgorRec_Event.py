@@ -5,11 +5,20 @@ import Bio.Seq
 import pandas as pd
 from pygor3.utils import dna_complementary
 import matplotlib.pyplot as plt
-import numba as nb
+# import numba as nb
 
 
 class MyTestCase(unittest.TestCase):
 
+
+    def test_get_realization_DataFrame(self):
+        mdl = IgorModel.load_default("human", "tcr_beta")
+        event = mdl.parms.get_Event('vd_dinucl')
+        df = event.get_realization_DataFrame()
+        df = df[['value', 'name']]
+        str_df = df.to_csv(sep=';', header=False)
+        print(str_df)
+        # print(df)
 
     def test_realization(self):
         mdl = IgorModel.load_default("human", "tcr_beta")

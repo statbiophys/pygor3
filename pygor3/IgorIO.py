@@ -93,8 +93,11 @@ def run_command(cmd):
         p = subprocess.run(cmd, shell=True, capture_output=True, text=True)
         return p.stdout
     except TypeError as e:
-        p = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-        return p.stdout
+        try:
+            p = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+            return p.stdout
+        except Exception as e:
+            raise e
     except Exception as e:
         raise e
 
@@ -2254,6 +2257,7 @@ class IgorModel_Parms:
         ofile.write("@Event_list\n")
         # for event in self.Event_list:
         # for nickname in Igor_nickname_list: # Igor_nicknameList is in IgorDefaults.py
+        # TODO: WRITE FIRST EVENTS WITH HIGHEST PRIORITY AND LESS PARENTS
         for event in self.Event_list:
             try:
                 ## self.write_event(ofile, event:IgorRec_Event)
@@ -2267,6 +2271,7 @@ class IgorModel_Parms:
                 ofile.write(strLine)
                 # WRITE THE LIST OF REALIZATIONS adding character '%'
                 df = event.get_realization_DataFrame()
+                df = df[['value', 'name']]
                 str_df = df.to_csv(sep=strSepChar, header=False)
                 str_realization_list = ""
                 for strLine in str_df.split("\n"):

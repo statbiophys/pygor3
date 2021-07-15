@@ -48,24 +48,30 @@ WORKDIR /igor_data
 
 RUN ls
 WORKDIR /programs
-RUN wget "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"
-RUN chmod +x Miniconda3-latest-Linux-x86_64.sh 
-RUN ./Miniconda3-latest-Linux-x86_64.sh -b -p $HOME/miniconda
+# RUN wget "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"
+# RUN chmod +x Miniconda3-latest-Linux-x86_64.sh 
+# RUN ./Miniconda3-latest-Linux-x86_64.sh -b -p $HOME/miniconda
 
 WORKDIR /igor_data
 
+ENV PYTHONIOENCODING=utf-8
 ENV LC_ALL=C.UTF-8
-#ENV LANG=C.UTF-8
+ENV LANG=C.UTF-8
 
 ENV PATH=$PATH:/home/ceor/.local/bin
 RUN echo $PATH
 RUN pip install -U --pre pygor3
-RUN pip install appdirs
+RUN pygor --version
+# RUN pip install appdirs
 RUN ls $HOME/.local/bin
 RUN pip show pygor3
 # CMD ["pygor"]
+RUN pygor --version
 RUN python3 --version
-ENTRYPOINT ["/home/ceor/.local/bin/pygor"]
+
+ENTRYPOINT ["echo"]
+# ENTRYPOINT ["pygor"]
+# ENTRYPOINT ["/home/ceor/.local/bin/pygor"]
 
 #ENTRYPOINT ["/home/ceor/.local/lib/python3.6/site-packages/pygor"]
 

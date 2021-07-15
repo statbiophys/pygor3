@@ -1,2 +1,3 @@
 #!/bin/bash
-docker run --rm -v "$(pwd)":/igor-data dpygor3:dev
+# docker run --rm -v "$(pwd)":/igor-data dpygor3:dev
+docker run -e PYTHONIOENCODING=utf-8 --rm -v "$(pwd)":/igor-data dpygor3:dev

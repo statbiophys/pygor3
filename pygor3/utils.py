@@ -18,8 +18,11 @@ def run_get_igor_exec_path():
             try:
                 p1 = subprocess.run(cmd_list, shell=True, capture_output=True, text=True)
             except TypeError as e:
-                p1 = subprocess.run(cmd_list, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                   universal_newlines=True)
+                try:
+                    p1 = subprocess.run(cmd_list, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                       universal_newlines=True)
+                except Exception as e:
+                    raise e
             except Exception as e:
                 raise e
             # p1 = subprocess.run(["which", "igor"], capture_output=True, text=True)
@@ -42,8 +45,11 @@ def run_get_igor_datadir():
             try:
                 p2 = subprocess.run(cmd_list, shell=True, capture_output=True, text=True)
             except TypeError as e:
-                p2 = subprocess.run(cmd_list, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                    universal_newlines=True)
+                try:
+                    p2 = subprocess.run(cmd_list, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                        universal_newlines=True)
+                except Exception as e:
+                    raise e
             except Exception as e:
                 raise e
 
@@ -112,8 +118,11 @@ def run_get_igor_wd():
     try:
         p = subprocess.run(cmd, shell=True, capture_output=True, text=True)
     except TypeError as e:
-        p = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                            universal_newlines=True)
+        try:
+            p = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                universal_newlines=True)
+        except Exception as e:
+            raise e
     except Exception as e:
         raise e
     # p = subprocess.run("pwd", shell=True, capture_output=True, text=True)
