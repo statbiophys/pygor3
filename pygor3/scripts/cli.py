@@ -314,11 +314,11 @@ def run_infer(igor_read_seqs, output_fln_prefix,
     print("===== Running inference =====")
     igortask.update_batch_filenames()
     igortask.update_model_filenames()
-    print(igortask)
+    # print(igortask)
 
     igortask.load_IgorRefGenome()
     igortask.load_IgorModel()
-    print(igortask)
+    # print(igortask)
     output = igortask._run_infer(igor_read_seqs=igor_read_seqs)
     igortask._run_clean_batch_mdldata()
     # print(output)

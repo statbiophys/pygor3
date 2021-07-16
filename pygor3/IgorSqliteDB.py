@@ -900,9 +900,10 @@ class IgorSqliteDB:
         data = tuple(csvline.split(";"))
         # if len(data) == 2:
         try:
-            # cur = self.conn.cursor()
-            cur.execute(sql, data)
-            # self.conn.commit()
+            if len(data) == 5:
+                # cur = self.conn.cursor()
+                cur.execute(sql, data)
+                # self.conn.commit()
         except sqlite3.Error as e:
             print(data)
             print(e)

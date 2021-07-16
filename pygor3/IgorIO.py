@@ -7057,6 +7057,10 @@ class IgorTask:
         self.igor_db = IgorSqliteDB.create_db(self.igor_fln_db)
 
     def load_db_from_indexed_sequences(self, igor_fln_indexed_sequences=None):
+        """
+        Load indexed_sequences from database
+        :param igor_fln_indexed_sequences: csv file of indexed_sequences, generated with -read_seqs
+        """
         if igor_fln_indexed_sequences is not None:
             self.igor_fln_indexed_sequences = igor_fln_indexed_sequences
         self.igor_db.load_IgorIndexedSeq_FromCSV(self.igor_fln_indexed_sequences)
