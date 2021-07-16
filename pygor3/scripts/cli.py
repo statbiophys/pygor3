@@ -2759,13 +2759,18 @@ def demo_get_data():
     """
     Copy demo directory in current directory
     """
-    from importlib import resources
+    try:
+        from importlib import resources
+    except:
+        import importlib_resources as resources
     import shutil
     import os
 
     try:
         with resources.path("pygor3", "demo") as path:
             out_path = os.getcwd() + "/demo"
+            # import pathlib
+            # pathlib.Path(out_path).mkdir(parents=True, exist_ok=True)
             print("Copy data from : ", path)
             print("to: ", out_path)
             shutil.copytree(path, out_path)

@@ -31,7 +31,8 @@ setuptools.setup(
         "requests",
         "matplotlib",
         "airr",
-        "appdirs"
+        "appdirs",
+        'importlib_resources; python_version < "3.7"'
     ],
     packages=setuptools.find_packages(),
     package_data = {

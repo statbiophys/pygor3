@@ -410,14 +410,23 @@ def get_ref_genome_dataframe_from(df_genomic:pd.DataFrame, df_anchors:pd.DataFra
     return df_ref_genome
 
 def get_dataframe_from_fasta_and_csv_anchors(fln_fasta, fln_anchor_csv=None, sep=';'):
-    import pandas as pd
-    df_genomic = get_dataframe_from_fasta(fln_fasta)
-    if fln_anchor_csv is not None:
-        df_anchors = pd.read_csv(fln_anchor_csv, sep=sep)
-        df_ref_genome = get_ref_genome_dataframe_from(df_genomic, df_anchors)
-    else:
-        df_ref_genome = df_genomic
-    return df_ref_genome
+    """
+    :param fln_fasta: Path of fasta file with genomic templates
+    :param fln_anchor_csv: Path of csv file with anchors, default csv separator ';'.
+    :param sep: separator for csv file. Default ';'
+    return genomic dataframe with genomic templates with anchors position if provided.
+    """
+    try:
+        import pandas as pd
+        df_genomic = get_dataframe_from_fasta(fln_fasta)
+        if fln_anchor_csv is not None:
+            df_anchors = pd.read_csv(fln_anchor_csv, sep=sep)
+            df_ref_genome = get_ref_genome_dataframe_from(df_genomic, df_anchors)
+        else:
+            df_ref_genome = df_genomic
+        return df_ref_genome
+    except Exception as e:
+        raise e
 
 
 def get_join_genomics_anchors_dataframes(df_genes_templates, df_genes_anchors):

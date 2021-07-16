@@ -49,7 +49,16 @@ class MyTestCase(unittest.TestCase):
         # print(result.exception)
 
     def test_cli_model_create(self):
-        opciones = ["-M", "models/Homo+sapiens/IGL/", "-t", "VJ"]
+        "pygor model-create --Vgene models/Homo+sapiens/TRB/ref_genome/genomicVs.fasta --Dgene models/Homo+sapiens/TRB/ref_genome/genomicDs.fasta --Jgene models/Homo+sapiens/TRB/ref_genome/genomicJs.fasta --Vanchors models/Homo+sapiens/TRB/ref_genome/V_gene_CDR3_anchors.csv --Janchors models/Homo+sapiens/TRB/ref_genome/J_gene_CDR3_anchors.csv -o modelito -t VDJ"
+        # opciones = ["-M", "models/Homo+sapiens/IGL/", "-t", "VJ"]
+        opciones = ["--Vgene", "models/Homo+sapiens/TRB/ref_genome/genomicVs.fasta",
+                    "--Dgene", "models/Homo+sapiens/TRB/ref_genome/genomicDs.fasta",
+                    "--Jgene", "models/Homo+sapiens/TRB/ref_genome/genomicJs.fasta",
+                    "--Vanchors", "models/Homo+sapiens/TRB/ref_genome/V_gene_CDR3_anchors.csv",
+                    "--Janchors", "models/Homo+sapiens/TRB/ref_genome/J_gene_CDR3_anchors.csv",
+                    "-t", "VDJ",
+                    "-o", "modelito"]
+        # opciones = "pygor model-create --Vgene models/Homo+sapiens/TRB/ref_genome/genomicVs.fasta --Dgene models/Homo+sapiens/TRB/ref_genome/genomicDs.fasta --Jgene models/Homo+sapiens/TRB/ref_genome/genomicJs.fasta --Vanchors models/Homo+sapiens/TRB/ref_genome/V_gene_CDR3_anchors.csv --Janchors models/Homo+sapiens/TRB/ref_genome/J_gene_CDR3_anchors.csv -o modelito -t VDJ"
         runner = CliRunner()
         result = runner.invoke(model_create, opciones)
         print(result.exit_code)
