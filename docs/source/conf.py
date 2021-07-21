@@ -15,6 +15,7 @@ import sys
 sys.path.insert(0, os.path.abspath('../../'))
 # sys.path.insert(0, os.path.abspath('.'))
 sys.path.append("source")
+#sys.path.append(os.path.abspath("../../pygor3/demo/notebooks"))
 sys.path.append(os.path.abspath('sphinxext'))
 # sys.path.append("../../pygor3/demo/notebooks")
 

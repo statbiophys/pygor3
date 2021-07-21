@@ -13,8 +13,6 @@
   
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
 
   
   
@@ -31,20 +29,21 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "document", "processHtmlClass": "tex2jax_process|mathjax_process|math"}}</script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "tex2jax_process|mathjax_process|math|output_area"}})</script>
     
     <script type="text/javascript" src="_static/js/theme.js"></script>
 
     
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="prev" title="Readme" href="readme.html" /> 
+    <link rel="next" title="pygor3 package" href="pygor3.html" />
+    <link rel="prev" title="Notebook Tutorial" href="pygor3_tutorial.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -91,43 +90,47 @@
             
               <p class="caption"><span class="caption-text">Table of Contents</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="readme.html">Readme</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Pygor Tutorial</a></li>
-<li class="toctree-l1"><a class="reference internal" href="#IgorModel">IgorModel</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#Bayesian-Network">Bayesian Network</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#IgorModel_Parms">IgorModel_Parms</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#IgorModel_Marginals">IgorModel_Marginals</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#DataArrays-with-parms-and-marginals">DataArrays with parms and marginals</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#Conditional-probabilities">Conditional probabilities</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#Marginal-Probabilities">Marginal Probabilities</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#Joint-Probabilities">Joint Probabilities</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#Editing-a-model">Editing a model</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#New-models">New models</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#Exporting-a-Model">Exporting a Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="readme_link.html">Readme</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="pygor3_tutorial.html">Notebook Tutorial</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Pygor Tutorial</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#IgorModel">IgorModel</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Bayesian-Network">Bayesian Network</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#IgorModel_Parms">IgorModel_Parms</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#IgorModel_Marginals">IgorModel_Marginals</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#DataArrays-with-parms-and-marginals">DataArrays with parms and marginals</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Conditional-probabilities">Conditional probabilities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Marginal-Probabilities">Marginal Probabilities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Joint-Probabilities">Joint Probabilities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Editing-a-model">Editing a model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#New-models">New models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Exporting-a-Model">Exporting a Model</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#Entropy">Entropy</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#Mutual-Information">Mutual Information</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Select-events-by-probability">Select events by probability</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Entropy">Entropy</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Mutual-Information">Mutual Information</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Select-events-by-probability">Select events by probability</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#Use-a-default-IGoR’s-model-to-generate-sequences">Use a default IGoR’s model to generate sequences</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#One-sequence-evaluation">One sequence evaluation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Use-a-default-IGoR’s-model-to-generate-sequences">Use a default IGoR’s model to generate sequences</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#One-sequence-evaluation">One sequence evaluation</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="#Evaluate-VDJ-model">Evaluate VDJ model</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#Visualize-scenarios">Visualize scenarios</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Evaluate-VDJ-model">Evaluate VDJ model</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Visualize-scenarios">Visualize scenarios</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="#Observables-from-scenarios">Observables from scenarios</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#Predefine-Functions-for-Scenarios">Predefine Functions for Scenarios</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#Pairwise-Probabilities">Pairwise Probabilities</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Mutual-Information-from-scenarios">Mutual Information from scenarios</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Mean-and-Variance-of-values-in-scenarios-dataframe">Mean and Variance of values in scenarios dataframe</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Observables-from-scenarios">Observables from scenarios</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Predefine-Functions-for-Scenarios">Predefine Functions for Scenarios</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Pairwise-Probabilities">Pairwise Probabilities</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Mutual-Information-from-scenarios">Mutual Information from scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Mean-and-Variance-of-values-in-scenarios-dataframe">Mean and Variance of values in scenarios dataframe</a></li>
 </ul>
 </li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pygor3.html">pygor3 package</a></li>
 </ul>
 
             
@@ -175,6 +178,8 @@
   <ul class="wy-breadcrumbs">
     
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="pygor3_tutorial.html">Notebook Tutorial</a> &raquo;</li>
         
       <li>Pygor Tutorial</li>
     
@@ -10111,7 +10116,8 @@ Length: 10000, dtype: object
           </div>
           <footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="readme.html" class="btn btn-neutral float-left" title="Readme" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="pygor3.html" class="btn btn-neutral float-right" title="pygor3 package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="pygor3_tutorial.html" class="btn btn-neutral float-left" title="Notebook Tutorial" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 
   <hr/>

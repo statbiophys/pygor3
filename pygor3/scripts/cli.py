@@ -416,9 +416,11 @@ def run_infer(igor_read_seqs, output_fln_prefix,
 ############## NO COMMON options ##############
 @click.option("-i", "--input-sequences", "igor_read_seqs", default=None, help="Input sequences in FASTA, TXT or CSV formats.")
 @click.option("-o", "--output-prefix", "output_fln_prefix", default=None, help="Output prefix for database file a scenarios file.")
+@click.option("--threads", "igor_threads", default=None, nargs=1, type=int, help="Number of threads to run IGoR.")
+#
 def run_evaluate(igor_read_seqs, output_fln_prefix,
             igor_species, igor_chain, igor_model, igor_model_path, igor_path_ref_genome, igor_wd, igor_batch, igor_fln_db,
-            fln_genomicVs, fln_genomicDs, fln_genomicJs, fln_V_gene_CDR3_anchors, fln_J_gene_CDR3_anchors):
+            fln_genomicVs, fln_genomicDs, fln_genomicJs, fln_V_gene_CDR3_anchors, fln_J_gene_CDR3_anchors, igor_threads):
     """IGoR's call to evaluate input sequences"""
     ########################
     from pygor3 import IgorTask
@@ -439,6 +441,7 @@ def run_evaluate(igor_read_seqs, output_fln_prefix,
         b_clean_igortask_input = True
 
     igortask = IgorTask()
+    igortask.igor_threads = igor_threads
     igortask.igor_path_ref_genome = igor_path_ref_genome
     igortask.fln_genomicVs = fln_genomicVs
     igortask.fln_genomicDs = fln_genomicDs

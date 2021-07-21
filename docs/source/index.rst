@@ -8,10 +8,12 @@ Welcome to pygor3's documentation!
 
 .. toctree::
    :caption: Table of Contents
-   :maxdepth: 3
+   :maxdepth: 2
+
+   readme_link
+   pygor3_tutorial
+   pygor3
    
-   readme
-   Tutorial
 
 ..
    Pygor3 Tutorial

@@ -6445,6 +6445,8 @@ class IgorTask:
                 self.write_mdldata_dir(self.igor_mdldata_dir)
 
                 cmd = self.igor_exec_path
+                if self.igor_threads is not None:
+                    cmd = cmd + " -threads " + str(int(self.igor_threads))
                 cmd = cmd + " -set_wd " + self.igor_wd
                 cmd = cmd + " -batch " + self.igor_batchname
                 cmd = cmd + " -set_custom_model " + self.igor_fln_mdldata_parms + " " + self.igor_fln_mdldata_marginals
