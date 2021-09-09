@@ -374,16 +374,28 @@ class IgorRefGenome:
 
     @property
     def df_V_ref_genome(self):
+        """
+        Property that returns V dataframe of genomic templates with anchor's column if present.
+        """
         try:
-            return get_join_genomics_anchors_dataframes(self.df_genomicVs, self.df_V_anchors)
+            if (self.df_V_anchors is None) or (self.df_V_anchors.empty):
+                return self.df_genomicVs
+            else:
+                return get_join_genomics_anchors_dataframes(self.df_genomicVs, self.df_V_anchors)
             # return self.df_genomicVs.set_index('name').join(self.df_V_anchors.set_index('gene')).reset_index()
         except Exception as e:
             return None
 
     @property
     def df_J_ref_genome(self):
+        """
+        Property that returns J dataframe of genomic templates with anchor's column if present.
+        """
         try:
-            return get_join_genomics_anchors_dataframes(self.df_genomicJs, self.df_J_anchors)
+            if (self.df_J_anchors is None) or (self.df_J_anchors.empty):
+                return self.df_genomicJs
+            else:
+                return get_join_genomics_anchors_dataframes(self.df_genomicJs, self.df_J_anchors)
             # return self.df_genomicJs.set_index('name').join(self.df_J_anchors.set_index('gene')).reset_index()
         except Exception as e:
             return None
@@ -856,6 +868,21 @@ class IgorRefGenome:
         if (self.D is None) and 'fln_genomicDs' in fln_dict.keys():
             fln_dict['fln_genomicDs'] = None
         # print(fln_dict)
+        if self.df_genomicVs is None:
+            del fln_dict['fln_genomicVs']
+
+        if self.df_genomicDs is None:  # ['id', 'name', 'value'] 'id' as index of dataframe
+            del fln_dict['fln_genomicDs']
+
+        if self.df_genomicJs is None:  # ['id', 'name', 'value'] 'id' as index of dataframe
+            del fln_dict['fln_genomicJs']
+
+        if (self.df_V_anchors is None) or (self.df_V_anchors.empty):
+            del fln_dict['fln_V_gene_CDR3_anchors']
+
+        if (self.df_J_anchors is None) or (self.df_J_anchors.empty):
+            del fln_dict['fln_J_gene_CDR3_anchors']
+
         self.write_ref_genome(sep=sep, **fln_dict)
 
     def clean_empty_anchors(self):
@@ -1642,7 +1669,7 @@ class IgorModel_Parms:
 
         cls.gen_NameNickname_dict()
         for edge_parent_child in Igor_VJ_default_Edges_parent_child_tuples:
-            cls.add_Egde(*edge_parent_child)
+            cls.add_Edge(*edge_parent_child)
 
         for event in cls.Event_list:
             event_nickname = event.nickname
@@ -1741,7 +1768,7 @@ class IgorModel_Parms:
         cls.gen_NameNickname_dict()
         # TODO: ADD EDGES # parent, child
         for edge_parent_child in Igor_VDJ_default_Edges_parent_child_tuples:
-            cls.add_Egde(*edge_parent_child)
+            cls.add_Edge(*edge_parent_child)
 
         for event in cls.Event_list:
             event_nickname = event.nickname
@@ -1967,7 +1994,7 @@ class IgorModel_Parms:
             strip_line = strip_line.rstrip('\r')  # Remove carriage return character (if needed)
         ofile.seek(lastPos)
 
-    def add_Egde(self, parent_nickname, child_nickname):
+    def add_Edge(self, parent_nickname, child_nickname):
         try:
             parent_name = self.dictNicknameName[parent_nickname]
             child_name = self.dictNicknameName[child_nickname]
@@ -2721,10 +2748,17 @@ class IgorModel_Marginals:
 
             self.marginals_dict[event.nickname] = narr
 
-    def initialize_uniform_from_model_parms(self, parms: IgorModel_Parms):
+    def update_network_dict_from_model_parms(self, parms: IgorModel_Parms):
         self.network_dict = dict()
         for key, value in parms.Edges_dict.items():
             self.network_dict[key] = value + [key]
+
+    def initialize_uniform_from_model_parms(self, parms: IgorModel_Parms):
+        """
+        Update with uniform distribution IgorModel_Marginals from IgorModel_Parms object
+        :param parms: IgorModel_Parms object
+        """
+        self.update_network_dict_from_model_parms(parms)
 
         # Create a marginal for
         self.marginals_dict = dict()
@@ -4286,15 +4320,25 @@ class IgorModel:
         return [ event.nickname for event in mdl.parms.get_Event_list_sorted()]
 
     # PLOTS:
-    def plot_Bayes_network(self, filename=None):
+    def plot_Bayes_network(self, ax=None, filename=None):
         if filename is None:
-            return self.parms.plot_Graph()
+            if ax is None:
+                return self.parms.plot_Graph()
+            else:
+                ax_ = self.parms.plot_Graph(ax=ax)
+                return ax_
+
         else:
-            import matplotlib.pyplot as plt
-            fig, ax = plt.subplots()
-            ax_ = self.parms.plot_Graph(ax=ax)
-            fig.savefig(filename)
-            return ax_
+            if ax is None:
+                import matplotlib.pyplot as plt
+                fig, ax = plt.subplots()
+                ax_ = self.parms.plot_Graph(ax=ax)
+                fig.savefig(filename)
+                return ax_
+            else:
+                ax_ = self.parms.plot_Graph(ax=ax)
+                return ax_
+
 
     def plot(self, event_nickname: str, ax=None):
         if ax is None:
@@ -5438,6 +5482,37 @@ class IgorModel:
         except Exception as e:
             raise e
 
+    def add_Edge(self, parent_nickname:str, child_nickname:str):
+        """
+        Add an Edge on Bayes network from parent to child, a new dimension is added
+        to the conditional probabilities.
+        :param parent_nickname: Nickname of parent event.
+        :param child_nickname: Nickname of child event.
+        """
+        self.parms.add_Edge(parent_nickname, child_nickname)
+        # MODIFY THE MARGINALS
+        import copy
+        original_marginal = copy.deepcopy(self.marginals[child_nickname])
+
+        import xarray as xr
+        da_parent_ones = xr.ones_like(self.xdata[parent_nickname][parent_nickname]) # FIXME don't use this! SHOULD BE ONE DIMENSIONAL IN GENERAL!!!!!!
+        da_child = self.xdata[child_nickname]
+        da_new_child = da_parent_ones * da_child
+        self.marginals.marginals_dict[child_nickname] = da_new_child.values
+        # TODO: update marginals.network_dict
+
+        #for key, value in parms.Edges_dict.items():
+        self.marginals.network_dict[parent_nickname] = self.parms.Edges_dict[parent_nickname] + [parent_nickname]
+        self.marginals.network_dict[child_nickname] = self.parms.Edges_dict[child_nickname] + [child_nickname]
+        self.generate_xdata()
+
+    def remove_Edge(self, parent_nickname:str, child_nickname:str):
+        self.parms.remove_Edge(parent_nickname, child_nickname)
+        da_child = self.xdata[child_nickname]
+        da_child.sum()
+
+
+
 
 
 
@@ -5937,7 +6012,9 @@ class IgorTask:
             raise type(e)(str(e) + e_message).with_traceback(sys.exc_info()[2])
 
     def load_IgorModel_from_infer_files(self, igor_fln_infer_final_parms: Union[None, str] = None,
-                                        igor_fln_infer_final_marginals: Union[None, str] = None):
+                                        igor_fln_infer_final_marginals: Union[None, str] = None,
+                                        fln_V_gene_CDR3_anchors: Union[None, str] = None,
+                                        fln_J_gene_CDR3_anchors: Union[None, str] = None):
         """
         Load IgorModel from inferred model files.
         :param igor_fln_infer_final_parms: Path of inferred model parms file.
@@ -5949,6 +6026,25 @@ class IgorTask:
 
             if igor_fln_infer_final_marginals is not None:
                 self.igor_fln_infer_final_marginals = igor_fln_infer_final_marginals
+
+            if fln_V_gene_CDR3_anchors is not None:
+                self.fln_V_gene_CDR3_anchors = fln_V_gene_CDR3_anchors
+
+            if fln_J_gene_CDR3_anchors is not None:
+                self.fln_J_gene_CDR3_anchors = fln_J_gene_CDR3_anchors
+
+            import pathlib
+            # import os
+            # if os.path.isfile(self.fln_V_gene_CDR3_anchors):
+            if self.fln_V_gene_CDR3_anchors is not None:
+                if not pathlib.Path(self.fln_V_gene_CDR3_anchors).is_file():
+                    self.fln_V_gene_CDR3_anchors = None
+
+            # if os.path.isfile(self.fln_J_gene_CDR3_anchors):
+            if self.fln_J_gene_CDR3_anchors is not None:
+                if not pathlib.Path(self.fln_J_gene_CDR3_anchors).is_file():
+                    self.fln_J_gene_CDR3_anchors = None
+
 
             self.mdl = IgorModel(model_parms_file=self.igor_fln_infer_final_parms,
                                  model_marginals_file=self.igor_fln_infer_final_marginals,

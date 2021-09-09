@@ -258,6 +258,8 @@ def write_sequences_to_file(sequences: Union[pd.DataFrame, np.ndarray, list, str
         if type(sequences) == pd.DataFrame:
             sequences.to_csv(fln_sequences, sep=sep)
 
+        elif type(sequences) == pd.Series:
+            sequences.to_csv(fln_sequences, sep=sep)
         elif type(sequences) == np.ndarray:
             # np.savetxt(fln_sequences, sequences, delimiter=sep, fmt="%s")
             np_output = np.dstack((np.arange(0, sequences.size), sequences))[0]

@@ -1,6 +1,5 @@
 import unittest
 import tempfile
-from pygor3 import IgorTask, IgorModel, IgorModel_Parms, IgorEvent_realization, IgorRefGenome
 from pygor3 import *
 import time
 import subprocess
@@ -365,6 +364,74 @@ class MyTestCase(unittest.TestCase):
     def test_IgorModel_make_default_VDJ(self):
         pass
 
+    def test_IgorModel_add_Edge(self):
+        species = "human"
+        chain = "tcr_alpha"
+        mdl = IgorModel.load_default(species, chain)
+        mdl.add_Edge('v_choice', 'vj_ins')
+        mdl.remove_Edge('v_choice', 'vj_ins')
+        mdl.xdata['vj_ins']
+        mdl.plot_Bayes_network()
+
+
+    def test_IgorModel_new_model____(self):
+        # import pygor3 as p3
+        species = "human"
+        chain = "tcr_alpha"
+        mdl = IgorModel.load_default(species, chain)
+        mdl.parms.add_Edge('v_choice', 'vj_ins')
+        mdl.marginals.initialize_uniform_from_model_parms(mdl.parms)
+        mdl.generate_xdata()
+        mdl.write_model('my_model_parms.txt', 'my_model_marginals.txt')
+        mdl.parms.remove_Edge('d_5_del', 'd_3_del')
+
+    def test_IgorModel_new_model_from_old(self):
+        species = "human"
+        chain = "tcr_beta"
+        mdl = IgorModel.load_default(species, chain)
+        # mdl = p3.IgorModel.make_default_VDJ(df_V_ref_genome=None, df_D_ref_genome=None, df_J_ref_genome=None)
+        mdl.add_Edge('v_choice', 'vd_ins')
+        parent_nickname, child_nickname = 'v_choice', 'vd_ins'
+        print("===> Before add_Edge:")
+        # print(parent_nickname, mdl.parms.Edges_dict[parent_nickname])
+        # print(child_nickname, mdl.parms.Edges_dict[child_nickname])
+        print("parms.Edges_dict: ", parent_nickname, mdl.parms.Edges_dict[parent_nickname])
+        print("parms.Edges_dict: ", child_nickname, mdl.parms.Edges_dict[child_nickname])
+        print("network_dict: ", parent_nickname, mdl.marginals.network_dict[parent_nickname])
+        print("network_dict: ", child_nickname, mdl.marginals.network_dict[child_nickname])
+
+        mdl.parms.add_Edge(parent_nickname, child_nickname)
+        # TODO : ADD EDGE MARGINAL
+        mdl.marginals.network_dict[child_nickname] = mdl.parms.Edges_dict[child_nickname] + [child_nickname]
+        mdl.marginals.network_dict[parent_nickname] = mdl.parms.Edges_dict[parent_nickname] + [parent_nickname]
+
+        print(mdl.marginals.marginals_dict[child_nickname])
+        print(mdl[child_nickname])
+
+        print("===> After add_Edge:")
+        # print(parent_nickname, mdl.parms.Edges_dict[parent_nickname])
+        # print(child_nickname, mdl.parms.Edges_dict[child_nickname])
+        print("parms.Edges_dict: ", parent_nickname, mdl.parms.Edges_dict[parent_nickname])
+        print("parms.Edges_dict: ", child_nickname, mdl.parms.Edges_dict[child_nickname])
+        print("network_dict: ", parent_nickname, mdl.marginals.network_dict[parent_nickname])
+        print("network_dict: ", child_nickname, mdl.marginals.network_dict[child_nickname])
+        # print(mdl.marginals.network_dict)
+        # print("::> child_nickname: ", child_nickname, " mdl.parms.Edges_dict[child_nickname] + [child_nickname]")
+        # print(mdl.parms.Edges_dict[child_nickname], [child_nickname])
+
+
+        # self.network_dict = dict()
+        # for key, value in mdl.parms.Edges_dict.items():
+        #     self.network_dict[key] = value + [key]
+        # self.network_dict[key] = value + [key]
+        # FIXME: ADD COPY OF COLUMN
+        mdl.marginals.initialize_uniform_from_model_parms(mdl.parms)
+        print(mdl.marginals.network_dict)
+        # mdl.marginals.network_dict
+        # mdl.generate_xdata()
+        # mdl.plot_Bayes_network()
+        # mdl.write_mdldata_dir('modelito_nuevo')
+
     def test_IgorModel_edit_model_parms(self):
 
         mdl_hb = get_default_IgorModel("human", "tcr_beta")
@@ -393,6 +460,34 @@ class MyTestCase(unittest.TestCase):
         mdl_hb.export_plot_events(fln_output_prefix + "_CP")
 
         self.assertIsInstance(mdl_0, IgorModel)
+
+    def test_IgorModel_VDJ_killifish(self):
+
+        df = pd.read_csv('ageing-seqs-all.tsv', sep='\t')
+        df_seqs = df[['SEQUENCE_ID', 'SEQUENCE_INPUT', 'FUNCTIONAL', 'IN_FRAME', 'STOP', 'INDELS']]
+        df_seqs['group'] = df_seqs['SEQUENCE_ID'].apply(lambda x: int(x.split('-')[0]))
+
+        df_V_ref_genome = get_dataframe_from_fasta(fln_fasta='genome_template/v_no_imgt.fasta')
+        df_D_ref_genome = get_dataframe_from_fasta(fln_fasta='genome_template/d_no_imgt.fasta')
+        df_J_ref_genome = get_dataframe_from_fasta(fln_fasta='genome_template/j_no_imgt.fasta')
+
+        self.assertIsInstance(df_V_ref_genome, pd.DataFrame)
+        self.assertIsInstance(df_D_ref_genome, pd.DataFrame)
+        self.assertIsInstance(df_J_ref_genome, pd.DataFrame)
+        rcParams['paths.igor_exec'] = '/home/olivares/.local/bin/igor'
+
+        mdl0 = IgorModel.make_default_VDJ(df_V_ref_genome, df_D_ref_genome, df_J_ref_genome)
+        self.assertIsInstance(mdl0, IgorModel)
+
+        df_seqs_group_1 = df_seqs[df_seqs['group'] == 1]
+        df_seqs_group_1_no_functional = df_seqs_group_1[df_seqs_group_1['FUNCTIONAL'] == 'F']
+        df_seqs_group_1_functional = df_seqs_group_1[df_seqs_group_1['FUNCTIONAL'] == 'T']
+        print(df_seqs_group_1.shape, df_seqs_group_1_no_functional.shape, df_seqs_group_1_functional.shape)
+        # df_seqs_group_1_no_functional
+        mdl, df_infer_likelihoods = infer(input_sequences=df_seqs_group_1_no_functional['SEQUENCE_INPUT'].iloc[:30], mdl=mdl0, igor_wd='joder', batch_clean=False)
+
+        self.assertIsInstance(mdl, IgorModel)
+
 
     def test_abalabdada(self):
         pass
