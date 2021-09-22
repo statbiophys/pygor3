@@ -641,6 +641,13 @@ class MyTestCase(unittest.TestCase):
         p = subprocess.run(cmd, shell=True, capture_output=True, text=True)
         """
 
+    def test_IgorModel_load_from_directory(self):
+        mdl_nuevo = IgorModel.load_from_directory('modelito_nuevo')
+
+        mdl_nuevo.genomic_dataframe_dict()
+
+        self.assertIsInstance(mdl_nuevo, IgorModel)
+
 
 
     def test_IgorModel_name_change(self):

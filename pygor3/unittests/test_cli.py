@@ -109,6 +109,15 @@ class MyTestCase(unittest.TestCase):
         print(result.output)
         print(result.exception)
 
+    def test_cli_run_evaluate02(self):
+        "pygor igor-evaluate -s human -c beta -i joder_sequences.csv -o evaluados"
+        opciones = ["-M", "A_AA_group_1_dir", "-i", "A_AA_g_1_generated/generated_seqs_werr.csv", "-b", "A_AA_eva_g_1", "-o", "A_AA_e_g_1"]
+        runner = CliRunner()
+        result = runner.invoke(run_evaluate, opciones)
+        print(result.exit_code)
+        print(result.output)
+        print(result.exception)
+
     def test_something(self):
         runner = CliRunner()
         result = runner.invoke(run_generate, ["-w", "human", "-c", "tcr_beta", "-N", "10"])

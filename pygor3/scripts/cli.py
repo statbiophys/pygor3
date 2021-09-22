@@ -475,6 +475,12 @@ def run_evaluate(igor_read_seqs, output_fln_prefix,
         igortask.igor_model_parms_file = igor_model_parms
         igortask.igor_model_marginals_file = igor_model_marginals
         igortask.load_IgorModel()
+    elif igor_model_path is not None:
+        igortask.igor_model_dir_path = igor_model_path
+        igortask.update_batch_filenames()
+        igortask.update_model_filenames()
+        igortask.load_IgorRefGenome()
+        igortask.load_IgorModel()
     elif igor_fln_db is not None:
         igortask.create_db(igor_fln_db=igor_fln_db)
         igortask.load_mdl_from_db()

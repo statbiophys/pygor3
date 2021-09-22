@@ -3267,19 +3267,50 @@ class IgorModel:
         :param model_files_dir: Path to model directory.
         """
         try:
-            model_parms_file = model_files_dir + "/model_parms.txt"
-            model_marginals_file = model_files_dir + "/model_marginals.txt"
+            model_parms_file = model_files_dir + "/models/model_parms.txt"
+            model_marginals_file = model_files_dir + "/models/model_marginals.txt"
             self.read_model_from_txt(model_parms_file, model_marginals_file)
         except IOError as e:
             print("model_parms.txt not found in ", model_files_dir)
-            pass
+            try:
+                print("looking for model_params.txt in ", model_files_dir, "(OLGA name)")
+                model_parms_file = model_files_dir + "/model_params.txt"
+                model_marginals_file = model_files_dir + "/model_marginals.txt"
+                self.read_model_from_txt(model_parms_file, model_marginals_file)
+            except Exception as e:
+                raise e
+
+        # TODO: LOOK FOR ANCHORS
         try:
-            print("looking for model_params.txt in ", model_files_dir, "(OLGA name)")
-            model_parms_file = model_files_dir + "/model_params.txt"
-            model_marginals_file = model_files_dir + "/model_marginals.txt"
-            self.read_model_from_txt(model_parms_file, model_marginals_file)
+            fln_V_gene_CDR3_anchors = model_files_dir + '/ref_genome/V_gene_CDR3_anchors.csv'
+            fln_J_gene_CDR3_anchors = model_files_dir + '/ref_genome/J_gene_CDR3_anchors.csv'
+            self.parms.attach_anchors_from_files(fln_V_gene_CDR3_anchors=fln_V_gene_CDR3_anchors,
+                                                 fln_J_gene_CDR3_anchors=fln_J_gene_CDR3_anchors, sep=';')
         except Exception as e:
-            raise e
+            print(fln_V_gene_CDR3_anchors + " not found!")
+            print(fln_J_gene_CDR3_anchors + " not found!")
+            try:
+                fln_V_gene_CDR3_anchors = model_files_dir + '/V_gene_CDR3_anchors.csv'
+                fln_J_gene_CDR3_anchors = model_files_dir + '/J_gene_CDR3_anchors.csv'
+                self.parms.attach_anchors_from_files(fln_V_gene_CDR3_anchors=fln_V_gene_CDR3_anchors,
+                                                     fln_J_gene_CDR3_anchors=fln_J_gene_CDR3_anchors, sep=',')
+            except Exception as ee:
+                print('neither: ')
+                print(fln_V_gene_CDR3_anchors + "not found!")
+                print(fln_J_gene_CDR3_anchors + "not found!")
+                print("WARNING: Not anchors for model, use IgorParms.attach_anchor_from_files to attach correct anchors!")
+                pass
+        else:
+            print("Anchors loaded from " + fln_V_gene_CDR3_anchors + " and " + fln_J_gene_CDR3_anchors)
+
+        if self.parms.event_GeneChoice_V is not None:
+            self.genomic_dataframe_dict['V'] = self.parms.df_V_ref_genome
+
+        if self.parms.event_GeneChoice_D is not None:
+            self.genomic_dataframe_dict['D'] = self.parms.df_D_ref_genome
+
+        if self.parms.event_GeneChoice_J is not None:
+            self.genomic_dataframe_dict['J'] = self.parms.df_J_ref_genome
 
     def get_zero_xarray_from_list(self, strEvents_list: list):
         """Get xarray with labels and dimensions for strEvents_list
