@@ -6414,7 +6414,7 @@ class IgorTask:
         except Exception as e:
             raise e
 
-    def run_align(self, igor_read_seqs=None):
+    def run_align(self, igor_read_seqs=None, igor_threads=None):
         # "igor -set_wd ${tmp_dir} -batch ${randomBatch} -species
         # ${species} -chain ${chain} -align --all"
         try:
@@ -6432,6 +6432,8 @@ class IgorTask:
             if self.igor_mdldata_dir is not None:
 
                 cmd = self.igor_exec_path
+                if self.igor_threads is not None:
+                    cmd = cmd + " -threads " + str(int(self.igor_threads))
                 cmd = cmd + " -set_wd " + self.igor_wd
                 cmd = cmd + " -batch " + self.igor_batchname
                 # I think that the safests is to use the
@@ -6460,6 +6462,8 @@ class IgorTask:
 
             else:
                 cmd = self.igor_exec_path
+                if self.igor_threads is not None:
+                    cmd = cmd + " -threads " + str(int(self.igor_threads))
                 cmd = cmd + " -set_wd " + self.igor_wd
                 cmd = cmd + " -batch " + self.igor_batchname
                 # I think that the safests is to use the
@@ -6527,7 +6531,7 @@ class IgorTask:
                       fln_J_gene_CDR3_anchors=None,
                       igor_fln_db=None,
                       igor_db=None,
-                      mdl: Union[IgorModel, None] = None):
+                      mdl: Union[IgorModel, None] = None, igor_threads=None):
         # "igor -set_wd $WDPATH -batch foo -species human -chain beta
         # -evaluate -output --scenarios 10"
         try:
