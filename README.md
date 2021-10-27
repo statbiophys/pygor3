@@ -528,9 +528,13 @@ mdl = p3.IgorModel(model_parms_file="model_parms.txt", model_marginals_file="mod
 For further details checkout the [documentation](https://pygor3.readthedocs.io/en/latest/) and notebooks directory.
 
 
+## Contact
+
+For any question or issue please open an [issue](https://github.com/statbiophys/pygor3/issues) or email [us](mailto:carlos.olivares@phys.ens.fr).
 
 
-
+## LICENSE
+Free use of pygor3 is granted under the terms of the [GNU General Public License version 3](https://www.gnu.org/licenses/quick-guide-gplv3.html) (GPLv3).
 
 
 
