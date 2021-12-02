@@ -13,6 +13,10 @@ from pygor3 import get_default_IgorModel
 from pygor3 import get_IgorRefGenome_VDJ_from_IMGT
 from pygor3 import rcParams
 
+from pygor3 import from_df_scenario_aln_to_da_scenario_aln, plot_scenario_from_da_scenario_aln
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+
 
 
 str_mock_VDJ_fln_genomicVs = \
@@ -350,6 +354,13 @@ class MyTestCase(unittest.TestCase):
         self.assertIsInstance(mdl_new, IgorModel)
         self.assertIsInstance(df_likelihood, pd.DataFrame)
 
+    def test_evaluate_sequences(self):
+        hb_mdl = get_default_IgorModel("human", "tcr_beta")
+        sequences = generate(10, hb_mdl)
+        df = evaluate(sequences, hb_mdl)
+        print(df)
+
+
     def test_one_sequence_evaluate(self):
         hb_mdl = get_default_IgorModel("human", "tcr_beta")
         self.assertIsInstance(hb_mdl, IgorModel)
@@ -365,6 +376,57 @@ class MyTestCase(unittest.TestCase):
         one_sequence = 'GGTGCTGTCGTCTCTCAACATCCGAGCTGGGTTATCTGTAAGAGTGGAACCTCTGTGAAGATCGAGTGCCGTTCCCTGGACTTTCAGGCCACAACTATGTTTTGGTATCGTCAGTTCCCGAAACAGAGTCTCATGCTGATGGCAACTTCCAATGAGGGCTCCAAGGCCACATACGAGCAAGGCGTCGAGAAGGACAAGTTTCTCATCAACCATGCAAGCCTGACCTTGTCCACTCTGACAGTGACCAGTGCCCATCCTGAAGACAGCAGCTTCTACATCTGCAGTGCTCAGTTCGCGGGAATTAGGAACACTGAAGCTTTCTTTGGACAAGGCACCAGACTCACAGTTGTAG'
         one_pgen = evaluate(one_sequence, mdl_new, N_scenarios=5)
         print(one_pgen)
+
+    def test_one_sequence_list_evaluate(self):
+        hb_mdl = get_default_IgorModel("human", "tcr_beta")
+        one_sequence = 'GGTGCTGTCGTCTCTCAACATCCGAGCTGGGTTATCTGTAAGAGTGGAACCTCTGTGAAGATCGAGTGCCGTTCCCTGGACTTTCAGGCCACAACTATGTTTTGGTATCGTCAGTTCCCGAAACAGAGTCTCATGCTGATGGCAACTTCCAATGAGGGCTCCAAGGCCACATACGAGCAAGGCGTCGAGAAGGACAAGTTTCTCATCAACCATGCAAGCCTGACCTTGTCCACTCTGACAGTGACCAGTGCCCATCCTGAAGACAGCAGCTTCTACATCTGCAGTGCTCAGTTCGCGGGAATTAGGAACACTGAAGCTTTCTTTGGACAAGGCACCAGACTCACAGTTGTAG'
+        tuplita = (7, one_sequence)
+        one_pgen = evaluate(tuplita , hb_mdl, N_scenarios=5)
+        print(one_pgen)
+
+    def test_one_sequence_scenarios_output(self):
+        hb_mdl = get_default_IgorModel("human", "tcr_beta")
+        one_sequence = 'GGTGCTGTCGTCTCTCAACATCCGAGCTGGGTTATCTGTAAGAGTGGAACCTCTGTGAAGATCGAGTGCCGTTCCCTGGACTTTCAGGCCACAACTATGTTTTGGTATCGTCAGTTCCCGAAACAGAGTCTCATGCTGATGGCAACTTCCAATGAGGGCTCCAAGGCCACATACGAGCAAGGCGTCGAGAAGGACAAGTTTCTCATCAACCATGCAAGCCTGACCTTGTCCACTCTGACAGTGACCAGTGCCCATCCTGAAGACAGCAGCTTCTACATCTGCAGTGCTCAGTTCGCGGGAATTAGGAACACTGAAGCTTTCTTTGGACAAGGCACCAGACTCACAGTTGTAG'
+        tuplita = (7, one_sequence)
+        fln_output = 'df_scenarios.csv'
+        df_scenarios = evaluate(tuplita, hb_mdl, N_scenarios=5, airr_format=False, fln_output=fln_output)
+        self.assertIsInstance(df_scenarios, pd.DataFrame)
+
+    def test_one_sequence_plot(self):
+        hb_mdl = get_default_IgorModel("human", "tcr_beta")
+        fln_output = 'df_scenarios.csv'
+        df_scenarios = hb_mdl.get_dataframe_scenarios(fln_output)
+        ps_scenario = df_scenarios.iloc[0]
+        print(ps_scenario)
+
+        hb_mdl.plot_scenario(ps_scenario)
+        plt.show()
+
+        ###########################################
+        # hb_mdl.plot_scenario(ps_scenario)
+        df_scenario_aln = hb_mdl.get_df_scenario_aln_from_scenario(ps_scenario)
+        da_scenario_aln = from_df_scenario_aln_to_da_scenario_aln(df_scenario_aln)
+        # fig, ax = plot_scenario_from_da_scenario_aln(da_scenario_aln)
+        aln_scenario_np = da_scenario_aln.values
+
+        cmap_dna = mpl.colors.ListedColormap(['white', '#fcff92', '#70f970', '#ff99b1', '#4eade1'])
+
+        # fig, ax = plt.subplots(figsize=(40, 40))
+
+        # ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+        # ax.set_aspect('equal')
+
+        fig, ax = plt.subplots(figsize=(20, 10))
+        ax.imshow(aln_scenario_np, cmap=cmap_dna, vmin=-1.5, vmax=3.5)
+        ###########################################
+        plt.show()
+
+        # hb_mdl.plot_scenario(ps_scenario)
+        # plt.show()
+
+        # fig, ax = plt.subplots(figsize=(20, 10))
+        # ax.imshow(aln_scenario_np, cmap=cmap_dna, vmin=-1.5, vmax=3.5)
+        # ax.xaxis.set_major_locator(MaxNLocator(integer=True))
 
     def test_IgorTask_evaluate(self):
         task = IgorTask(mdl=self.mdl)

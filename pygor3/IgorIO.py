@@ -833,13 +833,13 @@ class IgorRefGenome:
 
         try:
             write_ref_genome_files_from_dataframe(self.df_V_ref_genome, fln_genomicVs,
-                                                  fln_V_gene_CDR3_anchors)
+                                                  fln_V_gene_CDR3_anchors, sep=sep)
 
             if self.df_genomicDs is not None:
-                write_ref_genome_files_from_dataframe(self.df_genomicDs, fln_genomicDs)
+                write_ref_genome_files_from_dataframe(self.df_genomicDs, fln_genomicDs, sep=sep)
 
             write_ref_genome_files_from_dataframe(self.df_J_ref_genome, fln_genomicJs,
-                                                  fln_J_gene_CDR3_anchors)
+                                                  fln_J_gene_CDR3_anchors, sep=sep)
 
             # write_genetemplate_dataframe_to_fasta(self.fln_genomicVs, self.df_genomicVs)
             # write_genetemplate_dataframe_to_fasta(self.fln_genomicJs, self.df_genomicJs)
@@ -3250,14 +3250,14 @@ class IgorModel:
                     self.marginals.read_model_marginals(model_marginals_file)
 
             except Exception as e:
-                e_message = "IgorTask.read_model_from_txt : " + str(self.model_marginals_file)
+                e_message = "IgorModel.read_model_from_txt : " + str(model_marginals_file)
                 import sys
                 raise type(e)(str(e) + '\n' + e_message).with_traceback(sys.exc_info()[2])
 
             self.generate_xdata()
 
         except Exception as e:
-            e_message = "IgorTask.read_model_from_txt : " + str(self.model_parms_file)
+            e_message = "IgorModel.read_model_from_txt : " + str(model_parms_file)
             import sys
             raise type(e)(str(e) + '\n' + e_message).with_traceback(sys.exc_info()[2])
 
@@ -3286,6 +3286,12 @@ class IgorModel:
             fln_J_gene_CDR3_anchors = model_files_dir + '/ref_genome/J_gene_CDR3_anchors.csv'
             self.parms.attach_anchors_from_files(fln_V_gene_CDR3_anchors=fln_V_gene_CDR3_anchors,
                                                  fln_J_gene_CDR3_anchors=fln_J_gene_CDR3_anchors, sep=';')
+        except IOError as e:
+            fln_V_gene_CDR3_anchors = model_files_dir + '/V_gene_CDR3_anchors.csv'
+            fln_J_gene_CDR3_anchors = model_files_dir + '/J_gene_CDR3_anchors.csv'
+            self.parms.attach_anchors_from_files(fln_V_gene_CDR3_anchors=fln_V_gene_CDR3_anchors,
+                                                 fln_J_gene_CDR3_anchors=fln_J_gene_CDR3_anchors, sep=',')
+
         except Exception as e:
             print(fln_V_gene_CDR3_anchors + " not found!")
             print(fln_J_gene_CDR3_anchors + " not found!")
@@ -4614,23 +4620,35 @@ class IgorModel:
                               fln_V_gene_CDR3_anchors=fln_V_gene_CDR3_anchors,
                               fln_J_gene_CDR3_anchors=fln_J_gene_CDR3_anchors)
 
-    def write_mdldata_dir(self, model_dir_path):
+    def write_mdldata_dir(self, model_dir_path, sep=';', b_igor_directory=True):
         """
         Export IgorModel and IgorRefGenome
+        :param model_dir_path: Directory to save model in IGoR directory structure
+        :param sep: Field separator, default ';'
+        :param b_igor_directory: If True default IGoR directory structure, default False.
         """
         try:
             import pathlib
             pathlib.Path(model_dir_path).mkdir(parents=True, exist_ok=True)
-            # os.makedirs(model_dir_path, exist_ok=True)
-            os.makedirs(model_dir_path + "/models", exist_ok=True)
-            fln_dict = get_default_fln_names_for_model_dir(model_dir_path)
-            self.write_model(fln_dict['fln_model_parms'], fln_dict['fln_model_marginals'])
+            if b_igor_directory:
+                # os.makedirs(model_dir_path, exist_ok=True)
+                os.makedirs(model_dir_path + "/models", exist_ok=True)
+                fln_dict = get_default_fln_names_for_model_dir(model_dir_path)
+                self.write_model(fln_dict['fln_model_parms'], fln_dict['fln_model_marginals'])
 
-            os.makedirs(model_dir_path + "/ref_genome", exist_ok=True)
-            fln_dict.pop('fln_model_parms', None)
-            fln_dict.pop('fln_model_marginals', None)
-            ref_genome = self.parms.get_IgorRefGenome()
-            ref_genome.write_ref_genome_dir(model_dir_path+"/ref_genome")
+                os.makedirs(model_dir_path + "/ref_genome", exist_ok=True)
+                fln_dict.pop('fln_model_parms', None)
+                fln_dict.pop('fln_model_marginals', None)
+                ref_genome = self.parms.get_IgorRefGenome()
+                ref_genome.write_ref_genome_dir(model_dir_path+"/ref_genome", sep=sep)
+            else:
+                # os.makedirs(model_dir_path, exist_ok=True)
+                os.makedirs(model_dir_path, exist_ok=True)
+                fln_model_parms = model_dir_path + "/" + "model_params.txt"
+                fln_model_marginals = model_dir_path + "/" + "model_marginals.txt"
+                self.write_model(fln_model_parms, fln_model_marginals)
+                ref_genome = self.parms.get_IgorRefGenome()
+                ref_genome.write_ref_genome_dir(model_dir_path, sep=sep)
         except Exception as e:
             raise e
         # self.write_ref_genome(**fln_dict)
@@ -4784,7 +4802,10 @@ class IgorModel:
             pass
         try:
             J_anchor = self.J_anchor(ps_scenario[self.parms.event_GeneChoice_J.nickname])
-            df_scenario_aln.aln_pos_J_anchor = J_offset + J_anchor
+            df_scenario_aln.aln_pos_J_anchor = J_offset \
+                                               + J_anchor \
+                                               - int(df_scenario_aln.loc[ df_scenario_aln['segment_description'] == 'J' ][ 'int_gene_5_del' ]) \
+                                               + 3 # to take the  W or F and get the JUNCTION for IMGT notation and CDR3 for us
         except Exception as e:
             df_scenario_aln.aln_pos_J_anchor = None
             print(e, "J anchor not found")
@@ -4811,13 +4832,23 @@ class IgorModel:
                 ofile.write(">"+ fasta_desription+"\n")
                 ofile.write(fasta_sequence + "\n")
 
-    def plot_scenario(self, ps_scenario, nt_lim:Union[None,tuple,list]=None, show_CDR3=True, ax=None):
+    def get_str_seq_from_ps_scenario(self, ps_scenario:pd.Series):
+        """
+        Return string sequence from an evaluated scenario without errors
+        :param ps_scenario: Pandas Series (row from df_scenarios)
+        """
+        df_scenario_aln = self.get_df_scenario_aln_from_scenario(ps_scenario)
+        return df_scenario_aln['gene_segment'].sum()
+
+
+    def plot_scenario(self, ps_scenario, nt_lim:Union[None,tuple,list]=None, show_CDR3=True, seq_aligned:Union[None,list,tuple]=None, ax=None):
         """
         Return matplotlib fig, ax
         :param ps_scenario: Pandas Series scenario
         :param nt_lim:Union[None,tuple,list] region limits to show the scenario alignment
         default give boundaries around CDR3, if no anchors in model, show the whole scenario
         :param show_CDR3: Show CDR3 lines default(=True)
+        :param seq_aligned: List, tuple or np.array of size 3 (seq_index, str_seq, offset)
         """
         # FIXME: A BETTER WAY TO MANAGE THE SCENARIO SHOULD BE IMPLEMENTED
         #  1. From a list of seq_genes (V, VD, D, VJ, J) associate the events of deletion and insertions
@@ -4825,12 +4856,37 @@ class IgorModel:
         #  3. Now get the array with the markers of the convinient positions using mdl.realization
         #  and observables.
         df_scenario_aln = self.get_df_scenario_aln_from_scenario(ps_scenario)
+        if seq_aligned is not None:
+            try:
+                seq_index = seq_aligned[0]
+                str_seq = seq_aligned[1]
+                seq_V_offset = seq_aligned[2]
+                # V_nickname = self.parms.event_GeneChoice_V.nickname
+                # seq_aligned = [seq_index, df_secuencias.loc[seq_index].values[0], 0 - df_offsets.loc[seq_index, ps_scenario[V_nickname]]]
+                seq_dict = {'segment_description': 'nt_sequence',
+                            'gene_description': "seq_index: " + str(seq_index),
+                            'gene_template': np.NaN,
+                            'int_gene_5_del': np.NaN,
+                            'int_gene_3_del': np.NaN,
+                            'offset': int(seq_V_offset),
+                            'palindrome_5_end': np.NaN,
+                            'gene_ini': np.NaN,
+                            'gene_end': np.NaN,
+                            'gene_cut': np.NaN,
+                            'palindrome_3_end': np.NaN,
+                            'gene_segment': str_seq
+                            }
+                df_scenario_aln.loc[len(df_scenario_aln)] = seq_dict
+            except Exception as e:
+                raise e
         da_scenario_aln = from_df_scenario_aln_to_da_scenario_aln(df_scenario_aln)
-        fig, ax = plot_scenario_from_da_scenario_aln(da_scenario_aln, nt_lim=nt_lim, show_CDR3=show_CDR3, ax=ax)
-        return fig, ax
 
-
-
+        if ax is None:
+            # import matplotlib.pyplot as plt
+            import matplotlib.pyplot as plt
+            fig, ax = plt.subplots(figsize=(20, 10))
+        ax = plot_scenario_from_da_scenario_aln(da_scenario_aln, nt_lim=nt_lim, show_CDR3=show_CDR3, ax=ax)
+        return ax
 
     # FIXME: DEPRECATED
     # FIXME: Find a better way to get the order to construct a sequence.
@@ -5136,6 +5192,7 @@ class IgorModel:
         try:
             print("igor_fln_generated_realizations_werr: ", igor_fln_generated_realizations_werr)
             df2 = pd.read_csv(igor_fln_generated_realizations_werr, sep=';').set_index('seq_index')
+            # df2.sort_values(by=['seq_index', 'scenario_rank'], ascending=[True, True])
             events_name__nickname_dict = self.parms.get_event_dict('name', 'nickname')
             events_nickname__event_type_dict = self.parms.get_event_dict('nickname', 'event_type')
             events_nickname__seq_type_dict = self.parms.get_event_dict('nickname', 'seq_type')
@@ -5176,6 +5233,10 @@ class IgorModel:
             raise e
 
     def get_dataframe_scenarios(self, fln_scenarios):
+        """
+        Return dataframe scenarios from fln_scenarios file.
+        :param fln_scenarios: filename of IGoR scenarios file.
+        """
         df_scenarios = self.get_dataframe_from_fln_generated_realizations_werr(fln_scenarios)
         self.get_df_normalize_prob(df_scenarios)
         return df_scenarios
@@ -5500,7 +5561,7 @@ class IgorModel:
                 import matplotlib.pyplot as plt
                 fig, ax = plt.subplots(figsize=(10, 10))
 
-            da_mi.assign_coords(x=da_mi_xticks, y=da_mi_yticks).plot(ax=ax, cmap='gnuplot2_r')
+            da_mi.assign_coords(x=da_mi_xticks, y=da_mi_yticks).plot(ax=ax, cmap='gnuplot2_r', **kwargs)
 
             ax.set_xticks(da_mi_xticks)
             ax.set_yticks(da_mi_yticks)
@@ -6524,6 +6585,86 @@ class IgorTask:
         except Exception as e:
             raise e
 
+    # FIXME: FINISH METHOD
+    def align(self, input_sequences: Union[None, str, Path, pd.DataFrame, np.array, list] = None,
+              mdl: Union[None, str, Path, IgorModel, IgorModel_Parms] = None,
+              igor_wd=None, batch_clean=True):
+        df_alignments_dict = {'V': None, 'D': None, 'J': None, 'CDR3': None}
+        try:
+            # by default the igor_wd is the current directory unless something else is
+            tmp_evaluate_dir = tempfile.TemporaryDirectory(prefix='igor_aligning_', dir='.')
+            if igor_wd is None:
+                igor_wd = tmp_evaluate_dir.name
+            else:
+                igor_wd = self.igor_wd
+
+            # 3. Write Sequences in file if file not exist
+            # FIXME: -IN DEV- CHANGE THIS IN A WAY TO NOT DELETE igor_read_seqs.
+
+            # if a file is created during the process delete it
+
+            # 4. Export model and ref_genome to model_dir
+            self.write_mdldata_dir()
+            # path_mdl_data = self.igor_wd + "/" + self.igor_batchname + "_mdldata"
+            self.update_model_filenames(igor_model_dir_path=self.igor_mdldata_dir)
+            self.update_ref_genome(igor_model_dir_path=self.igor_mdldata_dir)
+            self.update_batch_filenames()
+            # self.mdl.write_mdldata_dir(path_mdl_data)
+
+            # 5. Run infer model
+
+            import copy
+            if mdl is not None:
+                self.mdl = copy.deepcopy(mdl)
+
+            if input_sequences is None:
+                # use the self.igor_read_seqs
+                # Do not delete self.igor_read_seqs
+                self.run_align(igor_read_seqs=self.igor_read_seqs)
+            else:
+                # write a temporary file
+                tmp_igor_read_seqs = self.igor_read_seqs
+                fln_input_sequences = self.igor_wd + "/" + self.igor_batchname + "_input_sequences.csv"
+                write_sequences_to_file(input_sequences, fln_input_sequences)
+
+                # 4. Export model and ref_genome to model_dir
+                path_mdl_data = igor_wd + "/" + self.igor_batchname + "_mdldata"
+                self.update_model_filenames(igor_model_dir_path=path_mdl_data)
+                self.update_ref_genome(igor_model_dir_path=path_mdl_data)
+                self.update_batch_filenames()
+                self._update_mdldata_batch_filenames()
+                if self.mdl.parms.event_GeneChoice_D is None:
+                    self.igor_fln_mdldata_genomicDs = None
+                self.mdl.write_mdldata_dir(path_mdl_data)
+
+                self.run_align(igor_read_seqs=fln_input_sequences)
+                import os
+                os.unlink(fln_input_sequences)
+                self.igor_read_seqs = tmp_igor_read_seqs
+
+                # self.igor_fln_indexed_sequences
+                # self.igor_fln_align_V_alignments
+                # self.igor_fln_align_D_alignments
+                # self.igor_fln_align_J_alignments
+                # self.igor_fln_indexed_CDR3
+                if os.path.isfile(self.igor_fln_align_V_alignments):
+                    df_V_aligments = pd.read_csv(self.igor_fln_align_V_alignments, sep=';')
+                    df_alignments_dict['V'] = df_V_aligments
+                if os.path.isfile(self.igor_fln_align_D_alignments):
+                    df_D_aligments = pd.read_csv(self.igor_fln_align_D_alignments, sep=';')
+                    df_alignments_dict['D'] = df_D_aligments
+                if os.path.isfile(self.igor_fln_align_J_alignments):
+                    df_J_aligments = pd.read_csv(self.igor_fln_align_J_alignments, sep=';')
+                    df_alignments_dict['J'] = df_J_aligments
+
+        except Exception as e:
+            raise e
+        else:
+            # TODO: RETURN ALIGNMENT? OR CDR3 ALIGN ONLY?
+            return df_alignments_dict
+        finally:
+            self._run_clean_batch_aligns()
+
     def _run_evaluate(self, igor_read_seqs=None, N_scenarios=None, Pgen=True,
                       igor_model_parms_file=None,
                       igor_model_marginals_file=None,
@@ -6689,7 +6830,7 @@ class IgorTask:
                  igor_wd=None, igor_batchname=None,
                  igor_model_parms_file=None, igor_model_marginals_file=None,
                  igor_db=None, igor_fln_db=None,
-                 igor_species=None, igor_chain=None, clean_batch=True, return_df=True):
+                 igor_species=None, igor_chain=None, clean_batch=True, return_scenarios=False, return_df=True):
         """
         Generate Sequences using IgorTask
         """
@@ -6727,7 +6868,13 @@ class IgorTask:
         except Exception as e:
             raise e
         else:
-            return pd_sequences  # mdl_inferrred
+            if return_scenarios:
+                df_scenarios = self.mdl.get_dataframe_from_fln_generated_realizations_werr(
+                    self.igor_fln_generated_realizations_werr)
+                return pd_sequences.join(df_scenarios)
+            else:
+                return pd_sequences  # mdl_inferrred
+
         finally:
             if clean_batch:
                 self._run_clean_batch_generate()
@@ -6751,7 +6898,7 @@ class IgorTask:
         return self.mdl.get_dataframe_from_fln_generated_realizations_werr(self.igor_fln_generated_realizations_werr)
 
     def evaluate(self, input_sequences: Union[str, pd.DataFrame, np.ndarray, Path],
-                 N_scenarios = None, mdl:IgorModel = None, igor_wd=None, clean_batch=True, airr_format=True):
+                 N_scenarios = None, mdl:IgorModel = None, igor_wd=None, igor_batchname=None, clean_batch=True, airr_format=True, db=True):
         """
         Return evaluation of sequences
         """
@@ -6762,6 +6909,9 @@ class IgorTask:
                 igor_wd = tmp_evaluate_dir.name
             else:
                 igor_wd = self.igor_wd
+
+            if igor_batchname is not None:
+                self.igor_batchname = igor_batchname
 
             # FIXME: WHAT HAPPEN IF I WANT TO PRESERVE THE WORKING DIRECTORY?????
 
@@ -6788,22 +6938,16 @@ class IgorTask:
 
             # Save evaluations in database
             try:
-                self.create_db()
-                self.load_db_from_indexed_sequences()
-                self.load_db_from_indexed_cdr3()
-                self.load_db_from_genomes()
-                self.load_db_from_alignments()
-                self.load_IgorModel()
-                self.load_db_from_models()
-                self.load_db_from_bestscenarios()
-                self.load_db_from_pgen()
+                if db:
+                    self.create_db()
+                    self.load_db()
 
-                base_fln_output = self.igor_fln_db.split(".db")[0]
-                output_fln_prefix = base_fln_output + "_rearrangement"
-                output_fln_airr = output_fln_prefix + ".tsv"
-                if airr_format:
-                    self.igor_db.export_IgorBestScenarios_to_AIRR(output_fln_airr)
-                    pd_airr_rearrangement = pd.read_csv(output_fln_airr, sep='\t')
+                    base_fln_output = self.igor_fln_db.split(".db")[0]
+                    output_fln_prefix = base_fln_output + "_rearrangement"
+                    output_fln_airr = output_fln_prefix + ".tsv"
+                    if airr_format:
+                        self.igor_db.export_IgorBestScenarios_to_AIRR(output_fln_airr)
+                        pd_airr_rearrangement = pd.read_csv(output_fln_airr, sep='\t')
                 else:
                     pd_airr_rearrangement = self.mdl.get_dataframe_from_fln_generated_realizations_werr(
                         self.igor_fln_output_scenarios)
@@ -7189,6 +7333,53 @@ class IgorTask:
             self.igor_fln_db = self.igor_batchname + ".db"
         self.igor_db = IgorSqliteDB.create_db(self.igor_fln_db)
 
+    def load_db(self):
+        """
+        Save all batch and models files in a single sqlite database.
+        return: None
+        """
+        try:
+            self.load_db_from_indexed_sequences()
+        except Exception as e:
+            print(e)
+            pass
+        try:
+            self.load_db_from_indexed_cdr3()
+        except Exception as e:
+            print(e)
+            pass
+        try:
+            self.load_db_from_genomes()
+        except Exception as e:
+            print(e)
+            pass
+        try:
+            self.load_db_from_alignments()
+        except Exception as e:
+            print(e)
+            pass
+        try:
+            self.load_IgorModel()
+        except Exception as e:
+            print(e)
+            pass
+        try:
+            self.load_db_from_models()
+        except Exception as e:
+            print(e)
+            pass
+        try:
+            self.load_db_from_bestscenarios()
+        except Exception as e:
+            print(e)
+            pass
+        try:
+            self.load_db_from_pgen()
+        except Exception as e:
+            print(e)
+            pass
+
+
     def load_db_from_indexed_sequences(self, igor_fln_indexed_sequences=None):
         """
         Load indexed_sequences from database
@@ -7363,9 +7554,10 @@ class IgorTask:
     def get_pgen_pd(self):
         # load pgen file
         import pandas as pd
-        df = pd.read_csv(self.igor_fln_output_pgen, sep=';')
-        df = df.set_index('seq_index')
-        df = df.sort_index()
+        # df = pd.read_csv(self.igor_fln_output_pgen, sep=';')
+        # df = df.set_index('seq_index')
+        # df = df.sort_index()
+        df = get_df_pgen(self.igor_fln_output_pgen)
         df_seq = pd.read_csv(self.igor_fln_indexed_sequences, sep=';')
         df_seq = df_seq.set_index('seq_index').sort_index()
         df_cdr3 = pd.read_csv(self.igor_fln_indexed_CDR3, sep=';')
@@ -8465,7 +8657,7 @@ class IgorBestScenariosVDJ:
 
 def generate(Nseqs, mdl:IgorModel, igor_wd=None, igor_batchname=None,
              seed=None,
-             clean_batch=True):
+             clean_batch=True, return_scenarios=False):
     """Return pandas dataframe with generated sequences Only sequences, not scenarios"""
     try:
         tmp_generate_dir = tempfile.TemporaryDirectory(prefix='igor_generating_', dir='.')
@@ -8478,7 +8670,7 @@ def generate(Nseqs, mdl:IgorModel, igor_wd=None, igor_batchname=None,
             task.igor_generate_dict_options['--seed']['active'] = True
             task.igor_generate_dict_options['--seed']['value'] = str(seed)
 
-        pd_sequences = task.generate(N_seqs=Nseqs)
+        pd_sequences = task.generate(N_seqs=Nseqs, return_scenarios=return_scenarios)
 
     except Exception as e:
         raise e
@@ -8572,8 +8764,8 @@ def infer(input_sequences:Union[str, pd.DataFrame, np.ndarray, Path],
         tmp_dir.cleanup()
 
 
-def evaluate(input_sequences:Union[str, pd.DataFrame, np.ndarray, Path],
-             mdl:IgorModel, N_scenarios=None, igor_wd=None, airr_format=True, batch_clean=True):
+def evaluate(input_sequences:Union[str, pd.DataFrame, np.ndarray, list, tuple, Path],
+             mdl:IgorModel, N_scenarios=None, igor_wd=None, airr_format=True, batch_clean=True, use_db=False, fln_output:Union[None, str, Path]=None, b_V_offset=False):
     """
     Evaluate input sequences with provided model
     :param input_sequences:Union[str, pd.DataFrame, np.ndarray, Path]
@@ -8584,6 +8776,8 @@ def evaluate(input_sequences:Union[str, pd.DataFrame, np.ndarray, Path],
     # Run evaluate
 
     import tempfile
+    pd_airr_rearrangement = None
+    df_V_offsets = None
     try:
         # batch_clean = False
         # 1. Create a temporary directory igor_wd=tmp_dir.name
@@ -8620,21 +8814,26 @@ def evaluate(input_sequences:Union[str, pd.DataFrame, np.ndarray, Path],
         if airr_format:
             # Save evaluations in database
             try:
-                task.create_db()
-                task.load_db_from_indexed_sequences()
-                task.load_db_from_indexed_cdr3()
-                task.load_db_from_genomes()
-                task.load_db_from_alignments()
-                task.load_IgorModel()
-                task.load_db_from_models()
-                task.load_db_from_bestscenarios()
-                task.load_db_from_pgen()
+                if use_db:
+                    task.create_db()
+                    task.load_db()
+                    # task.load_db_from_indexed_sequences()
+                    # task.load_db_from_indexed_cdr3()
+                    # task.load_db_from_genomes()
+                    # task.load_db_from_alignments()
+                    # task.load_IgorModel()
+                    # task.load_db_from_models()
+                    # task.load_db_from_bestscenarios()
+                    # task.load_db_from_pgen()
 
-                base_fln_output = task.igor_fln_db.split(".db")[0]
-                output_fln_prefix = base_fln_output
-                output_fln_airr = output_fln_prefix + ".tsv"
-                task.igor_db.export_IgorBestScenarios_to_AIRR(output_fln_airr)
-                pd_airr_rearrangement = pd.read_csv(output_fln_airr, sep='\t')
+                    base_fln_output = task.igor_fln_db.split(".db")[0]
+                    output_fln_prefix = base_fln_output
+                    output_fln_airr = output_fln_prefix + ".tsv"
+                    task.igor_db.export_IgorBestScenarios_to_AIRR(output_fln_airr)
+                    pd_airr_rearrangement = pd.read_csv(output_fln_airr, sep='\t')
+                else:
+                    pd_airr_rearrangement = task.mdl.get_dataframe_from_fln_generated_realizations_werr(
+                        task.igor_fln_output_scenarios)
             except Exception as e:
                 raise e
 
@@ -8644,13 +8843,36 @@ def evaluate(input_sequences:Union[str, pd.DataFrame, np.ndarray, Path],
                     task.igor_fln_output_scenarios)
                 pd_igor_pgen = pd.read_csv(task.igor_fln_output_pgen, sep=';', index_col='seq_index')
                 pd_airr_rearrangement['Pgen_estimate'] = pd_igor_pgen
+                if fln_output is not None:
+                    pd_airr_rearrangement.to_csv(fln_output, sep=';')
             except Exception as e:
                 raise e
+
+        # TODO: IN DEV RETURN OFFSET FOR V GENES ALIGNMENTS
+        try:
+            if b_V_offset:
+                if os.path.isfile(task.igor_fln_align_V_alignments):
+                    df_V_aligments = pd.read_csv(task.igor_fln_align_V_alignments, sep=';', usecols=['seq_index', 'gene_name', 'score', 'offset'])
+                    V_nickname = task.mdl.parms.event_GeneChoice_V.nickname
+                    gene_name_2_gene_id_dict = {v: k for k, v in task.mdl.parms[V_nickname]['name'].to_dict().items()}
+                    gene_name_2_gene_id_dict # aver_dict
+                    df_V_aligments[V_nickname] = df_V_aligments['gene_name'].apply(lambda x: gene_name_2_gene_id_dict[x])
+                    del df_V_aligments['gene_name']
+                    df_V_aligments.dropna(inplace=True)
+                    df_V_offsets = df_V_aligments.groupby(by=['seq_index', V_nickname]).apply(lambda g: g.sort_values('score', ascending=False)) ['offset']
+
+
+        except Exception as e:
+            print("V alignments not "+task.igor_fln_align_V_alignments+"found.", e)
+            pass
 
     except Exception as e:
         raise e
     else:
-        return pd_airr_rearrangement
+        if b_V_offset :
+            return pd_airr_rearrangement, df_V_offsets
+        else:
+            return pd_airr_rearrangement
     finally:
         if batch_clean:
             task.run_clean_batch()

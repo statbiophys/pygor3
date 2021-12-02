@@ -247,7 +247,7 @@ def make_igor_directories(gene: str, specie: str, modelspath=None):
 
 
 # Write functions
-def write_sequences_to_file(sequences: Union[pd.DataFrame, np.ndarray, list, str],
+def write_sequences_to_file(sequences: Union[pd.DataFrame, np.ndarray, list, str, tuple],
                             fln_sequences: Union[str, Path, TextIO], sep=';'):
     """
     Write sequence to csv file from a dataframe, numpy array, list or single sequence.
@@ -265,17 +265,26 @@ def write_sequences_to_file(sequences: Union[pd.DataFrame, np.ndarray, list, str
             np_output = np.dstack((np.arange(0, sequences.size), sequences))[0]
             np.savetxt(fln_sequences, np_output, "%d"+sep+"%s",
                        header="seq_index"+sep+"sequence")
+        elif type(sequences) == tuple:
+            ii, sequence = sequences
+            with open(fln_sequences, 'w') as ofile:
+                ofile.write("seq_index" + sep + "sequence" + "\n")
+                str_line = "{ii:d}" + sep + "{sequence}\n"
+                ofile.write(str_line.format(ii=ii, sequence=sequence))
 
         elif type(sequences) == list:  # or type(sequences)==type(Generator[str]):
             if isinstance(fln_sequences, (str, bytes, Path)):
                 # open a file handler with "with"
                 with open(fln_sequences, 'w') as ofile:
+                    ofile.write("seq_index"+sep+"sequence"+"\n")
+                    str_line = "{:d}"+sep+"{}\n"
                     for ii, sequence in enumerate(sequences):
-                        ofile.write("{:d}"+sep+"{}\n".format(ii, sequence))
+                        ofile.write(str_line.format(ii, sequence))
             else:
                 ofile = fln_sequences
+                str_line = "{:d}" + sep + "{}\n"
                 for ii, sequence in enumerate(sequences):
-                    ofile.write("{:d}" + sep + "{}\n".format(ii, sequence))
+                    ofile.write(str_line.format(ii, sequence))
         elif type(sequences) == str:
             # Use regex to generate sequences with that form
             sequence = sequences
@@ -297,13 +306,20 @@ def write_sequences_to_file(sequences: Union[pd.DataFrame, np.ndarray, list, str
     except Exception as e:
         raise e
 
-def write_ref_genome_files_from_dataframe(df_Gene_ref_genome, fln_fasta, fln_anchor=None):
+def write_ref_genome_files_from_dataframe(df_Gene_ref_genome, fln_fasta, fln_anchor=None, sep=';'):
+    """
+    Write ref genome files from dataframe
+    :param df_Gene_ref_genome: DataFrame with ref_genome.
+    :param fln_fasta: Output fasta filename.
+    :param fln_anchor: Output anchor filename.
+    :param sep: Field sep for anchor file.
+    """
     try:
         write_genetemplate_dataframe_to_fasta(fln_fasta, df_Gene_ref_genome)
         try:
             if fln_anchor is not None:
                 # write anchors if any
-                write_geneanchors_dataframe_to_csv(fln_anchor, df_Gene_ref_genome)
+                write_geneanchors_dataframe_to_csv(fln_anchor, df_Gene_ref_genome, sep=sep)
         except Exception as e:
             print("ERROR: No anchors found in: ", df_Gene_ref_genome)
             raise e
@@ -516,6 +532,11 @@ def get_df_normalize_prob(df_scenarios):
     return df_scenarios.groupby('seq_index')['scenario_proba_cond_seq'].transform(
         lambda x: x / (len_df * x.sum()))
 
+
+def get_df_pgen(fln_pgen):
+    df_pgen = pd.read_csv(fln_pgen, sep=';').set_index('seq_index').sort_index()
+    return df_pgen
+
 # // A, C, G, T, R, Y, K, M, S, W, B, D, H, V, N
 heavy_pen_nuc44_vect = [
 5, -14, -14, -14, -14, 2, -14, 2, 2, -14, -14, 1, 1, 1, 0,
@@ -685,18 +706,23 @@ def get_gene_segment(str_gene_template, int_gene_5_del=None, int_gene_3_del=None
     str_gene_3_palindrome = ""
     str_gene_5_palindrome = ""
 
+    # There are palidromes?
     if int_gene_5_del < 0:
         int_ini = 0
         str_gene_5_palindrome = dna_complementary( (str_gene_template[:-int_gene_5_del])[::-1] )
-    else:
-        int_ini = int_gene_5_del
-        str_gene_5_palindrome = ""
 
     if int_gene_3_del < 0:
         int_end = len(str_gene_template)
         str_gene_3_palindrome = dna_complementary( (str_gene_template[int_gene_3_del:])[::-1] )
-    else:
-        int_end = len(str_gene_template) - int_gene_3_del
+
+    # FIXME: HOW TO ADD THE PALINDROMIC INSERTIONS
+    if int_gene_5_del >= 0:
+        int_ini = int_gene_5_del
+        # HOW TO ADD THIS HERE str_gene_3_palindrome
+        str_gene_5_palindrome = ""
+
+    if int_gene_3_del >= 0:
+        int_end = len(str_gene_template) - int_gene_3_del + len(str_gene_5_palindrome)
         str_gene_3_palindrome = ""
 
     segment_dict = collections.OrderedDict()
@@ -824,6 +850,78 @@ def from_df_scenario_aln_to_da_scenario_aln(df_scenario_aln, dict_id_2_nt:Union[
     except Exception as e:
         raise e
 
+def DEV_from_df_scenario_aln_to_da_scenario_aln_complete_genes(df_scenario_aln, dict_id_2_nt:Union[None, dict]=None):
+    """
+    Return a numpy array with the dict_id_2_nt dictionary
+    :param df_scenario_aln: IgorModel.get_df_scenario_aln_from_scenario(ps_scenario) output for a scenario.
+    :param dict_id_2_nt: Default dictionary {-1: '-', 0: 'A', 1: 'C', 2: 'G', 3: 'T'}
+    :return : numpy array with the values defined from dictionary ready to plot using imshow, matplot, etc.
+    """
+    try:
+        nrows = len(df_scenario_aln.index)
+        ncols = df_scenario_aln.aln_scenario_len
+        aln_scenario_np = -np.ones((nrows, ncols))
+        if dict_id_2_nt is None:
+            from .IgorDefaults import Igor_dict_id_2_nt
+            dict_id_2_nt = Igor_dict_id_2_nt # mdl.parms['vd_dinucl']['value'].to_dict()
+
+        dict_nt_2_id = {v: k for k, v in dict_id_2_nt.items()}
+        for ii, row in df_scenario_aln.iterrows():
+            # add a map with a dictionary defined
+            np_gene_segment = np.array(list(map(lambda nt: dict_nt_2_id[nt], list(row['gene_segment']))))
+            row['int_gene_5_del']
+            row['int_gene_3_del']
+            aln_ini_gene_segment = row['offset']
+            aln_end_gene_segment = row['offset'] + len(row['gene_segment'])
+            aln_scenario_np[ii, aln_ini_gene_segment:aln_end_gene_segment] = np_gene_segment
+
+        list_cols_4_alignment = ["segment_description", "gene_description", "offset", "palindrome_5_end", "gene_ini",
+                                 "gene_end", "gene_cut", "palindrome_3_end", "gene_segment"]
+
+        da_scenario_aln = xr.DataArray(aln_scenario_np, dims=('segment', 'nucleotide'),
+                                       coords={
+                                           "segment_description": ('segment', df_scenario_aln["segment_description"].values),
+                                           "gene_description": ('segment', df_scenario_aln["gene_description"].values),
+                                           "gene_template": ('segment', df_scenario_aln["gene_template"].values),
+                                           "palindrome_5_end": ('segment', df_scenario_aln["palindrome_5_end"].values),
+                                           "gene_ini": ('segment', df_scenario_aln["gene_ini"].values),
+                                           "gene_end": ('segment', df_scenario_aln["gene_end"].values),
+                                           "gene_cut": ('segment', df_scenario_aln["gene_cut"].values),
+                                           "palindrome_3_end": ('segment', df_scenario_aln["palindrome_3_end"].values),
+                                           "gene_segment": ('segment', df_scenario_aln["gene_segment"].values),
+                                           "offset": ('segment', df_scenario_aln["offset"].values)
+                                       },
+                                       attrs={
+                                           "anchors_CDR3": (df_scenario_aln.aln_pos_V_anchor, df_scenario_aln.aln_pos_J_anchor),
+                                           "dict_id_2_nt" : dict_id_2_nt
+                                       }
+                                       )
+        # da_mi = xr.DataArray(data_0, dims=('x', 'y'), coords={'x': event_lista_nicknames, 'y': event_lista_nicknames})
+
+        # print(df_scenario_aln["gene_description"].values)
+        # print(da_scenario_aln)
+        #
+        # df_scenario_aln.aln_scenario_len
+        # df_scenario_aln.aln_pos_V_anchor
+        # df_scenario_aln.aln_pos_J_anchor
+
+        return da_scenario_aln #aln_scenario_np
+    except Exception as e:
+        raise e
+
+def plot_np_aln_sequences(aln_scenario_np, ax=None):
+    import matplotlib as mpl
+    cmap_dna = mpl.colors.ListedColormap(['white', '#fcff92', '#70f970', '#ff99b1', '#4eade1'])
+
+    if ax is None:
+        import matplotlib.pyplot as plt
+        fig, ax = plt.subplots(figsize=(20, 10))
+        ax.imshow(aln_scenario_np, cmap=cmap_dna, vmin=-1.5, vmax=3.5)
+    else:
+        ax.imshow(aln_scenario_np, cmap=cmap_dna, vmin=-1.5, vmax=3.5)
+
+
+
 
 def plot_scenario_from_da_scenario_aln(da_scenario_aln, nt_lim:Union[None,tuple,list]=None, show_CDR3=True, ax=None):
     """
@@ -845,43 +943,51 @@ def plot_scenario_from_da_scenario_aln(da_scenario_aln, nt_lim:Union[None,tuple,
     # ax.yaxis.set_major_locator(MaxNLocator(integer=True))
     # ax.set_aspect('equal')
 
-    fig, ax = plt.subplots(figsize=(20, 10))
-    ax.imshow(aln_scenario_np, cmap=cmap_dna, vmin=-1.5, vmax=3.5)
-    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+    try:
+        if ax is None:
+            #import matplotlib.pyplot as plt
+            fig, ax = plt.subplots(figsize=(20, 10))
 
-    anchors_CDR3_ini = da_scenario_aln.attrs["anchors_CDR3"][0]
-    anchors_CDR3_end = da_scenario_aln.attrs["anchors_CDR3"][1]
+        # fig, ax = plt.subplots(figsize=(20, 10))
+        ax.imshow(aln_scenario_np, cmap=cmap_dna, vmin=-1.5, vmax=3.5)
+        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
 
-    if show_CDR3:
-        if anchors_CDR3_ini is not None:
-            ax.axvline(anchors_CDR3_ini - 0.5)
-            xlim_ini = anchors_CDR3_ini - 3.5
-        else:
-            xlim_ini = 0
+        anchors_CDR3_ini = da_scenario_aln.attrs["anchors_CDR3"][0]
+        anchors_CDR3_end = da_scenario_aln.attrs["anchors_CDR3"][1]
 
-        if anchors_CDR3_end is not None:
-            ax.axvline(anchors_CDR3_end - 0.5)
-            xlim_end = anchors_CDR3_end + 2.5
-        else:
-            xlim_end = da_scenario_aln['nucleotide'].size
+        if show_CDR3:
+            if anchors_CDR3_ini is not None:
+                ax.axvline(anchors_CDR3_ini - 0.5)
+                xlim_ini = anchors_CDR3_ini - 3.5
+            else:
+                xlim_ini = 0
 
-    if nt_lim is not None:
-        xlim_ini = nt_lim[0]
-        xlim_end = nt_lim[1]
+            if anchors_CDR3_end is not None:
+                ax.axvline(anchors_CDR3_end - 0.5)
+                xlim_end = anchors_CDR3_end + 2.5
+            else:
+                xlim_end = da_scenario_aln['nucleotide'].size
 
-    ax.set_xlim(xlim_ini, xlim_end)
+        if nt_lim is not None:
+            xlim_ini = nt_lim[0]
+            xlim_end = nt_lim[1]
 
-    from .IgorDefaults import Igor_dict_id_2_nt
-    dict_id_2_nt = Igor_dict_id_2_nt
-    dict_4_lbls = dict_id_2_nt.copy()
-    dict_4_lbls[-1] = ''
-    for i in range(aln_scenario_np.shape[0]):
-        for j in range(int(xlim_ini + 0.5), int(xlim_end + 0.5)):  # aln_scenario_np.shape[1]):
-            text = ax.text(j, i, dict_4_lbls[aln_scenario_np[i, j]], ha="center", va="center", color="gray")
+        ax.set_xlim(xlim_ini, xlim_end)
 
-    ax.set_yticks(np.arange(len(da_scenario_aln['gene_description'].values)))
-    ax.set_yticklabels(da_scenario_aln['gene_description'].values)
-    return fig, ax
+        from .IgorDefaults import Igor_dict_id_2_nt
+        dict_id_2_nt = Igor_dict_id_2_nt
+        dict_4_lbls = dict_id_2_nt.copy()
+        dict_4_lbls[-1] = ''
+        for i in range(aln_scenario_np.shape[0]):
+            for j in range(int(xlim_ini + 0.5), int(xlim_end + 0.5)):  # aln_scenario_np.shape[1]):
+                text = ax.text(j, i, dict_4_lbls[aln_scenario_np[i, j]], ha="center", va="center", color="gray")
+
+        ax.set_yticks(np.arange(len(da_scenario_aln['gene_description'].values)))
+        ax.set_yticklabels(da_scenario_aln['gene_description'].values)
+    except Exception as e:
+        raise e
+    else:
+        return ax
 
 # def func_D_KL(p_x_y, p_x, p_y):
 #     logxy_x_y = np.log(p_x_y / (p_x * p_y))
@@ -939,3 +1045,45 @@ def get_D_KL_from_xarray(da_P_X_Y, da_P_X, da_P_Y):
     # mutual_information = xr.dot(da_P_X_Y, log_Pxy_over_Px_Py)
     # return mutual_information
 
+##########################################################
+
+try:
+    from Bio.Align.Applications import ClustalwCommandline
+
+    def get_da_clustalw_align_from(np_description, np_str_sequence):
+        """Return xarray DataArray in numerical convention
+        gap : -1, A : 0, C : 1, G : 2, T : 3
+        :param np_description: numpy array with description of sequence.
+        :param np_str_sequence: numpy array with string of sequence.
+        :return : xarray DataArray of sequences aligned with clustalw.
+        """
+        import tempfile
+        with tempfile.TemporaryDirectory(prefix='p3_clustalw_msa_', dir='.') as tmp_ofile_fasta:
+            tmp_df = pd.DataFrame({'name': np_description, 'value': np_str_sequence})
+            write_genetemplate_dataframe_to_fasta(tmp_ofile_fasta, tmp_df[['name', 'value']])
+            print("Starting Alignment ...")
+            cline = ClustalwCommandline("clustalw", infile=tmp_ofile_fasta)
+            stdout, stderr = cline()
+            print("Multiple Alignment finished!")
+            from Bio import AlignIO
+            tmp_align = AlignIO.read(tmp_ofile_fasta.split('.fasta')[0] + ".aln", "clustal")
+            ll = list()
+            for aling_i in tmp_align:
+                ll.append( str_seq_to_np_seq(aling_i.seq) )
+
+            np_align = np.array(ll)
+            import xarray as xr
+            da_align = xr.DataArray(np_align,
+                                    coords={'nt_pos': np.arange(len(np_align[0])),
+                                            'nt_description': np_description},
+                                    dims=('nt_pos', 'nt_description')
+            )
+            return da_align
+
+
+except ImportError as error:
+    pass
+except Exception as exception:
+    # Output unexpected Exceptions.
+    print(exception, False)
+    print(exception.__class__.__name__ + ": " + exception.message)

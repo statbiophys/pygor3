@@ -112,6 +112,7 @@ class MyTestCase(unittest.TestCase):
         mdl = get_default_IgorModel("human", "tcr_beta")
         df_seqs = generate(10, mdl)
         print(df_seqs)
+        self.assertIsInstance(df_seqs, pd.DataFrame)
 
 
     def test_something_human_alpha(self):

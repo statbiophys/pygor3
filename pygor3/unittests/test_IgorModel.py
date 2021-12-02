@@ -648,6 +648,8 @@ class MyTestCase(unittest.TestCase):
 
         self.assertIsInstance(mdl_nuevo, IgorModel)
 
+    def test_IgorModel_plot(self):
+        IgorModel.plot_mutual_information()
 
 
     def test_IgorModel_name_change(self):
