@@ -69,9 +69,11 @@ def command_from_dict_options(dicto: dict):
                     cmd = cmd + " " + key + " "
                 else:
                     cmd = cmd + " " + key + " " + str( dicto_copy[key]['value'] )
-            if dicto_copy[key]['dict_options'] is not None:
-                # print(key, dicto[key]['dict_options'])
-                cmd = cmd + " " + command_from_dict_options(dicto_copy[key]['dict_options'])
+
+            if 'dict_options' in dicto_copy[key]:
+                if dicto_copy[key]['dict_options'] is not None:
+                    # print(key, dicto[key]['dict_options'])
+                    cmd = cmd + " " + command_from_dict_options(dicto_copy[key]['dict_options'])
     return cmd
 
 
@@ -1485,12 +1487,28 @@ class IgorModel_Parms:
         return self.Event_dict[item]
 
     @property
+    def event_GeneChoice_list(self):
+        return [event for event in self.Event_list if event.event_type == 'GeneChoice']
+
+    @property
+    def event_Insertion_list(self):
+        return [event for event in self.Event_list if event.event_type == 'Insertion']
+
+    @property
+    def event_Deletion_list(self):
+        return [event for event in self.Event_list if event.event_type == 'Deletion']
+
+    @property
+    def event_DinucMarkov_list(self):
+        return [event for event in self.Event_list if event.event_type == 'DinucMarkov']
+
+    @property
     def event_GeneChoice_V(self) -> Union[IgorRec_Event, None]:
         """
         Return IgorRec_Event GeneChoice and V_gene event from self.Event_list (usual nickname 'v_choice')
         """
         try:
-            GeneChoice_list = [event for event in self.Event_list if event.event_type == 'GeneChoice']
+            GeneChoice_list = self.event_GeneChoice_list # [event for event in self.Event_list if event.event_type == 'GeneChoice']
             event_GeneChoice_V = [event for event in GeneChoice_list if event.seq_type == 'V_gene'][0]
         except IndexError:
             print("No V genes event found!")
@@ -1506,7 +1524,7 @@ class IgorModel_Parms:
         Return IgorRec_Event GeneChoice and D_gene event from self.Event_list (usual nickname 'd_gene')
         """
         try:
-            GeneChoice_list = [event for event in self.Event_list if event.event_type == 'GeneChoice']
+            GeneChoice_list = self.event_GeneChoice_list #[event for event in self.Event_list if event.event_type == 'GeneChoice']
             event_GeneChoice_D = [event for event in GeneChoice_list if event.seq_type == 'D_gene'][0]
         except IndexError:
             # print("No D genes event found!")
@@ -1522,7 +1540,7 @@ class IgorModel_Parms:
         Return IgorRec_Event GeneChoice and D_gene event from self.Event_list (usual nickname 'd_gene')
         """
         try:
-            GeneChoice_list = [event for event in self.Event_list if event.event_type == 'GeneChoice']
+            GeneChoice_list = self.event_GeneChoice_list #[event for event in self.Event_list if event.event_type == 'GeneChoice']
             event_GeneChoice_J = [event for event in GeneChoice_list if event.seq_type == 'J_gene'][0]
         except IndexError:
             print("No J genes event found!")
@@ -2934,6 +2952,46 @@ class IgorModel:
         return self.parms[event_nickname].value.loc[index]
 
     @property
+    def event_GeneChoice_nickname_list(self):
+        try:
+            return list(map(lambda x: x.nickname, self.parms.event_GeneChoice_list))
+        except Exception as e:
+            raise e
+
+    @property
+    def event_Insertion_nickname_list(self):
+        try:
+            return list(map(lambda x: x.nickname, self.parms.event_Insertion_list))
+        except Exception as e:
+            raise e
+
+    @property
+    def event_Deletion_nickname_list(self):
+        try:
+            return list(map(lambda x: x.nickname, self.parms.event_Deletion_list))
+        except Exception as e:
+            raise e
+
+    @property
+    def event_DinucMarkov_nickname_list(self):
+        try:
+            return list(map(lambda x: x.nickname, self.parms.event_DinucMarkov_list))
+        except Exception as e:
+            raise e
+
+    @property
+    def event_GeneChoice_V_nickname(self):
+        return self.parms.event_GeneChoice_V.nickname
+
+    @property
+    def event_GeneChoice_D_nickname(self):
+        return self.parms.event_GeneChoice_D.nickname
+
+    @property
+    def event_GeneChoice_J_nickname(self):
+        return self.parms.event_GeneChoice_J.nickname
+
+    @property
     def ErrorRate_dict(self):
         try:
             return self.parms.ErrorRate_dict
@@ -3044,6 +3102,10 @@ class IgorModel:
         """
         :return: IgorModel loaded with the default location for specie and chain
         """
+
+        if IgorChain in igor_option_path_dict:
+            IgorChain = igor_option_path_dict[IgorChain]
+
         flnModelParms, flnModelMargs = get_default_models_paths_species_chain(IgorSpecie, IgorChain, modelpath=modelpath)
 
         fln_dict = get_default_fln_dict_ref_genomes_species_chain(IgorSpecie, IgorChain, modelspath=modelpath, ref_genome_path=ref_genome_path)
@@ -4983,27 +5045,6 @@ class IgorModel:
         return V_segment_dict, VJ_segment_dict, J_segment_dict
 
     @classmethod
-    def make_default_from_Dataframe_dict(cls, genomic_dataframe_dict, lims_deletions=None, lims_insertions=None):
-        cls = IgorModel()
-        try:
-            cls.genomic_dataframe_dict = genomic_dataframe_dict
-            if 'D' in genomic_dataframe_dict:
-                cls.parms = IgorModel_Parms.make_default_VDJ(cls.genomic_dataframe_dict['V'],
-                                                             cls.genomic_dataframe_dict['D'],
-                                                             cls.genomic_dataframe_dict['J'],
-                                                             lims_deletions=lims_deletions,
-                                                             lims_insertions=lims_insertions)
-                # cls.parms.attach_anchors()
-            else:
-                cls.parms = IgorModel_Parms.make_default_VJ(cls.genomic_dataframe_dict['V'],
-                                                            cls.genomic_dataframe_dict['J'],
-                                                            lims_deletions=lims_deletions,
-                                                            lims_insertions=lims_insertions)
-            return cls
-        except Exception as e:
-            raise e
-
-    @classmethod
     def make_default_VDJ(cls, df_V_ref_genome, df_D_ref_genome, df_J_ref_genome, lims_deletions=None, lims_insertions=None):
         """Create a default VJ model from V and J genes dataframes
         :param df_V_ref_genome: Pandas Dataframe of Genome reference for V gene with CDR3 anchors
@@ -5039,6 +5080,32 @@ class IgorModel:
         cls.marginals = IgorModel_Marginals.make_uniform_from_parms(cls.parms)
         cls.generate_xdata()
         return cls
+
+    @classmethod
+    def make_default_from_Dataframe_dict(cls, genomic_dataframe_dict, lims_deletions=None, lims_insertions=None):
+        cls = IgorModel()
+        try:
+            cls.genomic_dataframe_dict = genomic_dataframe_dict
+            if 'D' in genomic_dataframe_dict:
+                cls = IgorModel.make_default_VDJ(genomic_dataframe_dict['V'],
+                                                       genomic_dataframe_dict['D'],
+                                                       genomic_dataframe_dict['J'],
+                                                       lims_deletions=lims_deletions,
+                                                       lims_insertions=lims_insertions)
+                # cls.parms = IgorModel_Parms.make_default_VDJ(cls.genomic_dataframe_dict['V'],
+                #                                              cls.genomic_dataframe_dict['D'],
+                #                                              cls.genomic_dataframe_dict['J'],
+                #                                              lims_deletions=lims_deletions,
+                #                                              lims_insertions=lims_insertions)
+                # cls.parms.attach_anchors()
+            else:
+                cls = IgorModel.make_default_VJ(cls.genomic_dataframe_dict['V'],
+                                                            cls.genomic_dataframe_dict['J'],
+                                                            lims_deletions=lims_deletions,
+                                                            lims_insertions=lims_insertions)
+            return cls
+        except Exception as e:
+            raise e
 
     # TODO: MAKE A METHOD TO EXPORT A LINE FROM AN SCENARIO
     def get_AIRR_VDJ_rearragement_dict_from_scenario(self, scenario, str_sequence, v_offset=0, pgen=None, junction=None,
@@ -5420,6 +5487,47 @@ class IgorModel:
         da.values = np.nan_to_num(da.values, 0)
         return da
 
+
+    def get_CDR3_nt_pos_from_ps_scenario(self, ps_scenario, V_offset=None):
+        """
+        Return tuple of anchors positions V_anchor_in_seq, J_anchor_in_seq
+        :param ps_scenario: Pandas Series of one scenario.
+        :param V_offset: Offset from IGoR's V alignments.
+        """
+
+        try:
+            if V_offset is None:
+                V_offset = 0
+            V_offset = int(V_offset)
+            len_GeneChoice = 0
+            len_Insertion = 0
+            len_Deletion = 0
+
+            # print("ps_scenario: ", ps_scenario)
+            for event_nickname in self.event_GeneChoice_nickname_list:
+                len_GeneChoice += len(self.realization(ps_scenario, event_nickname).value)
+                # print(event_nickname, len_GeneChoice)
+            for event_nickname in self.event_Insertion_nickname_list:
+                len_Insertion += self.realization(ps_scenario, event_nickname).value
+            for event_nickname in self.event_Deletion_nickname_list:
+                len_Deletion += -self.realization(ps_scenario, event_nickname).value
+
+            len_scenario = len_GeneChoice + len_Insertion + len_Deletion
+            # print('*'*80)
+            # print("len_scenario: ", len_scenario)
+
+            V_nickname = self.event_GeneChoice_V_nickname
+            J_nickname = self.event_GeneChoice_J_nickname
+
+            V_choice_realization = self.realization(ps_scenario, V_nickname)
+            J_choice_realization = self.realization(ps_scenario, J_nickname)
+
+            V_anchor_in_seq = V_offset + int( self.V_anchor(V_choice_realization.id) )
+            J_anchor_in_seq = V_offset + int( self.J_anchor(J_choice_realization.id) ) - len(J_choice_realization.value) + len_scenario + 3
+
+            return V_anchor_in_seq, J_anchor_in_seq
+        except Exception as e:
+            raise e
 
     def get_VDJ_CDR3_from_scenario(self, ps_scenario):
         """
@@ -5835,6 +5943,7 @@ class IgorTask:
         self.igor_fln_align_V_alignments = igor_fln_align_V_alignments
         self.igor_fln_align_J_alignments = igor_fln_align_J_alignments
         self.igor_fln_align_D_alignments = igor_fln_align_D_alignments
+        self.igor_fln_indexed_functionality = None # FIXME: ADD to batch update etc, etc, etc
         # inference
         self.igor_fln_infer_final_marginals = igor_fln_infer_final_marginals
         self.igor_fln_infer_final_parms = igor_fln_infer_final_parms
@@ -6371,6 +6480,9 @@ class IgorTask:
         self.igor_fln_align_J_alignments = self.igor_wd + "/aligns/" + self.igor_batchname + "_J_alignments.csv"
         self.igor_fln_align_D_alignments = self.igor_wd + "/aligns/" + self.igor_batchname + "_D_alignments.csv"
 
+        self.igor_fln_indexed_functionality = self.igor_wd + "/aligns/" + self.igor_batchname + "_indexed_functionality.csv"
+
+
     def _update_infer_batch_filenames(self, igor_batchname=None, igor_wd=None):
         """Update inference filenames using batchname and igor_wd"""
         # inference
@@ -6475,11 +6587,14 @@ class IgorTask:
         except Exception as e:
             raise e
 
-    def run_align(self, igor_read_seqs=None, igor_threads=None):
+    def run_align(self, igor_read_seqs=None, igor_threads=None, igor_align_dict_opts:Union[dict, None]=None):
         # "igor -set_wd ${tmp_dir} -batch ${randomBatch} -species
         # ${species} -chain ${chain} -align --all"
         try:
             import os.path
+
+            if igor_align_dict_opts is not None:
+                self.igor_align_dict_options = igor_align_dict_opts
 
             if igor_read_seqs is not None:
                 self.igor_read_seqs = igor_read_seqs
@@ -6588,7 +6703,8 @@ class IgorTask:
     # FIXME: FINISH METHOD
     def align(self, input_sequences: Union[None, str, Path, pd.DataFrame, np.array, list] = None,
               mdl: Union[None, str, Path, IgorModel, IgorModel_Parms] = None,
-              igor_wd=None, batch_clean=True):
+              igor_wd=None, batch_clean=True, b_best_align_only=False,
+              igor_align_dict_opts:Union[None, dict]=None):
         df_alignments_dict = {'V': None, 'D': None, 'J': None, 'CDR3': None}
         try:
             # by default the igor_wd is the current directory unless something else is
@@ -6617,10 +6733,12 @@ class IgorTask:
             if mdl is not None:
                 self.mdl = copy.deepcopy(mdl)
 
+            # ---best_align_only
+
             if input_sequences is None:
                 # use the self.igor_read_seqs
                 # Do not delete self.igor_read_seqs
-                self.run_align(igor_read_seqs=self.igor_read_seqs)
+                self.run_align(igor_read_seqs=self.igor_read_seqs, igor_align_dict_opts=igor_align_dict_opts)
             else:
                 # write a temporary file
                 tmp_igor_read_seqs = self.igor_read_seqs
@@ -6637,7 +6755,7 @@ class IgorTask:
                     self.igor_fln_mdldata_genomicDs = None
                 self.mdl.write_mdldata_dir(path_mdl_data)
 
-                self.run_align(igor_read_seqs=fln_input_sequences)
+                self.run_align(igor_read_seqs=fln_input_sequences, igor_align_dict_opts=igor_align_dict_opts)
                 import os
                 os.unlink(fln_input_sequences)
                 self.igor_read_seqs = tmp_igor_read_seqs
@@ -6672,10 +6790,18 @@ class IgorTask:
                       fln_J_gene_CDR3_anchors=None,
                       igor_fln_db=None,
                       igor_db=None,
-                      mdl: Union[IgorModel, None] = None, igor_threads=None):
+                      mdl: Union[IgorModel, None] = None, igor_threads=None,
+                      igor_evaluate_dict_opts:Union[dict, None]=None,
+                      igor_align_dict_opts:Union[dict, None]=None):
         # "igor -set_wd $WDPATH -batch foo -species human -chain beta
         # -evaluate -output --scenarios 10"
         try:
+            if igor_evaluate_dict_opts is not None:
+                self.igor_evaluate_dict_options = igor_evaluate_dict_opts
+
+            if igor_align_dict_opts is not None:
+                self.igor_align_dict_options = igor_align_dict_opts
+
             # print(self.to_dict())
             import os.path
             if igor_read_seqs is not None:
@@ -6707,7 +6833,7 @@ class IgorTask:
 
             if self.b_align is False:
                 try:
-                    self.run_align(igor_read_seqs=self.igor_read_seqs)
+                    self.run_align(igor_read_seqs=self.igor_read_seqs, igor_align_dict_opts=igor_align_dict_opts)
                 except Exception as e:
                     raise e
 
@@ -6898,7 +7024,8 @@ class IgorTask:
         return self.mdl.get_dataframe_from_fln_generated_realizations_werr(self.igor_fln_generated_realizations_werr)
 
     def evaluate(self, input_sequences: Union[str, pd.DataFrame, np.ndarray, Path],
-                 N_scenarios = None, mdl:IgorModel = None, igor_wd=None, igor_batchname=None, clean_batch=True, airr_format=True, db=True):
+                 N_scenarios = None, mdl:IgorModel = None, igor_wd=None, igor_batchname=None, clean_batch=True, airr_format=True, db=True,
+                 igor_evaluate_dict_options:Union[dict,None]=None):
         """
         Return evaluation of sequences
         """
@@ -7019,12 +7146,26 @@ class IgorTask:
                    fln_J_gene_CDR3_anchors=None,
                    igor_fln_db=None,
                    igor_db=None,
-                   mdl:Union[IgorModel, None]=None):
+                   mdl:Union[IgorModel, None]=None, N_iter=None,
+                   igor_infer_dict_opts=None,
+                   igor_align_dict_opts=None):
         """Run inference and return IgorModel object"""
         # "igor -set_wd $WDPATH -batch foo -species human -chain beta
         # -evaluate -output --scenarios 10"
 
         try:
+            if igor_align_dict_opts is not None:
+                self.igor_align_dict_options = igor_align_dict_opts
+
+            if igor_infer_dict_opts is not None:
+                self.igor_infer_dict_options = igor_infer_dict_opts
+
+            if N_iter is not None:
+                if self.igor_infer_dict_options is None:
+                    self.igor_infer_dict_options = copy(igor_infer_dict_options)
+                self.igor_infer_dict_options['--N_iter']['active'] = True
+                self.igor_infer_dict_options['--N_iter']['value'] = str(N_iter)
+
             if igor_read_seqs is not None:
                 self.igor_read_seqs = igor_read_seqs
 
@@ -7049,7 +7190,7 @@ class IgorTask:
             pathlib.Path(self.igor_wd).mkdir(parents=True, exist_ok=True)
 
             if self.b_align is False:
-                self.run_align(igor_read_seqs=igor_read_seqs)
+                self.run_align(igor_read_seqs=igor_read_seqs, igor_align_dict_opts=igor_align_dict_opts)
                 print("== Alignment finished! ==")
 
             if self.mdl is not None:
@@ -8655,10 +8796,94 @@ class IgorBestScenariosVDJ:
 
 #####################################################################################
 
+def naive_align(input_sequences: Union[None, str, Path, pd.DataFrame, np.array, list] = None,
+              mdl: Union[None, str, Path, IgorModel, IgorModel_Parms] = None,
+              igor_wd=None, igor_threads=None, igor_batchname=None, batch_clean=True,
+              igor_align_dict_opts:Union[None, dict]=None):
+    """Return preprocessing with IGoR
+    :param input_sequences: Sequences to align as dataframe, numpy array, list or string.
+    :param mdl: IgorModel
+    :param igor_wd: IGoR working directory
+    :param igor_threads: IGoR number of threads option
+    :param igor_align_dict_opts: Additional options for naive alignment.
+    """
+    tmp_dir = tempfile.TemporaryDirectory(prefix='igor_aligning_', dir='.')
+
+    df_alignments_dict = dict()
+    if igor_wd is None:
+        igor_wd = tmp_dir.name
+        batch_clean = True
+    else:
+        os.system("mkdir -p " + igor_wd)
+        batch_clean = False
+
+    # 2. Create an IgorTask
+    import copy
+    mdl_copy = copy.deepcopy(mdl)
+    task = IgorTask(igor_wd=igor_wd, mdl=mdl_copy)
+    task.igor_fln_indexed_functionality = igor_wd + "/aligns/" + task.igor_batchname + "_indexed_functionality.csv"
+
+    if igor_align_dict_opts is None:
+        task.igor_align_dict_options = copy.deepcopy(igor_align_dict_options)
+        task.igor_align_dict_options['--all']['dict_options']['---best_align_only']['active'] = True
+        task.igor_align_dict_options['--all']['dict_options']['---best_align_only']['value'] = "true"
+
+
+    fln_input_sequences = igor_wd + "/" + task.igor_batchname + "input_sequences.csv"
+
+    # 3. Write Sequences in file if file not exist
+    write_sequences_to_file(input_sequences, fln_input_sequences)
+
+    # 4. Export model and ref_genome to model_dir
+    path_mdl_data = task.igor_wd + "/" + task.igor_batchname + "_mdldata"
+    task.update_model_filenames(igor_model_dir_path=path_mdl_data)
+    task.update_ref_genome(igor_model_dir_path=path_mdl_data)
+    task.update_batch_filenames()
+    task.mdl.write_mdldata_dir(path_mdl_data)
+
+    df_indexed_functionality = None
+    df_indexed_CDR3 = None
+    # 5. Run infer model
+    try:
+        task.run_align(igor_read_seqs=fln_input_sequences, igor_threads=igor_threads, igor_align_dict_opts=igor_align_dict_opts)
+        # if os.path.isfile(self.igor_fln_align_V_alignments):
+        #     df_V_aligments = pd.read_csv(self.igor_fln_align_V_alignments, sep=';')
+        #     df_alignments_dict['V'] = df_V_aligments
+        # if os.path.isfile(self.igor_fln_align_D_alignments):
+        #     df_D_aligments = pd.read_csv(self.igor_fln_align_D_alignments, sep=';')
+        #     df_alignments_dict['D'] = df_D_aligments
+        # if os.path.isfile(self.igor_fln_align_J_alignments):
+        #     df_J_aligments = pd.read_csv(self.igor_fln_align_J_alignments, sep=';')
+        #     df_alignments_dict['J'] = df_J_aligments
+        if os.path.isfile(task.igor_fln_indexed_functionality):
+            df_indexed_functionality = pd.read_csv(task.igor_fln_indexed_functionality, sep=';', index_col='seq_index')
+            df_indexed_functionality['functionality'] = df_indexed_functionality['functionality'].apply(
+                lambda x: False if (x == 0) else True)
+            df_indexed_functionality['in_frame'] = df_indexed_functionality['in_frame'].apply(
+                lambda x: False if (x == 0) else True)
+            df_indexed_functionality['stop_codon'] = df_indexed_functionality['stop_codon'].apply(
+                lambda x: False if (x == 0) else True)
+            #return df_indexed_functionality
+        if os.path.isfile(task.igor_fln_indexed_CDR3):
+            df_indexed_CDR3 = pd.read_csv(task.igor_fln_indexed_CDR3, sep=';', index_col='seq_index')
+
+        return df_indexed_functionality, df_indexed_CDR3
+    except Exception as e:
+        raise e
+    finally:
+        tmp_dir.cleanup()
+
 def generate(Nseqs, mdl:IgorModel, igor_wd=None, igor_batchname=None,
              seed=None,
              clean_batch=True, return_scenarios=False):
-    """Return pandas dataframe with generated sequences Only sequences, not scenarios"""
+    """Return pandas dataframe with generated sequences Only sequences, not scenarios
+    :param Nseqs: Number of sequences to be generated.
+    :param mdl: IgorModel instance to generate sequences.
+    :param igor_wd: Working directory use to run IGoR to generate sequences.
+    :param seed: Seed to generate sequences.
+    :param batch_clean: If True clean all files used with IGoR, if false keep all files, default True.
+    :param return_scenarios: Flag if True return scenarios dataframe.
+    """
     try:
         tmp_generate_dir = tempfile.TemporaryDirectory(prefix='igor_generating_', dir='.')
         if igor_wd is None:
@@ -8708,8 +8933,22 @@ def generate(Nseqs, mdl:IgorModel, igor_wd=None, igor_batchname=None,
     #     task.run_clean_batch()
 
 
-def infer(input_sequences:Union[str, pd.DataFrame, np.ndarray, Path],
-          mdl:IgorModel, igor_wd=None, batch_clean=True, return_likelihoods=True)->IgorModel:
+def infer(input_sequences:Union[str, list, pd.DataFrame, np.ndarray, Path],
+          mdl:IgorModel, igor_wd=None, batch_clean=True, return_likelihoods=True,
+          N_iter=None,
+          igor_infer_dict_opts:Union[None, dict]=None,
+          igor_align_dict_opts:Union[None, dict]=None)->IgorModel:
+    """
+    Returns inferred IgorModel from input_sequences with initial model mdl.
+    :param input_sequences: String sequences in list, numpy array, pandas dataframe or file.
+    :param mdl: IgorModel object.
+    :param igor_wd: Working directory use to run IGoR to infer.
+    :param batch_clean: If True clean all files used with IGoR, if false keep all files, default True.
+    :param return_likelihoods: If True return likelihoods pandas dataframe with likelihoods
+    :param N_iter: Number of iterations to infer model.
+    :param igor_infer_dict_opts: Additional IGoR options to pass for inference.
+    :param igor_align_dict_opts: Additional IGoR options to pass for alignment.
+    """
     try:
         import tempfile
         # batch_clean = False
@@ -8740,7 +8979,7 @@ def infer(input_sequences:Union[str, pd.DataFrame, np.ndarray, Path],
         # print(task)
 
         # 5. Run infer model
-        task._run_infer(igor_read_seqs=fln_input_sequences)
+        task._run_infer(igor_read_seqs=fln_input_sequences, N_iter=N_iter, igor_infer_dict_opts=igor_infer_dict_opts, igor_align_dict_opts=igor_align_dict_opts)
         task.load_IgorModel_from_infer_files()
 
         """
@@ -8765,12 +9004,23 @@ def infer(input_sequences:Union[str, pd.DataFrame, np.ndarray, Path],
 
 
 def evaluate(input_sequences:Union[str, pd.DataFrame, np.ndarray, list, tuple, Path],
-             mdl:IgorModel, N_scenarios=None, igor_wd=None, airr_format=True, batch_clean=True, use_db=False, fln_output:Union[None, str, Path]=None, b_V_offset=False):
+             mdl:IgorModel, N_scenarios=None, igor_wd:Union[None, str, Path]=None,
+             airr_format=True, batch_clean=True, use_db=False, fln_output:Union[None, str, Path]=None, b_V_offset=False,
+             igor_evaluate_dict_opts:Union[None, dict]=None,
+             igor_align_dict_opts:Union[None, dict]=None):
     """
     Evaluate input sequences with provided model
     :param input_sequences:Union[str, pd.DataFrame, np.ndarray, Path]
     :param mdl:IgorModel
+    :param N_scenarios: Number of scenarios requested, default returns 1.
+    :param airr_format: True return pandas dataframe as AIRR format
+    :param fln_output: Output filename to save scenarios
+    :param b_V_offset: Flag to return V_offset alignments as pandas dataframe.
+    :param igor_wd: working directory
     :param batch_clean: Remove all temporary files True by default.
+    :param use_db: Flag to save data in sqlite database.
+    :param igor_evaluate_dict_opts: Additional IGoR options for evaluation.
+    :param igor_align_dict_opts: Additional IGoR options for aligns.
     """
 
     # Run evaluate
@@ -8809,7 +9059,9 @@ def evaluate(input_sequences:Union[str, pd.DataFrame, np.ndarray, list, tuple, P
         # print(task)
 
         # 5. Run evaluate model
-        task._run_evaluate(igor_read_seqs=fln_input_sequences, N_scenarios=N_scenarios)
+        task._run_evaluate(igor_read_seqs=fln_input_sequences, N_scenarios=N_scenarios,
+                           igor_evaluate_dict_opts=igor_evaluate_dict_opts,
+                           igor_align_dict_opts=igor_align_dict_opts)
 
         if airr_format:
             # Save evaluations in database
@@ -8860,6 +9112,7 @@ def evaluate(input_sequences:Union[str, pd.DataFrame, np.ndarray, list, tuple, P
                     del df_V_aligments['gene_name']
                     df_V_aligments.dropna(inplace=True)
                     df_V_offsets = df_V_aligments.groupby(by=['seq_index', V_nickname]).apply(lambda g: g.sort_values('score', ascending=False)) ['offset']
+                    df_V_offsets = df_V_offsets.droplevel(None)
 
 
         except Exception as e:
@@ -8880,7 +9133,8 @@ def evaluate(input_sequences:Union[str, pd.DataFrame, np.ndarray, list, tuple, P
 
 
 def evaluate_pgen(input_sequences:Union[str, pd.DataFrame, np.ndarray, Path],
-             mdl:IgorModel, igor_wd=None, batch_clean=True, airr_format=True, pgen_columns:Union[None, list]=None):
+             mdl:IgorModel, igor_wd=None, batch_clean=True, airr_format=True, pgen_columns:Union[None, list]=None,
+                  igor_evaluate_dict_options:Union[None,dict]=None):
     """
     Evaluate input sequences with provided model
     :param input_sequences:Union[str, pd.DataFrame, np.ndarray, Path]
@@ -8893,7 +9147,57 @@ def evaluate_pgen(input_sequences:Union[str, pd.DataFrame, np.ndarray, Path],
             pgen_columns = ['sequence_id', 'sequence', 'v_call', 'd_call', 'j_call', 'pgen']
         else:
             pgen_columns = ['Pgen_estimate']
-    return evaluate(input_sequences, mdl, N_scenarios=1, igor_wd=igor_wd, batch_clean=batch_clean, airr_format=airr_format)[pgen_columns]
+    return evaluate(input_sequences, mdl, N_scenarios=1, igor_wd=igor_wd, batch_clean=batch_clean, airr_format=airr_format, igor_evaluate_dict_opts=igor_evaluate_dict_options)[pgen_columns]
+
+def get_CDR3_VJ_anchors(mdl_ii:IgorModel, df_sequences, df_scenarios, df_V_offsets=None):
+    try:
+        if df_V_offsets is None:
+            print("V offsets dataframe is required")
+            return None
+        # print(df_sequences)
+        df_scenarios_VJ = df_scenarios.groupby(
+            by=['seq_index', mdl_ii.event_GeneChoice_V_nickname, mdl_ii.event_GeneChoice_J_nickname], as_index=False).apply(
+            lambda g: g[g['scenario_proba_cond_seq'] == g['scenario_proba_cond_seq'].max()])
+        df_scenarios_VJ.index = df_scenarios_VJ.index.droplevel()
+        # print(df_scenarios_VJ)
+
+        df_scenarios_VJ['nt_sequence'] = df_sequences
+        df_scenarios_VJ['V_offset'] = df_scenarios_VJ.apply(lambda x:
+            df_V_offsets.loc[x.name].loc[x[mdl_ii.event_GeneChoice_V_nickname]],
+            axis=1)
+        df_scenarios_VJ['VJ_anchors_in_seq'] = df_scenarios_VJ.apply(
+            lambda x: mdl_ii.get_CDR3_nt_pos_from_ps_scenario(x, x['V_offset']),
+            axis=1)
+        # print(df_scenarios_VJ)
+        # df_scenario_complete['VJ_anchors_in_seq'] = df_scenario_complete.apply(lambda x: x['nt_sequence'][slice(*mdl_ii.get_CDR3_nt_pos_from_ps_scenario(x, x['V_offset']))], axis=1)
+        df_scenarios_VJ['CDR3_nt'] = df_scenarios_VJ.apply(
+            lambda x: x['nt_sequence'][slice(*x['VJ_anchors_in_seq'])],
+            axis=1)
+        df_scenarios_VJ['CDR3_aa'] = df_scenarios_VJ.apply(lambda x: dna_translate(x['CDR3_nt']), axis=1)
+
+        df_scenarios_VJ['v_call'] = df_scenarios_VJ[mdl_ii.event_GeneChoice_V_nickname].apply(
+            lambda x: mdl_ii.parms[mdl_ii.event_GeneChoice_V_nickname]['name'].loc[x])
+        df_scenarios_VJ['j_call'] = df_scenarios_VJ[mdl_ii.event_GeneChoice_J_nickname].apply(
+            lambda x: mdl_ii.parms[mdl_ii.event_GeneChoice_J_nickname]['name'].loc[x])
+
+        return df_scenarios_VJ[ ['nt_sequence', 'V_offset', 'VJ_anchors_in_seq', 'CDR3_nt', 'CDR3_aa', 'v_call', 'j_call'] ]
+    except Exception as e:
+        raise e
+
+
+def get_sonia_input(mdl_ii:IgorModel, df_sequences, df_scenarios, df_V_offsets=None):
+    """
+    Return dataframe to use it as input to sonia
+    """
+    try:
+        df_CDR3_VJ = get_CDR3_VJ_anchors(mdl_ii, df_sequences, df_scenarios, df_V_offsets)
+        df_input_sequences_sonia = df_CDR3_VJ[['CDR3_aa', 'v_call', 'j_call']]
+        df_input_sequences_sonia['v_call'] = df_input_sequences_sonia['v_call'].apply(lambda x: x.split('*')[0])
+        df_input_sequences_sonia['j_call'] = df_input_sequences_sonia['j_call'].apply(lambda x: x.split('*')[0])
+        return list(df_input_sequences_sonia.to_numpy() )
+    except Exception as e:
+        raise e
+
 
 #############################################
 # Alias and Functions to get direct objects
@@ -8917,3 +9221,113 @@ def get_IgorRefGenome_VJ_from_IMGT(imgt_species, imgt_chain):
 
 RefGenome = IgorRefGenome
 Model = IgorModel
+
+################### SONIA METHODS ############ FIXME: CHANGE IT TO A BETTER LOCATION
+try:
+    import sonia
+    from sonia.sequence_generation import SequenceGeneration
+    from sonia.evaluate_model import EvaluateModel
+    from sonia.sonia_leftpos_rightpos import SoniaLeftposRightpos
+
+    def infer_SONIA_from_directory(mdl_dirname:Union[str, Path], data_seqs,
+                            num_gen_seqs=int(2e5), reset_gen_seqs=True, custom_model_folder=None, add_error=False,
+                            custom_error=None,
+                            epochs=10, batch_size=5000, initialize=True, seed=None, validation_split=0.2, monitor=False,
+                            verbose=0):
+        """
+        Return SONIA model
+        :param mdl_dirname: Path, str or IgorModel object use to infer the selection model with SONIA
+        :param data_seqs: List of arrays with format [ 'CDR3_aa', 'v_call', 'j_call' ]
+        """
+        qm_ii = None
+        try:
+            qm_ii = SoniaLeftposRightpos(data_seqs=data_seqs, custom_pgen_model=mdl_dirname)
+            qm_ii.add_generated_seqs(num_gen_seqs=num_gen_seqs)
+            qm_ii.infer_selection(epochs=epochs)
+            # Save model if flag is active
+            # if b_save_model:
+            #     import shutil
+            #     try:
+            #         qm_ii.save_model(mdl_dirname)
+            #     except shutil.SameFileError:
+            #         pass
+            #     except Exception as e:
+            #         raise e
+        except Exception as e:
+            raise e
+
+        return qm_ii
+
+    def save_SONIA_mdl_dirname(qm:SoniaLeftposRightpos, mdl_dirname):
+        import shutil
+        try:
+            qm.save_model(mdl_dirname)
+        except shutil.SameFileError:
+            pass
+        except Exception as e:
+            raise e
+
+
+    aa_str_to_id_dict = {aa: aa_id for aa_id, aa in enumerate(list('ACDEFGHIKLMNPQRSTVWY'))}
+
+    def ds_SONIA_model(model_dir_path):
+        fln_features = model_dir_path + "/" + "features.tsv"
+        df_features = pd.read_csv(fln_features, sep=',')
+        b_vj = df_features['Feature'].apply(lambda x: x[0] == 'v')
+        df_vj = df_features.loc[b_vj]
+
+        df_vj.loc[:, 'V'] = df_vj['Feature'].apply(lambda x: x.split(';')[0])
+        df_vj.loc[:, 'J'] = df_vj['Feature'].apply(lambda x: x.split(';')[1])
+        ds_VJ = df_vj.set_index(['V', 'J']).to_xarray()
+
+        b_len = df_features['Feature'].apply(lambda x: x[0] == 'l')
+        df_len = df_features.loc[b_len]
+        df_len.loc[:, 'Length'] = df_len['Feature'].apply(lambda x: int(x[1:]))
+        df_len.set_index('Length', inplace=True)
+
+        b_aa = df_features['Feature'].apply(lambda x: x[0] == 'a')
+        df_aa = df_features.loc[b_aa]
+        df_aa.loc[:, 'aa'] = df_aa['Feature'].apply(lambda x: str(x[1:2]))
+        df_aa.loc[:, 'aa_id'] = df_aa['aa'].apply(lambda str_aa: aa_str_to_id_dict[str_aa])
+        df_aa.loc[:, 'pos'] = df_aa['Feature'].apply(lambda x: int(x[2:]))
+
+        ds_aa = df_aa.set_index(['aa_id', 'pos']).to_xarray()
+        ds_aa_Left = ds_aa.loc[{'pos': ds_aa['pos'] >= 0}]
+        ds_aa_Right = ds_aa.loc[{'pos': ds_aa['pos'] < 0}]
+
+        return df_len, ds_aa_Left, ds_aa_Right, ds_VJ
+
+
+except ImportError as error:
+    pass
+except Exception as exception:
+    # Output unexpected Exceptions.
+    print(exception, False)
+    print(exception.__class__.__name__ + ": " + exception.message)
+
+
+
+# if isinstance(mdl_dirname, IgorModel):
+#     mdl = mdl_dirname
+#     # Create a temporary directory
+#     with tempfile.TemporaryDirectory(prefix='SONIA_inferring_', dir='.') as tmp_generate_dirname:
+#         mdl.write_mdldata_dir(tmp_generate_dirname, sep=',', b_igor_directory=False)
+#         qm_ii = SoniaLeftposRightpos(data_seqs=data_seqs, custom_pgen_model=tmp_generate_dirname)
+#         qm_ii.add_generated_seqs(num_gen_seqs=num_gen_seqs)
+#         qm_ii.infer_selection(epochs=epochs)
+
+# def infer_SONIA(mdl, data_seqs,
+#                 num_gen_seqs = int(2e5), reset_gen_seqs = True, custom_model_folder = None, add_error=False,custom_error=None,
+#                 epochs = 10, batch_size=5000, initialize = True, seed = None,validation_split=0.2, monitor=False,verbose=0):
+#     import sonia
+#     from sonia.sequence_generation import SequenceGeneration
+#     from sonia.evaluate_model import EvaluateModel
+#     from sonia.sonia_leftpos_rightpos import SoniaLeftposRightpos
+#
+#     import tempfile
+#     with tempfile.TemporaryDirectory(prefix='SONIA_inferring_', dir='.') as tmp_generate_dirname:
+#         mdl.write_mdldata_dir(tmp_generate_dirname, sep=',', b_igor_directory=False)
+#         qm_ii = SoniaLeftposRightpos(data_seqs=data_seqs, custom_pgen_model=tmp_generate_dirname)
+#         qm_ii.add_generated_seqs(num_gen_seqs = num_gen_seqs)
+#         qm_ii.infer_selection(epochs=epochs)
+#     return qm_ii

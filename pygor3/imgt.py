@@ -361,11 +361,12 @@ def download_Jgene_anchors(specie: str, chain: str, flnJGenome, ref_genes_path=N
     return fln_dict
 
 ############ Donwload all genetic information if VDJ or VJ
-def download_ref_genome_VDJ(species: str, chain: str, **kwargs):
+def download_ref_genome_VDJ(species: str, chain: str, dropna=False, **kwargs):
     """
     Return a dictionary with genomics dataframes and also save files in a IGoR directory structure.
     :param species: IMGT species name
     :param chain: IMGT chain receptor name
+    :param dropna: Remove rows with no defined values in any column
     :return : dictionary of pandas DataFrame with
     """
     # flag_verbose = False
@@ -448,11 +449,21 @@ def download_ref_genome_VDJ(species: str, chain: str, **kwargs):
     df_genomics_dict['V'] = get_dataframe_from_fasta_and_csv_anchors(dict_V["genomics"], dict_V["anchors"])
     df_genomics_dict['D'] = get_dataframe_from_fasta_and_csv_anchors(dict_D["genomics"])
     df_genomics_dict['J'] = get_dataframe_from_fasta_and_csv_anchors(dict_J["genomics"], dict_J["anchors"])
+
+    if dropna:
+        df_genomics_dict['V'].dropna(inplace=True)
+        df_genomics_dict['V']['anchor_index'] = df_genomics_dict['V']['anchor_index'].astype(int)
+        df_genomics_dict['V'].set_index(np.arange(len(df_genomics_dict['V'])), inplace=True)
+
+        df_genomics_dict['J'].dropna(inplace=True)
+        df_genomics_dict['J']['anchor_index'] = df_genomics_dict['J']['anchor_index'].astype(int)
+        df_genomics_dict['J'].set_index(np.arange(len(df_genomics_dict['J'])), inplace=True)
+
     return df_genomics_dict
 
     # print(kwargs)
 
-def download_ref_genome_VJ(species: str, chain: str, **kwargs):
+def download_ref_genome_VJ(species: str, chain: str, dropna=False, **kwargs):
     """Download gene templates and anchors from IMGT and creates
     different files with original and short names.
 
@@ -466,6 +477,7 @@ def download_ref_genome_VJ(species: str, chain: str, **kwargs):
     :type filename: str, optional
     :param imgt_genedb: Url of IMGT GeneDB web application.
     :type imgt_genedb: str
+    :param dropna: Remove rows with no defined values in any column
     """
     dictVGenome = download_gene_template(species, chain + 'V', **kwargs)
     dictJGenome = download_gene_template(species, chain + 'J', **kwargs)
@@ -538,18 +550,39 @@ def download_ref_genome_VJ(species: str, chain: str, **kwargs):
     df_genomics_dict = dict()
     df_genomics_dict['V'] = get_dataframe_from_fasta_and_csv_anchors(dict_V["genomics"], dict_V["anchors"])
     df_genomics_dict['J'] = get_dataframe_from_fasta_and_csv_anchors(dict_J["genomics"], dict_J["anchors"])
+
+    if dropna:
+        df_genomics_dict['V'].dropna(inplace=True)
+        df_genomics_dict['V']['anchor_index'] = df_genomics_dict['V']['anchor_index'].astype(int)
+        df_genomics_dict['V'].set_index(np.arange(len(df_genomics_dict['V'])), inplace=True)
+
+        df_genomics_dict['J'].dropna(inplace=True)
+        df_genomics_dict['J']['anchor_index'] = df_genomics_dict['J']['anchor_index'].astype(int)
+        df_genomics_dict['J'].set_index(np.arange(len(df_genomics_dict['J'])), inplace=True)
+
     return df_genomics_dict
 
 
-# FIXME: WORKING ON THIS
-def download_ref_genome(species: str, chain: str, **kwargs):
+def download_ref_genome(species: str, chain: str, dropna=False, **kwargs):
     """
-    FIXME: IN DEV
-    TODO: CHECK THE IMGT STANDARDS TO DEFINE IG AND TR
+    Returns dictionary with genomic templates V(D)J
+    :param species: IMGT species check get_species_list() to get list of possible names
+    :param chain: IMGT chain, if ['TRB', 'IGH'] returns VDJ dict and VJ for ['TRA', 'IGL'].
+    :param dropna: Drop NaN in dataframes with new ids
+    :return: genomic templates dictionary
     """
-    dictVGenome = download_gene_template(species, chain + 'V', **kwargs)
-    dictJGenome = download_gene_template(species, chain + 'J', **kwargs)
-    pass
+    # FIXME: IN DEV
+    #     TODO: CHECK THE IMGT STANDARDS TO DEFINE IG AND TR
+    ref_genome_dict = dict()
+    if chain in ['TRB', 'IGH']:
+        ref_genome_dict = download_ref_genome_VDJ(species, chain, dropna=dropna, **kwargs)
+    elif chain in ['TRA', 'IGL']:
+        ref_genome_dict = download_ref_genome_VJ(species, chain, dropna=dropna, **kwargs)
+    else:
+        ref_genome_dict = None
+
+    return ref_genome_dict
+
 
 def get_dict_from_imgt_description(str_description):
     """

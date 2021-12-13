@@ -12,6 +12,7 @@ from pygor3 import infer
 from pygor3 import get_default_IgorModel
 from pygor3 import get_IgorRefGenome_VDJ_from_IMGT
 from pygor3 import rcParams
+from pygor3.utils import dna_translate
 
 from pygor3 import from_df_scenario_aln_to_da_scenario_aln, plot_scenario_from_da_scenario_aln
 import matplotlib.pyplot as plt
@@ -433,6 +434,73 @@ class MyTestCase(unittest.TestCase):
         pd_rearrangement = task.evaluate(self.pd_sequences, igor_wd='here', clean_batch=False)
         self.assertIsInstance(pd_rearrangement, pd.DataFrame)
         print(pd_rearrangement)
+
+    def test_CDR3(self):
+        hb_mdl = get_default_IgorModel("human", "tcr_beta")
+        df_sequences = generate(10, hb_mdl, seed=0)
+        df_scenarios, df_offsets = evaluate(df_sequences, hb_mdl, airr_format=False, b_V_offset=True)
+
+        seq_index = 5
+        ps_scenario = df_scenarios.loc[seq_index].iloc[0]
+
+        V_offset = int(df_offsets.loc[seq_index].loc[ps_scenario[hb_mdl.event_GeneChoice_V_nickname]]) # None
+        print("V_offset: ", V_offset)
+
+
+
+        if V_offset is None:
+            V_offset = 0
+        len_scenario = 0
+        len_GeneChoice = 0
+        len_Insertion = 0
+        len_Deletion = 0
+
+        print("ps_scenario: ", ps_scenario)
+        for event_nickname in hb_mdl.event_GeneChoice_nickname_list:
+            len_GeneChoice += len(hb_mdl.realization(ps_scenario, event_nickname).value)
+            print(event_nickname, len_GeneChoice)
+        for event_nickname in hb_mdl.event_Insertion_nickname_list:
+            len_Insertion += hb_mdl.realization(ps_scenario, event_nickname).value
+        for event_nickname in hb_mdl.event_Deletion_nickname_list:
+            len_Deletion += -hb_mdl.realization(ps_scenario, event_nickname).value
+
+        len_scenario = len_GeneChoice + len_Insertion + len_Deletion
+        print('*'*80)
+        print("len_scenario: ", len_scenario)
+
+        V_nickname = hb_mdl.event_GeneChoice_V_nickname
+        J_nickname = hb_mdl.event_GeneChoice_J_nickname
+
+        V_choice_realization = hb_mdl.realization(ps_scenario, V_nickname)
+        J_choice_realization = hb_mdl.realization(ps_scenario, J_nickname)
+
+        V_anchor_in_seq = V_offset + int( hb_mdl.V_anchor(V_choice_realization.id) )
+        J_anchor_in_seq = V_offset + int( hb_mdl.J_anchor(J_choice_realization.id) ) - len(J_choice_realization.value) + len_scenario + 3
+
+        V_anchor_in_seq, J_anchor_in_seq
+
+        print("V_anchor_in_seq: ", V_anchor_in_seq)
+        print('-'*40)
+        print("J_anchor_in_seq: ", J_anchor_in_seq)
+        print(df_sequences)
+        print('-'*50)
+        str_seq = df_sequences['nt_sequence'].loc[seq_index]
+        print("str_seq: ", len(str_seq), str_seq)
+
+        str_CDR3_nt = str_seq[V_anchor_in_seq:J_anchor_in_seq]
+        print("str_CDR3_nt: ", str_CDR3_nt)
+        print( dna_translate(str_CDR3_nt) )
+        self.assertIsInstance(hb_mdl, IgorModel)
+        # df_sequences = generate(10, hb_mdl)
+        # self.assertIsInstance(df_sequences, pd.DataFrame)
+        # df_scenarios, df_V_offsets = evaluate(df_sequences,hb_mdl,5, b_V_offset=True, airr_format=False)
+        # self.assertIsInstance(df_scenarios, pd.DataFrame)
+        # # self.assertIsInstance(df_V_offsets, pd.DataFrame)
+        # aaa = hb_mdl.get_VDJ_CDR3_from_df_scenario(df_scenarios)
+        # print(aaa)
+        hb_mdl.plot_scenario(ps_scenario)
+        plt.show()
+
 
 
 

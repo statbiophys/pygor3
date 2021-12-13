@@ -3,6 +3,8 @@ import copy
 # option wrappers for IGoR
 # IGoR command line options
 igor_option_path_dict={
+    "TRA" : "tcr_alpha",
+    "TRB" : "tcr_beta",
     "alpha": "tcr_alpha",
     "beta" : "tcr_beta",
     "light": "light",
@@ -15,7 +17,7 @@ tmp_dict_options = {
     '---thresh': {'active': False, 'value': '15', 'dict_options': {}},
     '---matrix': {'active': False, 'value': 'path/to/file', 'dict_options': {}},
     '---gap_penalty': {'active': False, 'value': 'X', 'dict_options': {}},
-    '---best_align_only': {'active': False, 'value': '', 'dict_options': {}}
+    '---best_align_only': {'active': False, 'value': 'false', 'dict_options': {}}
 }
 igor_align_dict_options = {
     '--all':
