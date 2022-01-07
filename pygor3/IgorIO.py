@@ -2756,7 +2756,7 @@ class IgorModel_Marginals:
         if event.event_type == 'DinucMarkov':
             # do something
             dimension = len(parms.get_Event(event.nickname).realizations)
-            narr = np.ones(dimension * dimension) / (dimension * dimension)
+            narr = np.ones(dimension * dimension) / (dimension) # * dimension)
             self.marginals_dict[event.nickname] = narr
         else:
             dimensions = [len(parms.get_Event(strEvent).realizations) for strEvent in
@@ -3228,6 +3228,7 @@ class IgorModel:
 
                 if event.event_type == 'DinucMarkov':
                     # if key in Event_Dinucl_List:
+                    # FIXME: reshape by dimension in marginal
                     self.xdata[key] = xr.DataArray(self.marginals.marginals_dict[key].reshape(4, 4), \
                                                    dims=('x', 'y'))
                     labels = self.parms.Event_dict[key]['value'].values
@@ -3628,15 +3629,241 @@ class IgorModel:
 
     def get_entropy_event(self, event_nickname):
         """
-
+        Returns entropy of event. If event has parents it returns the conditional
+        entropy of the event with this parents
+        H(X|Y) = - \sum_{x,y} p(x,y) \log{p(x|y)}
+        :param event_nickname: Event nickname to calculate entropy
         """
-        log2_Pmarginal = np.log2(self.Pmarginal[event_nickname])
-        log2_Pmarginal.values = np.nan_to_num(log2_Pmarginal.values, neginf=0)
-        da_entropy = - xr.dot(self.Pmarginal[event_nickname], log2_Pmarginal)
-        return da_entropy
+        try:
 
-    def get_entropy_decomposition(self):
-        pass
+            da_CP_event = self.Pconditionals[event_nickname]
+
+            da_log2_event = xr.zeros_like(da_CP_event)
+            da_log2_event.values = np.nan_to_num(np.log2(da_CP_event.values), neginf=0, nan=0)
+
+            if da_CP_event.attrs['event_type'] == 'DinucMarkov':
+                # FIXME: IN DEV
+                H_event = -(da_CP_event * da_log2_event).sum(dim='y')
+                return H_event
+
+            elif (len(da_CP_event.attrs['parents']) > 0):
+                H_event_given_parents = -(da_CP_event * da_log2_event).sum(dim=event_nickname)
+                P_joint = self.get_P_joint(da_CP_event.attrs['parents'])
+                H_event_conditional = (P_joint*H_event_given_parents).sum()
+                return H_event_conditional
+            else:
+                H_event = -(da_CP_event * da_log2_event).sum(dim=event_nickname)
+                return H_event
+                # log2_Pmarginal = np.log2(self.Pconditionals[event_nickname])
+                # log2_Pmarginal.values = np.nan_to_num(log2_Pmarginal.values, neginf=0, nan=0)
+                # da_entropy = - xr.dot(self.Pmarginal[event_nickname], log2_Pmarginal)
+                # return da_entropy
+        except Exception as e:
+            raise e
+
+    def get_conditional_entropy_dinucl_function_l_ins(self, event_nickname_dinucl:str):
+        """
+        Return a function that depends on insertion length H(P_{m_i|l}) = H(p_{ss}) - (l-1) \sum_m p_{ss}(m) \sum_n T(n|m) \log2{T(n|m)}
+        where p_{ss} is the stationary state calculated for T (eigenvector for eigenvalue 1)
+        T(n|m) jump matrix from m to n, where m and n are nucleotides.
+        """
+        da_dinucl = self.Pconditionals[event_nickname_dinucl]
+        if da_dinucl.attrs['event_type'] == 'DinucMarkov':
+            # 1. Calculate the stationary distribution
+            p_ss = np.real(get_P_stationary_state_dinucl(da_dinucl))
+            H_dinucl = self.get_entropy_event(event_nickname_dinucl)
+
+            # 2. Calculate the entropy of the stationary distribution
+            # get_entropy_event(event_nickname_dinucl)
+            H_p_ss = -(p_ss * np.log2(p_ss)).sum()
+
+            # 3. Calculate the entropic contributions of lenght l to the entropy
+            matmul_H_dinucl_p_ss = np.matmul(H_dinucl.values, p_ss)
+            def tmp_function(l_ins):
+                # 4. Return  H(P_{m_i}|l)
+                if l_ins > 0:
+                    return H_p_ss + (l_ins - 1) * matmul_H_dinucl_p_ss
+                elif l_ins == 0:
+                    return H_p_ss
+                else:
+                    return None
+
+            return np.vectorize(tmp_function)
+        else:
+            return None
+
+
+    def get_df_Insertion_entropy_contribution(self):
+        """
+        H(P({m_i})) = H(P_{ins}) - \sum_l P_{ins}(l) \sum_{m_i |l} H( P(m_i |l) )
+        Return entropy contributions of insertions considering the diversity of nucleotides.
+        """
+        # 1. Find the Insertions events
+        list_Insertion_events_nickname = list() # vd_ins, dj_ins
+        list_DinucMarkov_events_nickname = list()
+        for event_nickname in self.Pconditionals.keys():
+            if self.Pconditionals[event_nickname].attrs['event_type'] == 'Insertion':
+                list_Insertion_events_nickname.append(event_nickname)
+            elif self.Pconditionals[event_nickname].attrs['event_type'] == 'DinucMarkov':
+                list_DinucMarkov_events_nickname.append(event_nickname)
+
+        # 2. Associate DinucMarkov with Insertion event by seq_type
+        dict_Insertion_DinucMarkov = dict() # dict_Insertion_DinucMarkov['vd_ins'] =  vd_dinucl
+        for insertion_event_nickname in list_Insertion_events_nickname:
+            insertion_seq_type = self.Pconditionals[insertion_event_nickname].attrs['seq_type']
+            for dinucl_event_nickname in list_DinucMarkov_events_nickname:
+                if insertion_seq_type == self.Pconditionals[dinucl_event_nickname].attrs['seq_type']:
+                    dict_Insertion_DinucMarkov[insertion_event_nickname] = dinucl_event_nickname
+
+        # 3. Calculate the stationary state of DinucMarkov events
+        # H(P({m_i})) = H(P_{ins}) - \sum_l P_{ins}(l) \sum_{m_i |l} H( P(m_i |l) )
+
+        # 4. Finally Get the entropic contribution
+        list_Insertion_entropy = list()
+        for insertion_event_nickname in list_Insertion_events_nickname:
+            vf_H_dinucl_given_l = self.get_conditional_entropy_dinucl_function_l_ins(
+                dict_Insertion_DinucMarkov[insertion_event_nickname])
+            H_P_mi_l = vf_H_dinucl_given_l(self.parms[insertion_event_nickname]['value'].values)
+            # FIXME: WHICH ONE IS THE BEST Pmarginal or Pconditional?
+            # mdl.get_entropy_event('vd_ins') + np.dot(H_P_mi_l, mdl['vd_ins'])
+            entropy_tmp = self.get_entropy_event(insertion_event_nickname)
+            entropy_tmp = entropy_tmp.values + np.dot(H_P_mi_l, self.Pmarginal[insertion_event_nickname].values)
+            list_Insertion_entropy.append(entropy_tmp)
+
+        data_tmp = {
+            'event_nickname': list_Insertion_events_nickname,
+            'event_type': ['Insertion' for ev_nick in list_Insertion_events_nickname],
+            'seq_type': [ self.Pconditionals[ev_nick].attrs['seq_type'] for ev_nick in self.event_Insertion_nickname_list],
+            'entropy': list_Insertion_entropy
+        }
+        # print("list_Insertion_entropy: ", list_Insertion_entropy, type(list_Insertion_entropy[0]))
+        df_Insertion_entropy = pd.DataFrame(data_tmp)
+        df_Insertion_entropy['entropy'] = df_Insertion_entropy['entropy'].astype(float)
+
+        return df_Insertion_entropy
+        # self.Pconditionals.attrs['seq_type']
+        # event_nickname_insertion = 'vd_ins'
+        # H_P_ins = self.get_entropy_event(event_nickname_insertion)
+
+    def get_df_GeneChoice_entropy_contribution(self):
+        """
+        Return pandas dataframe entropy decomposition for GeneChoice
+        """
+        list_GeneChoice_entropy = list()
+        for event_GeneChoice_nickname in self.event_GeneChoice_nickname_list:
+            list_GeneChoice_entropy.append(self.get_entropy_event(event_GeneChoice_nickname))
+        data_tmp = {
+            'event_nickname': self.event_GeneChoice_nickname_list,
+            'event_type': ['GeneChoice' for ev_nick in self.event_GeneChoice_nickname_list],
+            'seq_type': [self.Pconditionals[ev_nick].attrs['seq_type'] for ev_nick in self.event_GeneChoice_nickname_list],
+            'entropy': list_GeneChoice_entropy
+        }
+        df_GeneChoice_entropy = pd.DataFrame(data_tmp)
+        df_GeneChoice_entropy['entropy'] = df_GeneChoice_entropy['entropy'].astype(float)
+        return df_GeneChoice_entropy
+
+    def get_df_Deletion_entropy_contribution(self):
+        """
+        Return pandas dataframe entropy decomposition for Deletions
+        """
+        list_Deletion_entropy = list()
+        for event_Deletion_nickname in self.event_Deletion_nickname_list:
+            list_Deletion_entropy.append(self.get_entropy_event(event_Deletion_nickname))
+
+        data_tmp = {
+            'event_nickname': self.event_Deletion_nickname_list,
+            'event_type': ['Deletion' for ev_nick in self.event_Deletion_nickname_list],
+            'seq_type': [self.Pconditionals[ev_nick].attrs['seq_type'] for ev_nick in self.event_Deletion_nickname_list],
+            'entropy': list_Deletion_entropy
+        }
+        df_Deletion_entropy = pd.DataFrame(data_tmp)
+        df_Deletion_entropy['entropy'] = df_Deletion_entropy['entropy'].astype(float)
+        return df_Deletion_entropy
+
+
+    def get_df_entropy_decomposition(self):
+        """
+        Return entropy decomposition of events in a Dataframe
+        """
+        try:
+            np.seterr(divide='ignore')
+            # calculate entropy of V, D and J Genechoice
+            df_GeneChoice_entropy = self.get_df_GeneChoice_entropy_contribution()
+
+            # calculate deletion entropy
+            df_Deletion_entropy = self.get_df_Deletion_entropy_contribution()
+
+            # calculate insertion entropy
+            df_Insertion_entropy = self.get_df_Insertion_entropy_contribution()
+
+            np.seterr(divide='warn')
+
+            df_entropy_decomposition = pd.concat([df_GeneChoice_entropy, df_Insertion_entropy, df_Deletion_entropy])
+            df_entropy_decomposition.reset_index(inplace=True)
+
+            return df_entropy_decomposition.drop(columns='index')
+        except Exception as e:
+            raise e
+
+    def plot_recombination_entropy(self, ax=None, df_entropy=None):
+        if df_entropy is None:
+            df_entropy = self.get_df_entropy_decomposition()
+
+        if ax is None:
+            # print("matplotlib")
+            import matplotlib.pyplot as plt
+            fig, ax = plt.subplots(figsize=(25, 12))
+
+        import matplotlib.pyplot as plt
+        from matplotlib.patches import Rectangle
+        edgecolor = 'g'
+
+
+        # ax.set_xlim(0, 20)
+        # ax.set_ylim(0, 20)
+        # ax.add_patch(Rectangle( (0,0), 5, 5 , edgecolor='red') )
+        ypos = 0
+        left = 0
+        height = 0.10 * df_entropy['entropy'].sum()
+        for index, row in df_entropy.iterrows():  # ['entropy']:
+            h_entropy = row['entropy']
+            color = Igor_event_type_color_dict[row['event_type']]
+            # print(aaa)
+            hatch = Igor_seq_type_hatch_pattern_dict[row['seq_type']]
+            ax.barh(ypos, h_entropy, height=height, left=left, color=color, edgecolor=edgecolor, hatch=hatch)
+            # label
+            seq_type = row['seq_type'].split('_')[0]
+            xpos = left + h_entropy / 2
+            label = "{} \n{:.1f} \nbits".format(seq_type, h_entropy)
+            # label = "{}".format(seq_type)
+            ax.text(xpos, ypos - 0.25 * height, label, ha='center', color='k', weight='bold', fontsize='xx-large')
+            left += h_entropy
+
+        height = 0.5 * height
+        ypos += height
+        left = 0
+        for event_type in df_entropy[
+            'event_type'].unique():  # df_entropy.groupby('event_type').apply(lambda g: g['entropy'].sum()):
+            h_event_type = df_entropy[df_entropy['event_type'] == event_type]['entropy'].sum()
+            color = Igor_event_type_color_dict[event_type]
+            ax.barh(ypos, h_event_type, height=height, left=left, color=color, edgecolor=edgecolor)
+            xpos = left + h_event_type / 2
+            label = "{}: {:.1f} bits".format(event_type, h_event_type)
+            ax.text(xpos, ypos, label, ha='center', color='k', weight='bold', fontsize='xx-large')
+            left += h_event_type
+
+        # height = 0.5*height
+        ypos += height
+        left = 0
+        h_recombination = df_entropy['entropy'].sum()
+        color = '#f68294'
+        xpos = left + h_recombination / 2
+        label = "Recombination Events: {:.1f} bits".format(h_recombination)
+        ax.text(xpos, ypos, label, ha='center', color='k', weight='bold', fontsize='xx-large')
+        ax.barh(ypos, h_recombination, height=height, left=left, color=color, edgecolor=edgecolor)
+        ax.set_aspect('equal')
+        ax.axis('off')
+        return ax
 
     @staticmethod
     def get_cross_entropy(self):
@@ -4416,7 +4643,7 @@ class IgorModel:
         return list(events_set)
 
     def get_sorted_events_nicknames_list(self):
-        return [ event.nickname for event in mdl.parms.get_Event_list_sorted()]
+        return [ event.nickname for event in self.parms.get_Event_list_sorted()]
 
     # PLOTS:
     def plot_Bayes_network(self, ax=None, filename=None):

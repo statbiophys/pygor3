@@ -4,6 +4,11 @@ from pygor3 import *
 import itertools
 import matplotlib.pyplot as plt
 class MyTestCase(unittest.TestCase):
+    def test_plot_Bayes_network(self):
+        mdl = IgorModel.load_default("human", "tcr_beta")
+        ax = mdl.plot_Bayes_network()
+        # self.assertIsInstance(fig, plt.Figure)
+
     def test_something(self):
         mdl = IgorModel.load_default("human", "tcr_beta")
         fig, ax = mdl.plot_Event('v_choice')

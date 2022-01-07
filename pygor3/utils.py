@@ -1045,6 +1045,18 @@ def get_D_KL_from_xarray(da_P_X_Y, da_P_X, da_P_Y):
     # mutual_information = xr.dot(da_P_X_Y, log_Pxy_over_Px_Py)
     # return mutual_information
 
+
+
+def get_P_stationary_state_dinucl(da_dinucl):
+    """
+    Get stationary state probability from dataarray dinucleotide
+    """
+    eigen_value, eigen_vect = np.linalg.eig(da_dinucl)
+    b_one = ((1 - eigen_value) < 0.00001)
+    p_ss = eigen_vect[:, b_one]
+    return p_ss / p_ss.sum()
+
+
 ##########################################################
 
 try:

@@ -362,6 +362,11 @@ class MyTestCase(unittest.TestCase):
         print(mdl.genomic_dataframe_dict['V'])
 
     def test_IgorModel_make_default_VDJ(self):
+        mdl_hb = IgorModel.load_default('human', 'beta')
+        mdl_hb.genomic_dataframe_dict
+        mdl_unif = IgorModel.make_default_VDJ(mdl_hb.genomic_dataframe_dict['V'], mdl_hb.genomic_dataframe_dict['D'],
+                                                 mdl_hb.genomic_dataframe_dict['J'])
+
         pass
 
     def test_IgorModel_add_Edge(self):
@@ -650,6 +655,44 @@ class MyTestCase(unittest.TestCase):
 
     def test_IgorModel_plot(self):
         IgorModel.plot_mutual_information()
+
+    def test_IgorModel_entropy(self):
+        species = "human"
+        chain = "tcr_beta"
+        mdl = IgorModel.load_default(species, chain)
+        event_nickname_dinucl = 'vd_dinucl'
+        print( mdl[event_nickname_dinucl] )
+        p_ss = get_P_stationary_state_dinucl(mdl[event_nickname_dinucl])
+        self.assertIsInstance(p_ss, np.ndarray)
+        # print(type(p_ss), p_ss, p_ss.sum(), p_ss.shape)
+        # print('-'*30)
+        H_dinucl = mdl.get_entropy_event(event_nickname_dinucl)
+        self.assertIsInstance(H_dinucl, xr.DataArray)
+        # print("H_dinucl: ", H_dinucl)
+        # print('-'*20)
+
+        print('=0'*20)
+        vf_H_dinucl_g_l = mdl.get_conditional_entropy_dinucl_function_l_ins(event_nickname_dinucl)
+        print( mdl.parms['vd_ins']['value'].values )
+        H_P_mi_l = vf_H_dinucl_g_l(mdl.parms['vd_ins']['value'].values)
+        print(H_P_mi_l)
+        print( mdl.get_entropy_event('vd_ins') + np.dot(H_P_mi_l, mdl['vd_ins']) )
+
+    def test_IgorModel_entropy02(self):
+        species = "human"
+        chain = "tcr_beta"
+        mdl = IgorModel.load_default(species, chain)
+        df_entropy = mdl.get_df_Insertion_entropy_contribution()
+        print(df_entropy)
+        # for
+
+        # f_dinucl = mdl.get_conditional_entropy_dinucl_function_l_ins(mdl['vd_dinucl'])
+        # # for l in range(1):
+        # #     print('-'*10)
+        # l = 0
+        # print(l, f_dinucl(l))
+        # l = 1
+        # print(l, f_dinucl(l))
 
 
     def test_IgorModel_name_change(self):
