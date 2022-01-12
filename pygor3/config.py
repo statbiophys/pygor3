@@ -28,6 +28,7 @@ defaultParams = {
 # TODO: READ CONFIGURATION FROM FILE
 import appdirs
 import os
+_pygor3_dirs = appdirs.AppDirs('pygor3', 'alfaceor')
 
 def create_config_files():
     try:
@@ -35,12 +36,13 @@ def create_config_files():
         import pkg_resources
         import json
 
-        dirs = appdirs.AppDirs('pygor3', 'alfaceor') #, version=__version__) # FIXME I'M USING SCM for versioning so?
+        # dirs = appdirs.AppDirs('pygor3', 'alfaceor') #, version=__version__) # FIXME I'M USING SCM for versioning so?
         fln_config_json = 'config.json'
 
-        default_config_path = os.path.join(dirs.user_data_dir, fln_config_json)
+        #default_config_path = os.path.join(dirs.user_data_dir, fln_config_json)
+        default_config_path = os.path.join(_pygor3_dirs.user_data_dir, fln_config_json)
 
-        pathlib.Path(dirs.user_data_dir).mkdir(parents=True, exist_ok=True)
+        pathlib.Path(_pygor3_dirs.user_data_dir).mkdir(parents=True, exist_ok=True)
 
         # TODO: if default_config_path exist just load it, else create it first
         if pathlib.Path(default_config_path).is_file():
@@ -75,8 +77,8 @@ def create_config_files():
 
 def load_config_files():
     try:
-        dirs = appdirs.AppDirs('pygor3', 'alfaceor')
-        default_config_path = os.path.join(dirs.user_data_dir, 'config.json')
+        # dirs = appdirs.AppDirs('pygor3', 'alfaceor')
+        default_config_path = os.path.join(_pygor3_dirs.user_data_dir, 'config.json')
         with open(default_config_path, 'r') as f:
             import json
             user_config_Params = json.load(f)
