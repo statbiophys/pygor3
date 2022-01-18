@@ -79,6 +79,11 @@ from . import imgt
 
 from .AIRR import *
 
+
+from .config import _pygor3_dirs
+
+__user_data_dir__ = _pygor3_dirs.user_data_dir
+
 #__all__ = ["IgorModel"]
 
 

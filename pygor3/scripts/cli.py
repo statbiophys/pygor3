@@ -41,6 +41,15 @@ def cli():
     #     fln_genomicVs, fln_genomicDs, fln_genomicJs, fln_V_gene_CDR3_anchors, fln_J_gene_CDR3_anchors):
     click.echo("--------------------------------")
 
+from pygor3 import __user_data_dir__
+@click.command()
+@click.option('--config', help="Path of config.json file to set IGoR executable and default models.")
+def config():
+    click.echo("pygor configuration directory: " + str(__user_data_dir__) )
+
+
+cli.add_command(config)
+
 #######################################################################
 import functools
 def common_options(f):
