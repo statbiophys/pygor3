@@ -2951,6 +2951,35 @@ class IgorModel:
     def get_Event_value(self, event_nickname, index):
         return self.parms[event_nickname].value.loc[index]
 
+    def get_df_events_rearrangement(self):
+        """
+        Return event dataframe sorted for V(D)J rearrangement
+        """
+        try:
+            import pandas as pd
+
+            list_events_properties = list()
+            for ev_nickname in self.xdata.keys():
+                list_events_properties.append(self.xdata[ev_nickname].attrs)
+
+            df_events = pd.DataFrame(list_events_properties)
+            df_events.sort_values(by='seq_type').reset_index()
+
+            Igor_dict_order_seq_type = {'V_gene': 0, 'VD_genes': 1, 'D_gene': 2, 'DJ_gene': 3, 'VJ_gene': 4, 'J_gene': 5,
+                                        'VDJ_genes': 6, 'Undefined_gene': 7}
+            Igor_dict_order_event_type = {'GeneChoice': 0, 'Deletion': 1, 'Insertion': 2, 'DinucMarkov': 3, 'Undefined': 4}
+            Igor_dict_order_seq_side = {'Five_prime': 0, 'Three_prime': 1, 'Undefined_side': 2}
+
+            df_events['n_seq_type'] = df_events['seq_type'].map(Igor_dict_order_seq_type)
+            df_events['n_event_type'] = df_events['event_type'].map(Igor_dict_order_event_type)
+            df_events['n_seq_side'] = df_events['seq_side'].map(Igor_dict_order_seq_side)
+            df_rearrengement_events = df_events.sort_values(
+                by=['n_seq_type', 'n_event_type', 'n_seq_side']).reset_index().drop(columns=['index'])
+            df_rearrengement_events.drop(columns=['n_seq_type', 'n_event_type', 'n_seq_side'], inplace=True)
+            return df_rearrengement_events
+        except Exception as e:
+            raise e
+
     @property
     def event_GeneChoice_nickname_list(self):
         try:
@@ -3605,26 +3634,33 @@ class IgorModel:
         # DinucMarkov_list = [event for event in sorted_events if event.event_type == 'DinucMarkov']
         # events_no_DinucMarkov = [event for event in sorted_events if not event.event_type == 'DinucMarkov']
 
-        dict_nickname_event_type = self.parms.get_event_dict('nickname', 'event_type')
-        dict_events = {key: val for key, val in dict_nickname_event_type.items() if val != 'DinucMarkov'}
-        event_lista_nicknames = list(dict_events.keys())
-        data_0 = np.zeros((len(event_lista_nicknames), len(event_lista_nicknames)))
-        da_mi = xr.DataArray(data_0, dims=('x', 'y'), coords={'x': event_lista_nicknames, 'y': event_lista_nicknames})
-        da_mi.name = 'mutual_information'
+        try:
+            np.seterr(divide='ignore')
+
+            dict_nickname_event_type = self.parms.get_event_dict('nickname', 'event_type')
+            dict_events = {key: val for key, val in dict_nickname_event_type.items() if val != 'DinucMarkov'}
+            event_lista_nicknames = list(dict_events.keys())
+            data_0 = np.zeros((len(event_lista_nicknames), len(event_lista_nicknames)))
+            da_mi = xr.DataArray(data_0, dims=('x', 'y'), coords={'x': event_lista_nicknames, 'y': event_lista_nicknames})
+            da_mi.name = 'mutual_information'
 
 
-        import itertools
-        for event_nickname_x, event_nickname_y in itertools.combinations_with_replacement(event_lista_nicknames, 2):
-        # for event_nickname_x, event_nickname_y in itertools.product(event_lista_nicknames, event_lista_nicknames):
-            if event_nickname_x != event_nickname_y:
-                mi = self.get_mutual_information_events(event_nickname_x, event_nickname_y)
-                da_mi.loc[{"x": event_nickname_x, "y": event_nickname_y}] = mi
-                da_mi.loc[{"x": event_nickname_y, "y": event_nickname_x}] = mi
-            else:
-                mi = 0
-                da_mi.loc[{"x": event_nickname_x, "y": event_nickname_y}] = mi
-            # print(event_nickname_x, event_nickname_y, mi)
-        return da_mi
+            import itertools
+            for event_nickname_x, event_nickname_y in itertools.combinations_with_replacement(event_lista_nicknames, 2):
+            # for event_nickname_x, event_nickname_y in itertools.product(event_lista_nicknames, event_lista_nicknames):
+                if event_nickname_x != event_nickname_y:
+                    mi = self.get_mutual_information_events(event_nickname_x, event_nickname_y)
+                    da_mi.loc[{"x": event_nickname_x, "y": event_nickname_y}] = mi
+                    da_mi.loc[{"x": event_nickname_y, "y": event_nickname_x}] = mi
+                else:
+                    mi = 0
+                    da_mi.loc[{"x": event_nickname_x, "y": event_nickname_y}] = mi
+                # print(event_nickname_x, event_nickname_y, mi)
+            return da_mi
+        except Exception as e:
+            raise e
+        finally:
+            np.seterr(divide='warn')
 
 
     def get_entropy_event(self, event_nickname):
@@ -5335,6 +5371,33 @@ class IgorModel:
             raise e
 
     # TODO: MAKE A METHOD TO EXPORT A LINE FROM AN SCENARIO
+    #  IN DEV:
+    def get_AIRR_from_ps_scenario(self, ps_scenario, v_offset=0):
+        """
+        Return airr format description from IGoR scenario
+        """
+
+        df_events_rearrangement = self.get_df_events_rearrangement()
+
+        # 1. From model get events nickname
+        # 2. Make the rearrengement list using pygor AIRR schema.
+        # 2.1 GeneChoice Events
+        for nickname_GeneChoice in self.event_GeneChoice_nickname_list:
+            print(nickname_GeneChoice)
+        # 2.2 Deletions Events
+        for nickname_Deletion in self.event_Deletion_nickname_list:
+            print(nickname_Deletion)
+        # 2.3 Insertions Events
+        for nickname_Insertion in self.event_Insertion_nickname_list:
+            print(nickname_Insertion)
+
+        self.event_DinucMarkov_nickname_list
+        # 3. return row for pandas dataframe or dict.
+
+        pass
+
+
+
     def get_AIRR_VDJ_rearragement_dict_from_scenario(self, scenario, str_sequence, v_offset=0, pgen=None, junction=None,
                                                      junction_aa=None):
         # get_AIRR_VDJ_rearragement_dict_from_scenario(scenario, indexed_seq.seq_index, indexed_seq.sequence)

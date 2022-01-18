@@ -4,6 +4,7 @@ import unittest
 from pygor3 import *
 from pygor3.imgt import *
 import os
+import pandas as pd
 import subprocess
 
 class TestPygor3(unittest.TestCase):
@@ -102,6 +103,62 @@ class TestPygor3(unittest.TestCase):
 
         # self.assertEqual(type(df_genomics_dict), type(dict()))
         """
+
+    def test_AIRR_from_scenario(self):
+        species = "human"
+        chain = "tcr_beta"
+
+        str_sequence = "CAAGACCCAGGACTGGGCCTACGGTTGATCTATTACTCCTTTGATGTCAAAGATATAAACAAAGGAGAGATCTCTGATGGATACAGTGTCTCTCGACAGGCACAGGCTAAATTCTCCCTGTCCCTAGAGTCTGCCATCCCCAACCAGACAGCTCTTTACTTCTGTGCCACTCCCCCGGTGGCTGGCTACACCTTCGGTTCGGGGACCAGGTTAACCGTTGTAG"
+
+        airr_fields = AIRR_VDJ_rearrangement.list_of_fields()
+        mdl = get_default_IgorModel(species, chain)
+        df_scenarios = evaluate(str_sequence, mdl=mdl, N_scenarios=20)
+        self.assertIsInstance(df_scenarios, pd.DataFrame)
+        print(df_scenarios)
+        ps_scenario = df_scenarios.iloc[0]
+        aaa = mdl.get_AIRR_from_ps_scenario(ps_scenario, v_offset=0)
+        print(aaa)
+        # df_ps_scenario = mdl.get_df_scenario_aln_from_scenario(ps_scenario)
+        # print(df_ps_scenario)
+        # ps_scenario
+        # v_offset
+        # airr_rearrangement_dict = mdl.get_AIRR_VDJ_rearragement_dict_from_scenario(ps_scenario, str_sequence, v_offset=0)
+        # print(airr_rearrangement_dict)
+
+    def test_AIRR_format(self):
+        import airr
+
+        # Cigar alignment from scenario and V_offset
+        directory_name = os.path.dirname(flnAIRR_arrangement)
+        pathlib.Path(directory_name).mkdir(parents=True, exist_ok=True)
+
+        # IF VDJ THEN:
+        b_D_gene = (len([event.event_type for event in mdl.parms.Event_list if event.nickname == 'd_gene']) > 0)
+
+        if b_D_gene:
+            airr_fields = AIRR_VDJ_rearrangement.list_of_fields()
+            airr_rearrangement_writer = airr.create_rearrangement(flnAIRR_arrangement, fields=airr_fields)
+            for seq_index, sequence in self.fetch_IgorIndexedSeq_records():
+                scenarios_list = self.get_IgorBestScenarios_By_seq_index_IgorModel(seq_index, mdl)
+                for scenario in scenarios_list:
+                    v_best_aln = self.get_best_IgorAlignment_data_By_seq_index("V", seq_index)
+
+                    airr_rearrangement_dict = mdl.get_AIRR_VDJ_rearragement_dict_from_scenario(scenario, sequence,
+                                                                                               v_offset=v_best_aln.offset)
+                    airr_rearrangement_dict['scenario_rank'] = scenario.scenario_rank
+                    airr_rearrangement_dict['scenario_proba_cond_seq'] = scenario.scenario_proba_cond_seq
+                    airr_rearrangement_dict['pgen'] = self.fetch_IgorPgen_By_seq_index(seq_index)[1]
+                    cdr3_record = self.fetch_IgorIndexedCDR3_By_seq_index(seq_index)
+                    airr_rearrangement_dict['junction'] = cdr3_record[3]
+                    airr_rearrangement_dict['junction_aa'] = cdr3_record[4]
+                    airr_rearrangement_writer.write(airr_rearrangement_dict)
+
+            airr_rearrangement_writer.close()
+
+        else:
+            # FIXME: IF VJ THEN:
+            airr_fields = AIRR_VDJ_rearrangement.list_of_fields()
+            airr_rearrangement_writer = airr.create_rearrangement(flnAIRR_arrangement, fields=airr_fields)
 
 
 

@@ -254,3 +254,16 @@ Igor_to_AIRR_dict={
 Igor_dict_id_2_nt = {-1: '-', 0: 'A', 1: 'C', 2: 'G', 3: 'T'}
 Igor_dict_nt_2_id = {v: k for k, v in Igor_dict_id_2_nt.items()}
 Igor_nt_colors_list = ['white', '#fcff92', '#70f970', '#ff99b1', '#4eade1']
+
+
+Igor_dict_order_seq_type = {'V_gene': 0, 'VD_genes': 1, 'D_gene': 2, 'DJ_gene': 3, 'VJ_gene': 4, 'J_gene': 5, 'VDJ_genes': 6, 'Undefined_gene': 7}
+Igor_dict_order_event_type = {'GeneChoice': 0, 'Deletion': 1, 'Insertion': 2, 'DinucMarkov': 3, 'Undefined': 4}
+Igor_dict_order_seq_side = {'Five_prime': 0, 'Three_prime': 1, 'Undefined_side': 2}
+
+"""
+enum Event_type {GeneChoice_t , Deletion_t , Insertion_t , Dinuclmarkov_t,Undefined_t};
+enum Event_safety{VD_safe = 0  , DJ_safe = 1  , VJ_safe = 2 };
+enum Seq_side{ Five_prime =0 , Three_prime = 1 , Undefined_side = 2 };
+enum Seq_type {V_gene_seq = 0 , VD_ins_seq = 1 , D_gene_seq = 2 , DJ_ins_seq = 3 , J_gene_seq = 4 , V    J_ins_seq = 5};
+enum Gene_class{V_gene=0 , VD_genes=1 , D_gene=2 , DJ_genes=3 , J_gene=4 , VJ_genes=5 , VDJ_genes=6 ,    Undefined_gene=7 };
+"""
