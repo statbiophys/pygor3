@@ -39,8 +39,20 @@ To test a correct installation use run_demo command.
 $ igor -run_demo 
 ```
 
+#### Installation of executables
 Additionally, there are some compiled versions of IGoR shipped without IGoR default 
 models [here](https://github.com/statbiophys/IGoR/releases)
+
+Download the appimage, give it executable permissions, and the igor default models
+```console
+$ chmod +x igor-x86_64.AppImage  
+$ wget  https://github.com/statbiophys/IGoR/releases/download/1.4.2/igor_1.4.2_default_models.tar.gz
+$ tar -xvzf igor_1.4.2_default_models.tar.gz
+```
+and set up the paths in pygor's configuration files([Pygor configuration](#pygor-configuration)).
+
+
+
 
 Further details can be found [here](https://statbiophys.github.io/IGoR/)
 
