@@ -31,24 +31,34 @@ class RegisterWriterCommand(click.Command):
         return super(RegisterWriterCommand, self).parse_args(ctx, args)
 
 
+def print_version(ctx, param, value):
+    if not value or ctx.resilient_parsing:
+        return
+    click.echo(str(__version__))
+    ctx.exit()
+
+from pygor3 import __user_data_dir__
+def print_config_path(ctx, param, value):
+    if not value or ctx.resilient_parsing:
+        return
+    click.echo(str(__user_data_dir__))
+    ctx.exit()
+
 # from pygor3.IgorIO import IgorTask
 # pass_igortask = click.make_pass_decorator(IgorTask, ensure=True)
 from pygor3 import __version__
 @click.group()
-@click.version_option(version=__version__)
+@click.option('--version', is_flag=True, callback=print_version,
+              expose_value=False, is_eager=True)
+@click.option('--config', is_flag=True, callback=print_config_path,
+              expose_value=False, is_eager=True)
+# @click.version_option(version=__version__)
 def cli():
     # igortask, igor_species, igor_chain, igor_model, igor_model_path, igor_path_ref_genome, igor_wd, igor_batch, igor_fln_db,
     #     fln_genomicVs, fln_genomicDs, fln_genomicJs, fln_V_gene_CDR3_anchors, fln_J_gene_CDR3_anchors):
     click.echo("--------------------------------")
 
-from pygor3 import __user_data_dir__
-@click.command()
-@click.option('--config', help="Path of config.json file to set IGoR executable and default models.")
-def config():
-    click.echo("pygor configuration directory: " + str(__user_data_dir__) )
 
-
-cli.add_command(config)
 
 #######################################################################
 import functools

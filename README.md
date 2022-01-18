@@ -28,15 +28,23 @@ or by using a docker image.
 ```console
 $ git clone https://github.com/statbiophys/IGoR.git
 $ cd IGoR
-$ ./configure && make && make install
+$ ./configure && make && sudo make install
+``` 
+Alternatively, if no root access then use the prefix to change the installation path
+```console
+$ ./configure --prefix=${HOME}/.local/ && make && make install
 ``` 
 To test a correct installation use run_demo command.
 ```console
 $ igor -run_demo 
 ```
+
+Additionally, there are some compiled versions of IGoR shipped without IGoR default 
+models [here](https://github.com/statbiophys/IGoR/releases)
+
 Further details can be found [here](https://statbiophys.github.io/IGoR/)
 
-#### Installation via Docker Hub
+#### Installation via IGoR's Docker Hub
 Another way to get IGoR is by using a [docker](https://www.docker.com/) image, this option 
 doesn't require to get a c++ compiler or the source code, and can be installed 
 from [this](https://hub.docker.com/r/alfaceor/digor) repository. 
@@ -92,7 +100,12 @@ By default, pygor3 automatically finds the IGoR's path and data directory.
 Therefore, if another version of IGoR or the igor docker container 
 wants to be used pygor3 configuration file can be edited manually.
 
-This file is located in ${HOME}/.local/share/pygor3/config.json
+To get the path of the configuration file
+```console
+$ pygor --config
+```
+
+This file is usually located in ${HOME}/.local/share/pygor3/config.json.
 ```console
 (statbiophys-dev) $ cat ~/.local/share/pygor3/config.json
 ```
