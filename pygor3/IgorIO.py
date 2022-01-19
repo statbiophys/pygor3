@@ -5201,6 +5201,7 @@ class IgorModel:
                             'palindrome_3_end': np.NaN,
                             'gene_segment': str_seq
                             }
+                # FIXME: ValueError: could not broadcast input array from shape (281) into shape (0)
                 df_scenario_aln.loc[len(df_scenario_aln)] = seq_dict
             except Exception as e:
                 raise e
@@ -9295,7 +9296,7 @@ def infer(input_sequences:Union[str, list, pd.DataFrame, np.ndarray, Path],
 
 def evaluate(input_sequences:Union[str, pd.DataFrame, np.ndarray, list, tuple, Path],
              mdl:IgorModel, N_scenarios=None, igor_wd:Union[None, str, Path]=None,
-             airr_format=True, batch_clean=True, use_db=False, fln_output:Union[None, str, Path]=None, b_V_offset=False,
+             airr_format=False, batch_clean=True, use_db=False, fln_output:Union[None, str, Path]=None, b_V_offset=False,
              igor_evaluate_dict_opts:Union[None, dict]=None,
              igor_align_dict_opts:Union[None, dict]=None):
     """
@@ -9423,7 +9424,7 @@ def evaluate(input_sequences:Union[str, pd.DataFrame, np.ndarray, list, tuple, P
 
 
 def evaluate_pgen(input_sequences:Union[str, pd.DataFrame, np.ndarray, Path],
-             mdl:IgorModel, igor_wd=None, batch_clean=True, airr_format=True, pgen_columns:Union[None, list]=None,
+             mdl:IgorModel, igor_wd=None, batch_clean=True, airr_format=False, pgen_columns:Union[None, list]=None,
                   igor_evaluate_dict_options:Union[None,dict]=None):
     """
     Evaluate input sequences with provided model
