@@ -21,8 +21,8 @@ Pygor3 uses IGoR's as a background program to infer, evaluate and infer models.
 First install IGoR, if is not already installed in your system.
 
 ### IGoR Installation
-IGoR can be installed using the github repository [IGoR](https://github.com/statbiophys/IGoR)
-or by using a docker image.
+IGoR can be installed using the github repository [IGoR](https://github.com/statbiophys/IGoR),
+pre-compiled images or by using a docker image.
 
 #### Installation via IGoR's Github
 ```console
@@ -39,13 +39,29 @@ To test a correct installation use run_demo command.
 $ igor -run_demo 
 ```
 
-#### Installation of executables
+#### Installation via pre-compiled versions.
 Additionally, there are some compiled versions of IGoR shipped without IGoR default 
-models [here](https://github.com/statbiophys/IGoR/releases)
+models [here](https://github.com/statbiophys/IGoR/releases).
 
-Download the appimage, give it executable permissions, and the igor default models
+##### GNU-Linux distributions
+Download the appimage, give it executable permissions
 ```console
+$ wget https://github.com/statbiophys/IGoR/releases/download/1.4.2/igor-x86_64.AppImage
 $ chmod +x igor-x86_64.AppImage  
+```
+##### MacOS
+Currently there is only one supported binary for macOS 
+```console
+$ wget https://github.com/statbiophys/IGoR/releases/download/1.4.2/igor-x86_64_macOS_Catalina.app.gz
+$ gunzip igor-x86_64_macOS_Catalina.app.gz 
+$ chmod +x igor-x86_64_macOS_Catalina.app  
+```
+:warning: Autorization need it in order to execute igor-x86_64_macOS_Catalina.app.
+Please follow the instructions [here](https://gadgetstouse.com/blog/2021/02/05/run-unverified-unidentified-developer-apps-on-mac/)
+to authorize it.
+
+and download the igor default models
+```console
 $ wget  https://github.com/statbiophys/IGoR/releases/download/1.4.2/igor_1.4.2_default_models.tar.gz
 $ tar -xvzf igor_1.4.2_default_models.tar.gz
 ```
@@ -82,12 +98,17 @@ To get more information about docker follow [this](https://docs.docker.com/get-s
 
 ### Pygor installation via pip
 
-(Optional, but Recommended) Install [conda](https://docs.conda.io/en/latest/) or 
+(Optional, but recommended) Install [conda](https://docs.conda.io/en/latest/) or 
 [anaconda](https://www.anaconda.com/) and create (or use ) a virtual environment.
 
 ```console
 $ conda create --name statbiophys python=3.7
 $ conda activate statbiophys
+```
+
+(Optional, but recommended) To use the demo notebooks we recommend to use jupyter-lab
+```console
+$ conda install jupyterlab
 ```
 
 ### Pygor Installation via pip from PyPi repository
@@ -121,7 +142,7 @@ This file is usually located in ${HOME}/.local/share/pygor3/config.json.
 ```console
 (statbiophys-dev) $ cat ~/.local/share/pygor3/config.json
 ```
-the variable 'paths.igor_exec' is the executable path and "paths.igor_data" is the directory 
+the variable "paths.igor_exec" is the executable path and "paths.igor_data" is the directory 
 where pygor3 will look for the default IGoR's models.
  
 ```json
@@ -132,8 +153,9 @@ where pygor3 will look for the default IGoR's models.
     "paths.igor_models": null,
     "paths.igor_src": null
 }
-
 ```
+:warning: Notice that paths.igor_exec value should the path of the igor executable FILE be between quotes "/path/to/executable_file" 
+and "paths.igor_data" is the path of the root directory to look for models directory.
 
 ## Command Line Usage
 
@@ -152,16 +174,34 @@ This command creates a directory demo with the following structure, with sequenc
 a new model.
 
 ```console
-demo/
-└── data
-    └── IgL
-        ├── IgL_seqs_memory_Functional.txt
-        ├── IgL_seqs_memory_Nofunctional.txt
-        ├── IgL_seqs_naive_Functional.txt
-        └── IgL_seqs_naive_Nofunctional.txt
+demo
+├── data
+│   └── IgL
+│       ├── IgL_seqs_memory_Functional.txt
+│       ├── IgL_seqs_memory_Nofunctional.txt
+│       ├── IgL_seqs_naive_Functional_small.txt
+│       ├── IgL_seqs_naive_Functional.txt
+│       └── IgL_seqs_naive_Nofunctional.txt
+└── notebooks
+    ├── d00_Configuration.ipynb
+    ├── d01_RunIGoR.ipynb
+    ├── d02_ExploringModels.ipynb
+    ├── d03_EditModel.ipynb
+    ├── d04_InferringNewModel.ipynb
+    ├── d11_Observables_2.ipynb
+    ├── d12_Observables_3.ipynb
+    ├── delete_me
+    │   ├── aligns
+
 ```
 
-Change to directory data/IgL
+To use the demo notebooks change directory to notebooks and run jupyter-lab
+```console
+(statbiophys) $ cd demo/notebooks
+(statbiophys) $ jupyter-lab
+```
+
+For the command line tools change to directory data/IgL
 
 ```console
 (statbiophys) $ cd data/IgL
