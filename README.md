@@ -24,7 +24,15 @@ First install IGoR, if is not already installed in your system.
 IGoR can be installed using the github repository [IGoR](https://github.com/statbiophys/IGoR),
 pre-compiled images or by using a docker image.
 
-#### Installation via IGoR's Github
+#### Installation via IGoR's Github (recommended)
+
+##### Gnu-Linux
+Make sure to have the compilers, for example in ubuntu you can install the following packages
+```console
+$ sudo apt-get install build-essential
+``` 
+Now you can download, compile and install IGoR from source
+
 ```console
 $ git clone https://github.com/statbiophys/IGoR.git
 $ cd IGoR
@@ -38,6 +46,32 @@ To test a correct installation use run_demo command.
 ```console
 $ igor -run_demo 
 ```
+##### MacOS
+If you don't have gnu gcc compiler, please install it with [brew](https://brew.sh/).
+First install brew with:
+```console
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+Install gcc
+```console
+$ brew install gcc@6 
+```
+
+Now you can download, compile and install IGoR 
+```console
+$ git clone https://github.com/statbiophys/IGoR.git
+$ cd IGoR
+$ ./configure CC=gcc-6 CXX=g++-6 && make && sudo make install
+``` 
+Alternatively, if no root access then use the prefix to change the installation path
+```console
+$ ./configure CC=gcc-6 CXX=g++-6 --prefix=${HOME}/.local/ && make && make install
+``` 
+To test a correct installation use run_demo command.
+```console
+$ igor -run_demo 
+```
+
 
 #### Installation via pre-compiled versions.
 Additionally, there are some compiled versions of IGoR shipped without IGoR default 
@@ -98,6 +132,7 @@ To get more information about docker follow [this](https://docs.docker.com/get-s
 
 ### Pygor installation via pip
 
+#### Enviroment setup
 (Optional, but recommended) Install [conda](https://docs.conda.io/en/latest/) or 
 [anaconda](https://www.anaconda.com/) and create (or use ) a virtual environment.
 
@@ -108,10 +143,10 @@ $ conda activate statbiophys
 
 (Optional, but recommended) To use the demo notebooks we recommend to use jupyter-lab
 ```console
-$ conda install jupyterlab
+(statbiophys) $ conda install jupyterlab
 ```
 
-### Pygor Installation via pip from PyPi repository
+#### Pygor Installation via pip from PyPi repository
 Pygor can be installed from [PyPi](https://pypi.org/) repository
 using the package manager [pip](https://pip.pypa.io/en/stable/)
 
@@ -119,7 +154,7 @@ using the package manager [pip](https://pip.pypa.io/en/stable/)
 (statbiophys) $ pip install pygor3 
 ```
 
-### Pygor Installation via Github
+#### Pygor Installation via Github
 For the most version of pygor (from Github)    
  ```console
 (statbiophys) $ git clone https://github.com/statbiophys/pygor3.git
@@ -127,11 +162,10 @@ For the most version of pygor (from Github)
 (statbiophys) $ pip install -e .
  ```
 
-### (Optional) Pygor configuration
-This configuration is just to personalize the paths that pygor3 looks for IGoR.
-By default, pygor3 automatically finds the IGoR's path and data directory.
-Therefore, if another version of IGoR or the igor docker container 
-wants to be used pygor3 configuration file can be edited manually.
+#### (Optional) Pygor configuration
+If installation from sources was successful pygor3 should recognize automatically
+the binary executable ("paths.igor_exec") and the default data directory("paths.igor_data").
+If not you could use this configuration to personalize the paths that pygor3 looks for IGoR.
 
 To get the path of the configuration file
 ```console
@@ -188,10 +222,6 @@ demo
     ├── d02_ExploringModels.ipynb
     ├── d03_EditModel.ipynb
     ├── d04_InferringNewModel.ipynb
-    ├── d11_Observables_2.ipynb
-    ├── d12_Observables_3.ipynb
-    ├── delete_me
-    │   ├── aligns
 
 ```
 
