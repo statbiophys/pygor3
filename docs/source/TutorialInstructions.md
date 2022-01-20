@@ -5,8 +5,9 @@
 ### Gnu-Linux
 ```console
 $ sudo apt-get install build-essential
-$ git clone https://github.com/statbiophys/IGoR.git
-$ cd IGoR
+$ wget https://github.com/statbiophys/IGoR/releases/download/1.4.2/igor_1.4.2.zip
+$ unzip igor_1.4.2.zip
+$ cd igor_1.4.2
 $ ./configure && make && sudo make install
 ```
 
@@ -22,8 +23,9 @@ $ ./configure --prefix=${HOME}/.local/ && make && make install
 ```console
 $ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 $ brew install gcc@6 
-$ git clone https://github.com/statbiophys/IGoR.git
-$ cd IGoR
+$ curl -LO https://github.com/statbiophys/IGoR/releases/download/1.4.2/igor_1.4.2.zip -o igor_1.4.2.zip
+$ unzip igor_1.4.2.zip
+$ cd igor_1.4.2/
 $ ./configure CC=gcc-6 CXX=g++-6 && make && sudo make install
 ``` 
 If don't have root access replace last command by
@@ -45,7 +47,7 @@ $ conda activate statbiophys
 (statbiophys) $ pip install pygor3 
 (statbiophys) $ pygor demo-get-data
 (statbiophys) $ cd demo
-(statbiophys) $ jupyterlab
+(statbiophys) $ jupyter-lab
 ```
 
 
