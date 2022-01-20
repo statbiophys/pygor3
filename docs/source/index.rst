@@ -11,6 +11,7 @@ Welcome to pygor3's documentation!
    :maxdepth: 2
 
    readme_link
+   tutorial_2022
    pygor3_tutorial
    pygor3
    
