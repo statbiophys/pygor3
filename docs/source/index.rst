@@ -32,7 +32,7 @@ Welcome to pygor3's documentation!
    .. toctree::
    
       .. automodule:: pygor3.IgorIO
-         :members:
+
       
       .. automodule:: pygor3.IgorSqliteDB
          :members:
