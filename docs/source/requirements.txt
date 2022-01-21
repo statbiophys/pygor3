@@ -17,7 +17,7 @@ sonnia==0.0.8
 Sphinx==4.0.2
 sphinx-markdown-tables==0.0.15
 sphinx-rtd-theme==0.5.2
-tensorflow==2.6.0
+tensorflow==2.6.1
 tensorflow-estimator==2.6.0
 urllib3==1.26.5
 xarray==0.18.2
