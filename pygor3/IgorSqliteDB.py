@@ -890,6 +890,7 @@ class IgorSqliteDB:
         :param csvline:
         """
         # seq_index;v_anchor;j_anchor;CDR3nt;CDR3aa
+        # seq_index;v_anchor;j_anchor;CDR3nt;CDR3aa;v_call;j_call
         sql = ''' INSERT INTO IgorIndexedCDR3(seq_index,v_anchor,j_anchor,CDR3,CDR3_aa)
                   VALUES(?,?,?,?,?) '''
 
@@ -900,9 +901,10 @@ class IgorSqliteDB:
         data = tuple(csvline.split(";"))
         # if len(data) == 2:
         try:
-            if len(data) == 5:
+            #if len(data) == 5:
+            if len(data) == 7:
                 # cur = self.conn.cursor()
-                cur.execute(sql, data)
+                cur.execute(sql, data[:-2])
                 # self.conn.commit()
         except sqlite3.Error as e:
             print(data)
