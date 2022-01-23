@@ -3720,7 +3720,7 @@ class IgorModel:
                 if l_ins > 0:
                     return H_p_ss + (l_ins - 1) * matmul_H_dinucl_p_ss
                 elif l_ins == 0:
-                    return H_p_ss
+                    return H_p_ss # FIXME: THIS SHOULD BE ZERO?
                 else:
                     return None
 
@@ -9512,6 +9512,221 @@ def get_IgorRefGenome_VJ_from_IMGT(imgt_species, imgt_chain):
 
 RefGenome = IgorRefGenome
 Model = IgorModel
+
+### Entropy functions for model comparision
+
+def Q_comparable_models(model_P:IgorModel, model_Q:IgorModel):
+    # FIXME: IN DEV FINISH METHOD
+    # TODO: VERIFY IF BOTH MODELS HAVE THE SAME EVENTS NAMES, SAME NETWORK AND SAME DIMENSIONS BY EVENT.
+    """
+    Return True if models have the same event nicknames, same network and parms have the same dimensions.
+    """
+    return True
+
+
+def get_cross_entropy_event(mdl_A:IgorModel, mdl_B:IgorModel, event_nickname):
+    """
+    Returns cross entropy of models P and Q for event event_nickname.
+    H(P, Q) = - \sum_{x, y} p(x, y) \log_2 q(x|y)
+    If event has parents it returns the conditional
+
+    entropy of the event with this parents
+    H(X|Y) = - \sum_{x,y} p(x,y) \log_2{p(x|y)}
+    :param mdl_A: IgorModel A
+    :param mdl_B: IgorModel B
+    :param event_nickname: Event nickname to calculate entropy
+    """
+    try:
+        da_CP_event_A = mdl_A.Pconditionals[event_nickname]
+        da_CP_event_B = mdl_B.Pconditionals[event_nickname]
+
+        da_log2_event_B = xr.zeros_like(da_CP_event_B)
+        da_log2_event_B.values = np.nan_to_num(np.log2(da_CP_event_B.values), neginf=0, nan=0)
+
+        if da_CP_event_A.attrs['event_type'] == 'DinucMarkov':
+            H_event = -(da_CP_event_A * da_log2_event_B).sum(dim='y')
+            return H_event
+
+        elif (len(da_CP_event_A.attrs['parents']) > 0):
+            H_event_given_parents = -(da_CP_event_A * da_log2_event_B).sum(dim=event_nickname)
+            P_joint_A = mdl_A.get_P_joint(da_CP_event_A.attrs['parents'])
+            H_event_conditional = (P_joint_A * H_event_given_parents).sum()
+            return H_event_conditional
+        else:
+            H_event = -(da_CP_event_A * da_log2_event_B).sum(dim=event_nickname)
+            return H_event
+    except Exception as e:
+        raise e
+
+
+def get_df_GeneChoice_cross_entropy_contribution(mdl_A:IgorModel, mdl_B:IgorModel):
+    """
+    Return pandas dataframe cross entropy decomposition for GeneChoice
+    """
+    list_GeneChoice_cross_entropy = list()
+    for event_GeneChoice_nickname in mdl_A.event_GeneChoice_nickname_list:
+        list_GeneChoice_cross_entropy.append(get_cross_entropy_event(mdl_A, mdl_B, event_GeneChoice_nickname))
+    data_tmp = {
+        'event_nickname': mdl_A.event_GeneChoice_nickname_list,
+        'event_type': ['GeneChoice' for ev_nick in mdl_A.event_GeneChoice_nickname_list],
+        'seq_type': [mdl_A.Pconditionals[ev_nick].attrs['seq_type'] for ev_nick in mdl_A.event_GeneChoice_nickname_list],
+        'entropy': list_GeneChoice_cross_entropy
+    }
+    df_GeneChoice_entropy = pd.DataFrame(data_tmp)
+    df_GeneChoice_entropy['entropy'] = df_GeneChoice_entropy['entropy'].astype(float)
+    return df_GeneChoice_entropy
+
+def get_df_Deletion_cross_entropy_contribution(mdl_A:IgorModel, mdl_B:IgorModel):
+    """
+    Return pandas dataframe entropy decomposition for Deletions
+    """
+    list_Deletion_cross_entropy = list()
+    for event_Deletion_nickname in mdl_A.event_Deletion_nickname_list:
+        list_Deletion_cross_entropy.append(get_cross_entropy_event(mdl_A, mdl_B, event_Deletion_nickname))
+
+    data_tmp = {
+        'event_nickname': mdl_A.event_Deletion_nickname_list,
+        'event_type': ['Deletion' for ev_nick in mdl_A.event_Deletion_nickname_list],
+        'seq_type': [mdl_A.Pconditionals[ev_nick].attrs['seq_type'] for ev_nick in mdl_A.event_Deletion_nickname_list],
+        'entropy': list_Deletion_cross_entropy
+    }
+    df_Deletion_cross_entropy = pd.DataFrame(data_tmp)
+    df_Deletion_cross_entropy['entropy'] = df_Deletion_cross_entropy['entropy'].astype(float)
+    return df_Deletion_cross_entropy
+
+def get_conditional_cross_entropy_dinucl_function_l_ins(mdl_A:IgorModel, mdl_B:IgorModel, event_nickname_dinucl:str):
+    """
+    Return a function that depends on insertion length H(P_{m_i|l}) = H(p_{ss}) - (l-1) \sum_m p_{ss}(m) \sum_n T(n|m) \log2{T(n|m)}
+    where p_{ss} is the stationary state calculated for T (eigenvector for eigenvalue 1)
+    T(n|m) jump matrix from m to n, where m and n are nucleotides.
+    """
+    da_dinucl_A = mdl_A.Pconditionals[event_nickname_dinucl]
+    da_dinucl_B = mdl_B.Pconditionals[event_nickname_dinucl]
+    if da_dinucl_A.attrs['event_type'] == 'DinucMarkov':
+        # 1. Calculate the stationary distribution
+        p_ss_A = np.real(get_P_stationary_state_dinucl(da_dinucl_A))
+        p_ss_B = np.real(get_P_stationary_state_dinucl(da_dinucl_B))
+        H_dinucl_A_B = get_cross_entropy_event(mdl_A, mdl_B, event_nickname_dinucl)
+
+        # 2. Calculate the entropy of the stationary distribution
+        # get_entropy_event(event_nickname_dinucl)
+        H_p_ss_A_B = -(p_ss_A * np.log2(p_ss_B)).sum()
+
+        # 3. Calculate the entropic contributions of lenght l to the entropy
+        matmul_H_dinucl_p_ss_A_B = np.matmul(H_dinucl_A_B.values, p_ss_A)
+        def tmp_function(l_ins):
+            # 4. Return  H(P_{m_i}|l)
+            if l_ins > 0:
+                return H_p_ss_A_B + (l_ins - 1) * matmul_H_dinucl_p_ss_A_B
+            elif l_ins == 0:
+                return H_p_ss_A_B
+            else:
+                return None
+
+        return np.vectorize(tmp_function)
+    else:
+        return None
+
+def get_df_Insertion_cross_entropy_contribution(mdl_A:IgorModel, mdl_B:IgorModel):
+    # FIXME: IN DEV FINISH METHOD
+    """
+    H(P({m_i})) = H(P_{ins}) - \sum_l P_{ins}(l) \sum_{m_i |l} H( P(m_i |l) )
+    Return entropy contributions of insertions considering the diversity of nucleotides.
+    """
+    # 1. Find the Insertions events
+    list_Insertion_events_nickname = list()  # vd_ins, dj_ins
+    list_DinucMarkov_events_nickname = list()
+    for event_nickname in mdl_A.Pconditionals.keys():
+        if mdl_A.Pconditionals[event_nickname].attrs['event_type'] == 'Insertion':
+            list_Insertion_events_nickname.append(event_nickname)
+        elif mdl_A.Pconditionals[event_nickname].attrs['event_type'] == 'DinucMarkov':
+            list_DinucMarkov_events_nickname.append(event_nickname)
+
+    # 2. Associate DinucMarkov with Insertion event by seq_type
+    dict_Insertion_DinucMarkov = dict()  # dict_Insertion_DinucMarkov['vd_ins'] =  vd_dinucl
+    for insertion_event_nickname in list_Insertion_events_nickname:
+        insertion_seq_type = mdl_A.Pconditionals[insertion_event_nickname].attrs['seq_type']
+        for dinucl_event_nickname in list_DinucMarkov_events_nickname:
+            if insertion_seq_type == mdl_A.Pconditionals[dinucl_event_nickname].attrs['seq_type']:
+                dict_Insertion_DinucMarkov[insertion_event_nickname] = dinucl_event_nickname
+
+    # 3. Calculate the stationary state of DinucMarkov events
+    # H(P({m_i})) = H(P_{ins}) - \sum_l P_{ins}(l) \sum_{m_i |l} H( P(m_i |l) )
+
+    # 4. Finally Get the entropic contribution
+    list_Insertion_cross_entropy = list()
+    for insertion_event_nickname in list_Insertion_events_nickname:
+        #FIXME: HOW TO GENERALIZE THIS FUNCTION?
+        vf_H_dinucl_given_l = get_conditional_cross_entropy_dinucl_function_l_ins(mdl_A, mdl_B,
+            dict_Insertion_DinucMarkov[insertion_event_nickname])
+        H_P_mi_l = vf_H_dinucl_given_l(mdl_A.parms[insertion_event_nickname]['value'].values)
+        # FIXME: WHICH ONE IS THE BEST Pmarginal or Pconditional?
+        # mdl.get_entropy_event('vd_ins') + np.dot(H_P_mi_l, mdl['vd_ins'])
+        cross_entropy_tmp = get_cross_entropy_event(mdl_A, mdl_B, insertion_event_nickname)
+        cross_entropy_tmp = cross_entropy_tmp.values + np.dot(H_P_mi_l, mdl_A.Pmarginal[insertion_event_nickname].values)
+        list_Insertion_cross_entropy.append(cross_entropy_tmp)
+
+    data_tmp = {
+        'event_nickname': list_Insertion_events_nickname,
+        'event_type': ['Insertion' for ev_nick in list_Insertion_events_nickname],
+        'seq_type': [mdl_A.Pconditionals[ev_nick].attrs['seq_type'] for ev_nick in mdl_A.event_Insertion_nickname_list],
+        'entropy': list_Insertion_cross_entropy
+    }
+    # print("list_Insertion_entropy: ", list_Insertion_entropy, type(list_Insertion_entropy[0]))
+    df_Insertion_cross_entropy = pd.DataFrame(data_tmp)
+    df_Insertion_cross_entropy['entropy'] = df_Insertion_cross_entropy['entropy'].astype(float)
+
+    return df_Insertion_cross_entropy
+
+def get_df_cross_entropy(mdl_P:IgorModel, mdl_Q:IgorModel):
+    """
+    Compute cross entropy between two IgorModels
+    H(P, Q) = - \sum_x P(x) \log_2 Q(x)
+    :param mdl_P: IgorModel P
+    :param mdl_Q: IgorModel Q
+    """
+    try:
+        # TODO: VERIFY IF BOTH MODELS HAVE THE SAME EVENTS NAMES, SAME NETWORK AND SAME DIMENSIONS BY EVENT.
+        np.seterr(divide='ignore')
+        if Q_comparable_models(mdl_P, mdl_Q):
+            # calculate entropy of V, D and J Genechoice
+            df_GeneChoice_cross_entropy = get_df_GeneChoice_cross_entropy_contribution(mdl_P, mdl_Q)
+
+            # calculate deletion entropy
+            df_Deletion_cross_entropy = get_df_Deletion_cross_entropy_contribution(mdl_P, mdl_Q)
+
+            # calculate insertion entropy
+            df_Insertion_cross_entropy = get_df_Insertion_cross_entropy_contribution(mdl_P, mdl_Q)
+
+            df_cross_entropy_decomposition = pd.concat([df_GeneChoice_cross_entropy, df_Insertion_cross_entropy, df_Deletion_cross_entropy])
+            df_cross_entropy_decomposition.reset_index(inplace=True)
+
+            return df_cross_entropy_decomposition.drop(columns='index')
+        else:
+            print('Models cannot be comparable')
+            return None
+    except Exception as e:
+        raise e
+    finally:
+        np.seterr(divide='warn')
+
+
+
+# TODO: DEFINE AN ADDITION OPERATION FOR IGOR MODELS
+def mean_IgorModel(mdl_A:IgorModel, mdl_B:IgorModel):
+    # FIXME: IN DEV FINISH METHOD
+    """Return a new model that has the mean probability of model A (mdl_A) and model B (mdl_B)
+    :param mdl_A: IgorModel A
+    :param mdl_B: IgorModel B
+    """
+
+    try:
+        if Q_comparable_models(mdl_A, mdl_B):
+            raise Exception("FIXME: mean_IgorModel IN DEV, unfinished method")
+        else:
+            raise Exception("FIXME: mean_IgorModel IN DEV, unfinished method")
+    except Exception as e:
+        raise e
 
 ################### SONIA METHODS ############ FIXME: CHANGE IT TO A BETTER LOCATION
 try:
