@@ -28,6 +28,8 @@ $ unzip igor_1.4.2.zip
 $ cd igor_1.4.2/
 $ ./configure CC=gcc-6 CXX=g++-6 && make && sudo make install
 ``` 
+If gcc-6 is not offered by your version of homebrew, try a different version (preferably the lowest version above gcc-6).
+
 If don't have root access replace last command by
 ```console
 $ ./configure CC=gcc-6 CXX=g++-6 --prefix=${HOME}/.local/ && make && make install
@@ -49,5 +51,38 @@ $ conda activate statbiophys
 (statbiophys) $ cd demo
 (statbiophys) $ jupyter-lab
 ```
+
+After installation, from jupyter-lab please open the directory 
+notebooks and execute Tutorial.ipynb notebook.
+
+If pygor3 did not recognize your IGoR installation please edit
+pygor3 configuration file (config.json) located in the directory given the command:
+```console
+$ (statbiophys) $ pygor --config
+``` 
+and edit the location of IGoR's executable
+and the root of the models directory.
+
+If you have a local installation, this is most likely something like $HOME/.local/bin/igor and $HOME/.local/share/igor.
+So edit the file as follows:
+
+```console
+{
+    "paths.igor_prefix": null,
+    "paths.igor_exec": "/your/home/path/.local/bin/igor",
+    "paths.igor_data": "/your/home/path/.local/share/igor",
+    "paths.igor_models": null,
+    "paths.igor_src": null
+}
+```
+
+where /your/home/path is given by
+```console
+echo $HOME
+```
+
+If the installation is global, look for them in e.g. /usr/local/bin and /usr/local/share.
+
+
 
 
