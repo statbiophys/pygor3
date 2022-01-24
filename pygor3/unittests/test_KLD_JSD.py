@@ -68,9 +68,17 @@ class MyTestCase(unittest.TestCase):
         print("DKL.sum: ", df_DKL_divergence.sum())
 
     def test_JSD(self):
+        # FIXME: IN DEV
         mdl_hb = get_default_IgorModel('human', 'beta')
         mdl_0 = IgorModel.make_default_from_Dataframe_dict(mdl_hb.genomic_dataframe_dict)
-        mean_IgorModel(mdl_hb, mdl_0)
+        print( 0.5*(mdl_hb['v_choice'] + mdl_0['v_choice']).sum() )
+
+        print(mdl_hb['j_choice'].sum(dim='j_choice'))
+        print( 0.5*(mdl_hb['j_choice'] + mdl_0['j_choice']) )
+        # print(0.5 * (mdl_hb['j_choice'] + mdl_0['j_choice']).sum())
+
+        # mean_IgorModel(mdl_hb, mdl_0)
+
 
 if __name__ == '__main__':
     unittest.main()
