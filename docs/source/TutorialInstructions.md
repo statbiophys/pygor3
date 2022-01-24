@@ -88,7 +88,8 @@ If the installation is global, look for them in e.g. /usr/local/bin and /usr/loc
 This tutorial can be run remotely (without local installation in your computer) by
 using colab.
 
-First, open this link https://colab.research.google.com/github/statbiophys/pygor3/blob/master/pygor3/demo/notebooks/Tutorial.ipynb
+First, open this link 
+[Tutorial.ipynb](https://colab.research.google.com/github/statbiophys/pygor3/blob/master/pygor3/demo/notebooks/Tutorial.ipynb)
 in your browser and copy the following commands 
 
 ```console
