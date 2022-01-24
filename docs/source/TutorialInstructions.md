@@ -83,6 +83,50 @@ echo $HOME
 
 If the installation is global, look for them in e.g. /usr/local/bin and /usr/local/share.
 
+## Pygor Colab
 
+This tutorial can be run remotely (without local installation in your computer) by
+using colab.
+
+First, open this link https://colab.research.google.com/github/statbiophys/pygor3/blob/master/pygor3/demo/notebooks/Tutorial.ipynb
+in your browser and copy the following commands 
+
+```console
+# 1. Install IGoR
+!apt-get install build-essential
+!wget https://github.com/statbiophys/IGoR/releases/download/1.4.2/igor_1.4.2.zip
+!unzip igor_1.4.2.zip
+!cd igor_1.4.2 && touch * && ./configure && make && make install
+
+# 2. Install pygor3
+!pip install pygor3
+
+# 3. Configure pygor (inside a notebook case)
+path_pygor_config_dir=!pygor --config
+path_pygor_config_dir=path_pygor_config_dir[0]
+fln_pygor_config_dir = path_pygor_config_dir + "/config.json"
+fln_pygor_config_dir
+
+!cat {fln_pygor_config_dir}
+
+str_config_json="""
+{
+    "paths.igor_prefix": null,
+    "paths.igor_exec": "LD_PRELOAD=/usr/lib/libtcmalloc_minimal.so.4 /usr/local/bin/igor",
+    "paths.igor_data": "/usr/local/share/igor",
+    "paths.igor_models": null,
+    "paths.igor_src": null
+}
+"""
+with open(fln_pygor_config_dir, 'w') as ofile:
+  ofile.write(str_config_json)
+
+# 4. Download files for tutorial
+!wget https://github.com/statbiophys/pygor3/raw/master/pygor3/demo/notebooks/HIP00110.tsv.gz
+
+```
+
+in the first cell and execute it to install IGoR/pygor in the remote machine.
+![alt text](./pygor_tutorial_screenshot.png)
 
 
