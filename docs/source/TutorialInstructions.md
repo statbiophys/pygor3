@@ -63,7 +63,7 @@ $ (statbiophys) $ pygor --config
 and edit the location of IGoR's executable
 and the root of the models directory.
 
-If you have a local installation, this is most likely something like $HOME/.local/bin/igor and $HOME/.local/share/igor.
+If you have a local installation, this is most likely something like \${HOME}/.local/bin/igor and \${HOME}/.local/share/igor.
 So edit the file as follows:
 
 ```console
@@ -78,7 +78,7 @@ So edit the file as follows:
 
 where /your/home/path is given by
 ```console
-echo $HOME
+echo ${HOME}
 ```
 
 If the installation is global, look for them in e.g. /usr/local/bin and /usr/local/share.
