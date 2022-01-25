@@ -85,52 +85,15 @@ If the installation is global, look for them in e.g. /usr/local/bin and /usr/loc
 
 ## Pygor Colab
 
-This tutorial can be run remotely (without local installation in your computer) by
-using colab.
+This tutorial can be run remotely (without any installation in your system) by
+using this notebook [Tutorial_2022_01_25.ipynb](https://colab.research.google.com/github/statbiophys/pygor3/blob/master/tmp/Tutorial_2022_01_25.ipynb)
+ in google colab. 
+Execute the first cell and and click in "Run anyway" to the pop up message
 
-First, open this link 
-[Tutorial.ipynb](https://colab.research.google.com/github/statbiophys/pygor3/blob/master/pygor3/demo/notebooks/Tutorial.ipynb)
-in your browser and copy the following commands 
+![alt text](./Colab_screenshot_01.png)
 
-```python
-# 1. Install IGoR
-!apt-get install build-essential
-!wget https://github.com/statbiophys/IGoR/releases/download/1.4.2/igor_1.4.2.zip
-!unzip igor_1.4.2.zip
-!cd igor_1.4.2 && touch * && ./configure && make && make install
+To start the installation in the remote machine
+![alt text](./Colab_screenshot_02.png)
 
-# 2. Install pygor3
-!pip install pygor3
-
-# 3. Configure pygor (inside a notebook case)
-path_pygor_config_dir=!pygor --config
-path_pygor_config_dir=path_pygor_config_dir[0]
-fln_pygor_config_dir = path_pygor_config_dir + "/config.json"
-fln_pygor_config_dir
-
-!cat {fln_pygor_config_dir}
-
-str_config_json="""
-{
-    "paths.igor_prefix": null,
-    "paths.igor_exec": "LD_PRELOAD=/usr/lib/libtcmalloc_minimal.so.4 /usr/local/bin/igor",
-    "paths.igor_data": "/usr/local/share/igor",
-    "paths.igor_models": null,
-    "paths.igor_src": null
-}
-"""
-with open(fln_pygor_config_dir, 'w') as ofile:
-  ofile.write(str_config_json)
-
-# 4. Download files for tutorial
-!wget https://github.com/statbiophys/pygor3/raw/master/pygor3/demo/notebooks/HIP00110.tsv.gz
-
-# 5. Execute this notebook cell in colab to compile and install IGoR and pygor in this virtual machine
-
-
-```
-
-in the first cell and execute it to install IGoR/pygor in the remote machine.
-![alt text](./pygor_tutorial_screenshot.png)
 
 
