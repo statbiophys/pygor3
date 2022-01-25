@@ -92,7 +92,7 @@ First, open this link
 [Tutorial.ipynb](https://colab.research.google.com/github/statbiophys/pygor3/blob/master/pygor3/demo/notebooks/Tutorial.ipynb)
 in your browser and copy the following commands 
 
-```console
+```shell script
 # 1. Install IGoR
 !apt-get install build-essential
 !wget https://github.com/statbiophys/IGoR/releases/download/1.4.2/igor_1.4.2.zip
