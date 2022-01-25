@@ -125,6 +125,9 @@ with open(fln_pygor_config_dir, 'w') as ofile:
 # 4. Download files for tutorial
 !wget https://github.com/statbiophys/pygor3/raw/master/pygor3/demo/notebooks/HIP00110.tsv.gz
 
+# 5. Execute this notebook cell in colab to compile and install IGoR and pygor in this virtual machine
+
+
 ```
 
 in the first cell and execute it to install IGoR/pygor in the remote machine.
