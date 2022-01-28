@@ -2632,6 +2632,10 @@ class IgorModel_Marginals:
 
     def __getitem__(self, item):
         return self.marginals_dict[item]
+
+    def __setitem__(self, key, value):
+        self.marginals_dict[key] = value
+
     #  @d_3_del
     #  $Dim[3,21,21]
     #  #[d_gene,0],[d_5_del,0]
@@ -2944,6 +2948,17 @@ class IgorModel:
 
     def __getitem__(self, key):
         return self.xdata[key]
+
+
+    def __setitem__(self, event_nickname:str, da_CP:xr.DataArray):
+        try:
+            print('******** __setitem__ called')
+            self.xdata[event_nickname] = da_CP
+            self._update_IgorModel_Marginals_event(event_nickname)
+            # TODO: CHECK THE MODEL PARMS AND THE NETWORK STRUCTURE
+        except Exception as e:
+            raise e
+
 
     def __str__(self):
         return ".xdata" + str(self.get_events_nicknames_list())
@@ -6001,6 +6016,17 @@ class IgorModel:
         self.parms.remove_Edge(parent_nickname, child_nickname)
         da_child = self.xdata[child_nickname]
         da_child.sum()
+
+    # TODO: FROM XDATA TO parms and marginals
+    def _update_IgorModel_Marginals_event(self, event_nickname):
+        if event_nickname in self.event_DinucMarkov_nickname_list:
+            self.marginals[event_nickname] = self.xdata[event_nickname].values.flatten()
+        else:
+            self.marginals[event_nickname] = self.xdata[event_nickname].values
+
+    def _update_IgorModel_Marginals_from_xdata(self):
+        for event_nickname in self.xdata.keys():
+            self._update_IgorModel_Marginals_event(event_nickname)
 
 
 
@@ -9713,6 +9739,7 @@ def get_df_cross_entropy(mdl_P:IgorModel, mdl_Q:IgorModel):
 
 
 # TODO: DEFINE AN ADDITION OPERATION FOR IGOR MODELS
+# FIXME: IN DEV FINISH METHOD
 def mean_IgorModel(mdl_A:IgorModel, mdl_B:IgorModel):
     # FIXME: IN DEV FINISH METHOD
     """Return a new model that has the mean probability of model A (mdl_A) and model B (mdl_B)

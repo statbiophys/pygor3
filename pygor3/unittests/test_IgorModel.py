@@ -4,6 +4,7 @@ from pygor3 import *
 import time
 import subprocess
 import copy
+import xarray as xr
 
 str_mock_VDJ_fln_genomicVs = \
 """>TRBV1*01
@@ -696,6 +697,34 @@ class MyTestCase(unittest.TestCase):
 
 
     def test_IgorModel_name_change(self):
+        pass
+
+    def test_IgorModel_update_xdata(self):
+
+        mdl = get_default_IgorModel("human", "beta")
+        print(mdl['v_choice'])
+        aaa = (mdl.marginals['v_choice'] - mdl['v_choice'].values).sum()
+        print("aaa: ", aaa)
+        da_v_choice = mdl['v_choice'].copy()
+        da_v_choice.values = np.ones_like(mdl['v_choice'].values)
+        da_v_choice.values = da_v_choice.values / da_v_choice.values.sum()
+        mdl['v_choice'].values = da_v_choice.values
+        print(mdl['v_choice'])
+        print('-----------------------')
+        print(mdl.marginals['v_choice'])
+
+        # da_v_choice.values = np.ones_like(mdl['v_choice'].values)
+        # da_v_choice.values = da_v_choice.values / da_v_choice.values.sum()
+        # print((da_v_choice - mdl['v_choice'].values).sum())
+        # print(type( mdl.marginals['v_choice']) )
+        #
+        # print('^'*40)
+        # print(mdl['vd_dinucl'].values.flatten())
+        # print(mdl.marginals['vd_dinucl'])
+        # mdl.marginals['vd_dinucl'] = np.ones_like(mdl.marginals['vd_dinucl'])/4
+        # print(mdl.marginals['vd_dinucl'])
+        #
+
         pass
 
     """
