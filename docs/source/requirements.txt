@@ -8,7 +8,7 @@ hvplot==0.7.3
 importlib_resources==5.4.0
 matplotlib==3.4.2
 networkx==2.5.1
-numpy==1.19.5
+numpy==1.22.0
 packaging==20.9
 pandas==1.2.4
 panel==0.12.6
