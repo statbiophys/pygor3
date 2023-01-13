@@ -33,8 +33,6 @@ $ sudo apt-get install build-essential
 ``` 
 Now you can [download](https://github.com/statbiophys/IGoR/releases), compile and install IGoR. Unzip the release, and from the unpacked directory run:
 ```console
-$ git clone https://github.com/statbiophys/IGoR.git
-$ cd IGoR
 $ ./configure && make && sudo make install
 ``` 
 Alternatively, if no root access then use the prefix to change the installation path
