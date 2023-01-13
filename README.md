@@ -31,8 +31,7 @@ Make sure to have the compilers, for example in ubuntu you can install the follo
 ```console
 $ sudo apt-get install build-essential
 ``` 
-Now you can download, compile and install IGoR from source
-
+Now you can [download](https://github.com/statbiophys/IGoR/releases), compile and install IGoR. Unzip the release, and from the unpacked directory run:
 ```console
 $ git clone https://github.com/statbiophys/IGoR.git
 $ cd IGoR
