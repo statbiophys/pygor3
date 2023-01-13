@@ -57,11 +57,8 @@ Install gcc
 $ brew install gcc@6 
 ```
 
-Now you can [download](https://github.com/statbiophys/IGoR/releases), compile and install IGoR 
+Now you can [download](https://github.com/statbiophys/IGoR/releases), compile and install IGoR. Unzip the release, and from the unpacked directory run:
 ```console
-$ /bin/bash -c "$(curl -fsSL https://github.com/statbiophys/IGoR/releases/download/1.4.2/igor_1.4.2.zip)"
-$ git clone https://github.com/statbiophys/IGoR.git
-$ cd IGoR
 $ ./configure CC=gcc-6 CXX=g++-6 && make && sudo make install
 ``` 
 Alternatively, if no root access then use the prefix to change the installation path
