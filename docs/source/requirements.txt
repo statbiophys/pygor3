@@ -12,7 +12,7 @@ numpy==1.19.5
 packaging==20.9
 pandas==1.2.4
 panel==0.12.6
-requests==2.25.1
+requests==2.31.0
 sonia==0.0.45
 tqdm==4.61.1
 xarray==0.18.2
